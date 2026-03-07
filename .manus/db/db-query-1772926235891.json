@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM stock_snapshots WHERE symbol = 'SUKOON' AND exchange = 'DFM';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute DELETE FROM stock_snapshots WHERE symbol = 'SUKOON' AND exchange = 'DFM';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1503
+}

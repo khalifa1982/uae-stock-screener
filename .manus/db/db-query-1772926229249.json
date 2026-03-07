@@ -1,0 +1,250 @@
+{
+  "query": "SELECT symbol, exchange FROM stock_snapshots WHERE exchange = 'DFM' ORDER BY symbol;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute SELECT symbol, exchange FROM stock_snapshots WHERE exchange = 'DFM' ORDER BY symbol;",
+  "rows": [
+    {
+      "symbol": "AIRARABIA",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "AJMANBANK",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ALANSARI",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ALEC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ALFIRDOUS",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ALRAMZ",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ALSALAMSUDAN",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "AMAN",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "AMANAT",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "AMCREIT",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "AMLAK",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ARMX",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "BHMCAPITAL",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "CBD",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DEWA",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DEYAAR",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DFM",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DIB",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DIC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DIN",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DRC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DSI",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DTC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DU",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "DUBAIRESI",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EIBANK",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EKTTITAB",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EMAAR",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EMAARDEV",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EMIRATESNBD",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "EMPOWER",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ERC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "GFH",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "GULFNAV",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "IFA",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "ITHMR",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "MASQ",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "MKHZN",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "NCC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "NGI",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "NIH",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "NIND",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "PARKIN",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SALAM_BAH",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SALAMA",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SALIK",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SHUAA",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SPINNEYS",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SUKOON",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "SUKOONTAKAFL",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "TAALEEM",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "TABREED",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "TAKAFUL-EM",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "TALABAT",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "TECOM",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "UFC",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "UNIKAI",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "UNIONCOOP",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "UPP",
+      "exchange": "DFM"
+    },
+    {
+      "symbol": "WATANIA",
+      "exchange": "DFM"
+    }
+  ],
+  "messages": [],
+  "stdout": "symbol\texchange\nAIRARABIA\tDFM\nAJMANBANK\tDFM\nALANSARI\tDFM\nALEC\tDFM\nALFIRDOUS\tDFM\nALRAMZ\tDFM\nALSALAMSUDAN\tDFM\nAMAN\tDFM\nAMANAT\tDFM\nAMCREIT\tDFM\nAMLAK\tDFM\nARMX\tDFM\nBHMCAPITAL\tDFM\nCBD\tDFM\nDEWA\tDFM\nDEYAAR\tDFM\nDFM\tDFM\nDIB\tDFM\nDIC\tDFM\nDIN\tDFM\nDRC\tDFM\nDSI\tDFM\nDTC\tDFM\nDU\tDFM\nDUBAIRESI\tDFM\nEIBANK\tDFM\nEKTTITAB\tDFM\nEMAAR\tDFM\nEMAARDEV\tDFM\nEMIRATESNBD\tDFM\nEMPOWER\tDFM\nERC\tDFM\nGFH\tDFM\nGULFNAV\tDFM\nIFA\tDFM\nITHMR\tDFM\nMASQ\tDFM\nMKHZN\tDFM\nNCC\tDFM\nNGI\tDFM\nNIH\tDFM\nNIND\tDFM\nPARKIN\tDFM\nSALAM_BAH\tDFM\nSALAMA\tDFM\nSALIK\tDFM\nSHUAA\tDFM\nSPINNEYS\tDFM\nSUKOON\tDFM\nSUKOONTAKAFL\tDFM\nTAALEEM\tDFM\nTABREED\tDFM\nTAKAFUL-EM\tDFM\nTALABAT\tDFM\nTECOM\tDFM\nUFC\tDFM\nUNIKAI\tDFM\nUNIONCOOP\tDFM\nUPP\tDFM\nWATANIA\tDFM\n",
+  "stderr": "",
+  "execution_time_ms": 1516
+}

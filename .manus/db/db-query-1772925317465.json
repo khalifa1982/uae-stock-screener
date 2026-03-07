@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(symbol, '-', exchange)) as unique_count FROM stock_snapshots;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(symbol, '-', exchange)) as unique_count FROM stock_snapshots;",
+  "rows": [
+    {
+      "total": "122",
+      "unique_count": "122"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tunique_count\n122\t122\n",
+  "stderr": "",
+  "execution_time_ms": 1579
+}

@@ -1,0 +1,22 @@
+# UAE Stock Screener - Project TODO
+
+- [x] Database schema for stocks, stock data snapshots, watchlists
+- [x] Backend API: stock list management (ADX 82 + DFM 59 stocks)
+- [x] Backend API: real-time stock data fetching via Yahoo Finance (crumb auth + Data API)
+- [x] Backend API: technical indicators calculation (RSI, SMA, EMA, volume analysis)
+- [x] Backend API: multi-factor screening logic (P/E, market cap, volume, price ranges)
+- [x] Backend API: AI sentiment analysis via built-in LLM
+- [x] Frontend: elegant dark theme with professional financial dashboard styling
+- [x] Frontend: dashboard layout with sidebar navigation
+- [x] Frontend: exchange tabs (ADX/DFM) with stock list tables
+- [x] Frontend: search functionality across all stocks
+- [x] Frontend: advanced filtering UI with dropdowns and range inputs
+- [x] Frontend: sortable stock comparison table (price, P/E, volume, change %)
+- [x] Frontend: individual stock detail pages with price charts (Recharts)
+- [x] Frontend: technical analysis display on detail pages (RSI gauge, SMA/EMA, volume ratio)
+- [x] Frontend: responsive design for all screen sizes
+- [x] Vitest tests for backend procedures (14 tests passing)
+- [x] ADX stocks listed for reference (no Yahoo Finance data available)
+- [x] DFM stocks with full live data (59 stocks with real-time prices)
+- [x] Graceful handling of ADX stocks without price data
+- [x] Database deduplication with unique indexes

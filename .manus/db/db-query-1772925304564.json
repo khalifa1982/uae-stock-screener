@@ -1,0 +1,110 @@
+{
+  "query": "SELECT symbol, exchange, COUNT(*) as cnt FROM stock_snapshots GROUP BY symbol, exchange HAVING cnt > 1 LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute SELECT symbol, exchange, COUNT(*) as cnt FROM stock_snapshots GROUP BY symbol, exchange HAVING cnt > 1 LIMIT 20;",
+  "rows": [
+    {
+      "symbol": "MULTIPLY",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "BOROUGE",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADPORTS",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "PRESIGHT",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "FAB",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADNOCGAS",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADNOCDRILL",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "BURJEEL",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "FERTIGLOBE",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADNH",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ALDAR",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ALPHADHABI",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADCB",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADAVIATION",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "INVESTB",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "IHC",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "PUREHEALTH",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "TAQA",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ETISALAT",
+      "exchange": "ADX",
+      "cnt": "2"
+    },
+    {
+      "symbol": "ADNOCDIST",
+      "exchange": "ADX",
+      "cnt": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "symbol\texchange\tcnt\nMULTIPLY\tADX\t2\nBOROUGE\tADX\t2\nADPORTS\tADX\t2\nPRESIGHT\tADX\t2\nFAB\tADX\t2\nADNOCGAS\tADX\t2\nADNOCDRILL\tADX\t2\nBURJEEL\tADX\t2\nFERTIGLOBE\tADX\t2\nADNH\tADX\t2\nALDAR\tADX\t2\nALPHADHABI\tADX\t2\nADCB\tADX\t2\nADAVIATION\tADX\t2\nINVESTB\tADX\t2\nIHC\tADX\t2\nPUREHEALTH\tADX\t2\nTAQA\tADX\t2\nETISALAT\tADX\t2\nADNOCDIST\tADX\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1638
+}

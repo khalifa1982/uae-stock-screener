@@ -1,0 +1,40 @@
+CREATE TABLE `stock_snapshots` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`symbol` varchar(32) NOT NULL,
+	`exchange` varchar(8) NOT NULL,
+	`price` float,
+	`previousClose` float,
+	`open` float,
+	`dayHigh` float,
+	`dayLow` float,
+	`volume` bigint,
+	`avgVolume` bigint,
+	`marketCap` bigint,
+	`pe` float,
+	`eps` float,
+	`week52High` float,
+	`week52Low` float,
+	`dividendYield` float,
+	`beta` float,
+	`changePercent` float,
+	`rsi` float,
+	`sma20` float,
+	`sma50` float,
+	`ema12` float,
+	`ema26` float,
+	`volumeRatio` float,
+	`sentiment` varchar(16),
+	`sentimentScore` float,
+	`sentimentSummary` text,
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `stock_snapshots_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `watchlists` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`symbol` varchar(32) NOT NULL,
+	`exchange` varchar(8) NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `watchlists_id` PRIMARY KEY(`id`)
+);

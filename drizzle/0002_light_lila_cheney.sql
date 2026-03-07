@@ -1,0 +1,2 @@
+ALTER TABLE `stock_snapshots` ADD CONSTRAINT `symbol_exchange_idx` UNIQUE(`symbol`,`exchange`);--> statement-breakpoint
+ALTER TABLE `watchlists` ADD CONSTRAINT `user_symbol_idx` UNIQUE(`userId`,`symbol`);
