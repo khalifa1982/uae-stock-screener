@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
-import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache } from "./stockService";
+import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
 import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
@@ -275,6 +275,184 @@ export const appRouter = router({
         if (input.highVolume) results = results.filter(s => s.volumeRatio != null && s.volumeRatio > 1.5);
 
         return results;
+      }),
+
+    // Full company profile with financials, BOD, etc.
+    profile: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        if (!stock.yahooSymbol) return { stock, profile: null, available: false };
+        const raw = await fetchFullProfile(stock.yahooSymbol);
+        if (!raw) return { stock, profile: null, available: false };
+        // Flatten the nested profile into a single object for the frontend
+        const co = raw.company || {} as any;
+        const ks = raw.keyStats || {} as any;
+        const div = raw.dividends || {} as any;
+        const an = raw.analyst || {} as any;
+        const ti = raw.tradingInfo || {} as any;
+        const profile = {
+          // Company info
+          name: co.name || null,
+          description: co.description || null,
+          sector: co.sector || null,
+          industry: co.industry || null,
+          website: co.website || null,
+          logo: co.logo || null,
+          fullTimeEmployees: co.fullTimeEmployees || null,
+          country: co.country || null,
+          city: co.city || null,
+          phone: co.phone || null,
+          officers: co.officers || [],
+          // Key Stats - Valuation
+          marketCap: ks.marketCap || null,
+          enterpriseValue: ks.enterpriseValue || null,
+          trailingPE: ks.trailingPE || null,
+          forwardPE: ks.forwardPE || null,
+          pegRatio: ks.pegRatio || null,
+          priceToSales: ks.priceToSales || null,
+          priceToBook: ks.priceToBook || null,
+          evToRevenue: ks.evToRevenue || null,
+          evToEbitda: ks.evToEbitda || null,
+          // Key Stats - Profitability
+          totalRevenue: ks.totalRevenue || null,
+          revenueGrowth: ks.revenueGrowth || null,
+          grossMargin: ks.grossMargin || null,
+          ebitdaMargin: ks.ebitdaMargin || null,
+          operatingMargin: ks.operatingMargin || null,
+          profitMargin: ks.profitMargin || null,
+          returnOnEquity: ks.returnOnEquity || null,
+          returnOnAssets: ks.returnOnAssets || null,
+          // Key Stats - Financial Health
+          totalCash: ks.totalCash || null,
+          totalDebt: ks.totalDebt || null,
+          debtToEquity: ks.debtToEquity || null,
+          currentRatio: ks.currentRatio || null,
+          quickRatio: ks.quickRatio || null,
+          bookValue: ks.bookValue || null,
+          freeCashflow: ks.freeCashflow || null,
+          operatingCashflow: ks.operatingCashflow || null,
+          // Key Stats - Per Share
+          trailingEps: ks.trailingEps || null,
+          forwardEps: ks.forwardEps || null,
+          revenuePerShare: ks.revenuePerShare || null,
+          // Key Stats - Trading
+          beta: ks.beta || null,
+          fiftyTwoWeekHigh: ks.fiftyTwoWeekHigh || null,
+          fiftyTwoWeekLow: ks.fiftyTwoWeekLow || null,
+          fiftyDayAverage: ks.fiftyDayAverage || null,
+          twoHundredDayAverage: ks.twoHundredDayAverage || null,
+          sharesOutstanding: ks.sharesOutstanding || null,
+          floatShares: ks.floatShares || null,
+          heldPercentInsiders: ks.heldPercentInsiders || null,
+          heldPercentInstitutions: ks.heldPercentInstitutions || null,
+          shortRatio: ks.shortRatio || null,
+          // Dividends
+          dividendRate: div.dividendRate || null,
+          dividendYield: div.dividendYield || null,
+          exDividendDate: div.exDividendDate || null,
+          payoutRatio: div.payoutRatio || null,
+          fiveYearAvgDividendYield: div.fiveYearAvgDividendYield || null,
+          trailingAnnualDividendRate: div.trailingAnnualDividendRate || null,
+          trailingAnnualDividendYield: div.trailingAnnualDividendYield || null,
+          // Analyst
+          targetMeanPrice: an.targetMeanPrice || null,
+          targetHighPrice: an.targetHighPrice || null,
+          targetLowPrice: an.targetLowPrice || null,
+          targetMedianPrice: an.targetMedianPrice || null,
+          recommendationMean: an.recommendationMean || null,
+          recommendationKey: an.recommendationKey || null,
+          numberOfAnalystOpinions: an.numberOfAnalystOpinions || null,
+          recommendations: an.recommendationTrend || [],
+          // Earnings
+          earnings: raw.earnings?.history || [],
+          // Financial Statements (stockService uses plural names)
+          incomeStatement: raw.financialStatements?.incomeStatements || [],
+          balanceSheet: raw.financialStatements?.balanceSheets || [],
+          cashFlow: raw.financialStatements?.cashFlows || [],
+          // Insider Holders
+          insiderHolders: raw.insiderHolders || [],
+          // Trading Info
+          previousClose: ti.previousClose || null,
+          open: ti.open || null,
+          dayHigh: ti.dayHigh || null,
+          dayLow: ti.dayLow || null,
+          volume: ti.volume || null,
+          averageVolume: ti.averageVolume || null,
+          averageVolume10days: ti.averageVolume10days || null,
+        };
+        return { stock, profile, available: true };
+      }),
+
+    // Top movers - gainers and losers
+    topMovers: publicProcedure
+      .input(z.object({
+        exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
+        limit: z.number().optional().default(5),
+      }).optional())
+      .query(async ({ input }) => {
+        const exchange = input?.exchange || "ALL";
+        const limit = input?.limit || 5;
+        const cacheKey = `fetchAll-${exchange}`;
+        
+        let stocks = getFromMemoryCache(cacheKey);
+        if (!stocks || stocks.length === 0) {
+          const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
+          stocks = cached.map(snap => {
+            const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
+            return { ...snap, name: info?.name, sector: info?.sector };
+          });
+        }
+        
+        // Filter stocks with price data and valid change %
+        const withData = stocks.filter((s: any) => s.price != null && s.changePercent != null);
+        
+        // Sort by change % for gainers (descending) and losers (ascending)
+        const sorted = [...withData].sort((a: any, b: any) => (b.changePercent || 0) - (a.changePercent || 0));
+        const gainers = sorted.slice(0, limit);
+        const losers = sorted.slice(-limit).reverse();
+        
+        // Most active by volume
+        const byVolume = [...withData].sort((a: any, b: any) => (b.volume || 0) - (a.volume || 0));
+        const mostActive = byVolume.slice(0, limit);
+        
+        return { gainers, losers, mostActive };
+      }),
+
+    // CSV export
+    exportCSV: publicProcedure
+      .input(z.object({
+        exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
+      }).optional())
+      .query(async ({ input }) => {
+        const exchange = input?.exchange || "ALL";
+        const cacheKey = `fetchAll-${exchange}`;
+        
+        let stocks = getFromMemoryCache(cacheKey);
+        if (!stocks || stocks.length === 0) {
+          const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
+          stocks = cached.map(snap => {
+            const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
+            return { ...snap, name: info?.name, sector: info?.sector };
+          });
+        }
+        
+        // Build CSV
+        const headers = ['Symbol', 'Name', 'Exchange', 'Sector', 'Price (AED)', 'Change %', 'Volume', 'Market Cap', 'P/E', 'EPS', '52W High', '52W Low', 'RSI', 'SMA20', 'SMA50'];
+        const rows = stocks.map((s: any) => [
+          s.symbol, s.name || '', s.exchange, s.sector || '',
+          s.price ?? '', s.changePercent != null ? s.changePercent.toFixed(2) : '',
+          s.volume ?? '', s.marketCap ?? '', s.pe != null ? s.pe.toFixed(2) : '',
+          s.eps != null ? s.eps.toFixed(2) : '', s.week52High ?? '', s.week52Low ?? '',
+          s.rsi != null ? s.rsi.toFixed(1) : '', s.sma20 != null ? s.sma20.toFixed(2) : '',
+          s.sma50 != null ? s.sma50.toFixed(2) : '',
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+        
+        return {
+          csv: [headers.join(','), ...rows].join('\n'),
+          filename: `uae-stocks-${exchange.toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`,
+        };
       }),
 
     sentiment: publicProcedure

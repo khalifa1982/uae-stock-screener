@@ -116,3 +116,42 @@
 - [x] Fix: Adaptive alert polling (15s during trading, 120s outside trading hours)
 - [x] Fix: Added refetchOnWindowFocus: false to all queries
 - [x] Verified: fetchAll 1st call 1.6s (was 30-58s), 2nd call 25ms (instant)
+
+## Phase 5 - Comprehensive Stock Profiles & Dashboard Improvements
+
+### Stock Profile - Full Company Data
+- [ ] Company logo fetching and display
+- [x] Full company description and history (Yahoo Finance assetProfile)
+- [x] Board of Directors (BOD) listing (10 officers for EMAAR)
+- [x] Key executives and management team (name, title, age)
+- [x] Company address, website, phone, sector, industry
+- [ ] IPO date and founding year (not available from Yahoo)
+- [ ] Number of employees (not available for UAE stocks)
+
+### Stock Profile - Financial Indicators
+- [x] Income Statement (Revenue, Net Income, EPS, EBITDA) - 4 annual periods
+- [x] Balance Sheet (Total Assets, Total Liabilities, Equity, Debt) - structure ready, Yahoo data limited for UAE
+- [x] Cash Flow Statement (Operating CF, Free CF, CapEx) - structure ready, Yahoo data limited for UAE
+- [x] Profitability Ratios (ROE 21.92%, ROA 8.13%, Revenue Growth 40.50%)
+- [x] Valuation Ratios (P/E 7.0, Forward P/E 5.5, P/B 1.31, EV/EBITDA)
+- [x] Dividend data (Yield 7.17%, Ex-Date, Payout Ratio)
+- [x] Growth metrics (Revenue Growth 40.50%)
+- [x] Debt ratios (Debt/Equity 9.9, Current Ratio 7.40)
+
+### Stock Profile - Market Data
+- [x] 52-week high/low (17.25 / 10.70 for EMAAR)
+- [x] Average volume (10-day, 3-month)
+- [x] Beta (volatility measure)
+- [x] Shares outstanding and float
+- [ ] Short interest data (not available for UAE stocks)
+
+### Dashboard Improvements
+- [x] Fix Market Cap stat card - now uses profile data
+- [x] Top Movers widget (top 5 gainers + top 5 losers + most active)
+- [x] CSV/Excel export for screener results
+
+### Multi-Source Data Integration
+- [ ] TwelveData API integration for stock profiles (API key expired)
+- [ ] FMP API integration for financial statements
+- [x] Yahoo Finance profile data integration (quoteSummary with 10+ modules)
+- [x] Fallback chain: Data API → Yahoo Finance direct with crumb auth

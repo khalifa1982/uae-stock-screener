@@ -18,8 +18,12 @@ import {
   Building2,
   DollarSign,
   Info,
+  Download,
+  Flame,
+  Activity,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name";
 type SortDir = "asc" | "desc";
@@ -47,6 +51,24 @@ function ChangeDisplay({ value }: { value: number | null | undefined }) {
       {isPositive ? <ArrowUp className="h-3 w-3" /> : !isZero ? <ArrowDown className="h-3 w-3" /> : null}
       {isPositive ? "+" : ""}{value.toFixed(2)}%
     </span>
+  );
+}
+
+function MoverRow({ stock, onClick }: { stock: any; onClick: () => void }) {
+  return (
+    <div
+      className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/20 cursor-pointer transition-colors"
+      onClick={onClick}
+    >
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <span className="font-mono text-sm font-semibold">{stock.symbol}</span>
+        <p className="text-[11px] text-muted-foreground truncate leading-tight">{stock.name}</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 text-right">
+        <span className="font-mono text-xs tabular-nums">{stock.price != null ? formatNumber(stock.price) : "—"}</span>
+        <ChangeDisplay value={stock.changePercent} />
+      </div>
+    </div>
   );
 }
 
@@ -80,9 +102,41 @@ export default function Home() {
       staleTime: 5 * 60 * 1000, 
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-      gcTime: 30 * 60 * 1000, // Keep data in cache for 30 min
+      gcTime: 30 * 60 * 1000,
     }
   );
+
+  const { data: topMovers } = trpc.stocks.topMovers.useQuery(
+    { exchange, limit: 5 },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      gcTime: 30 * 60 * 1000,
+    }
+  );
+
+  const { data: csvData, refetch: fetchCSV, isFetching: csvFetching } = trpc.stocks.exportCSV.useQuery(
+    { exchange },
+    { enabled: false } // Only fetch on demand
+  );
+
+  const handleExportCSV = async () => {
+    try {
+      const result = await fetchCSV();
+      if (result.data) {
+        const blob = new Blob([result.data.csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.data.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("CSV exported successfully");
+      }
+    } catch {
+      toast.error("Failed to export CSV");
+    }
+  };
 
   const filteredStocks = useMemo(() => {
     if (!stocks) return [];
@@ -95,9 +149,7 @@ export default function Home() {
       );
     }
 
-    // Sort: stocks with price data first, then by selected field
     result.sort((a, b) => {
-      // Always push stocks without price to the bottom
       const aHasPrice = a.price != null;
       const bHasPrice = b.price != null;
       if (aHasPrice && !bHasPrice) return -1;
@@ -131,7 +183,6 @@ export default function Home() {
     return sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
   };
 
-  // Summary stats
   const stats = useMemo(() => {
     if (!stocks || stocks.length === 0) return null;
     const withPrice = stocks.filter(s => s.price != null);
@@ -161,16 +212,28 @@ export default function Home() {
             UAE Stock Market — ADX & DFM Exchanges
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="gap-2 self-start"
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-          {isFetching ? "Loading..." : "Refresh Data"}
-        </Button>
+        <div className="flex items-center gap-2 self-start">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={csvFetching || isLoading}
+            className="gap-2"
+          >
+            <Download className={`h-4 w-4 ${csvFetching ? "animate-pulse" : ""}`} />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            {isFetching ? "Loading..." : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -219,13 +282,100 @@ export default function Home() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <DollarSign className="h-5 w-5 text-primary" />
+                  <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Market Cap</p>
-                  <p className="text-xl font-bold font-mono">{formatLargeNumber(stats.totalMarketCap)}</p>
+                  <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Total Volume</p>
+                  <p className="text-xl font-bold font-mono">{formatLargeNumber(stats.totalVolume)}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Top Movers */}
+      {topMovers && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Top Gainers */}
+          <Card className="border-border/40 bg-card/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <div className="h-6 w-6 rounded-md bg-[oklch(0.72_0.17_155/15%)] flex items-center justify-center">
+                  <TrendingUp className="h-3.5 w-3.5 text-gain" />
+                </div>
+                Top Gainers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 pb-3">
+              {topMovers.gainers.length > 0 ? (
+                <div className="space-y-0.5">
+                  {topMovers.gainers.map((s: any) => (
+                    <MoverRow key={s.symbol} stock={s} onClick={() => setLocation(`/stock/${s.symbol}`)} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No data</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Losers */}
+          <Card className="border-border/40 bg-card/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <div className="h-6 w-6 rounded-md bg-[oklch(0.65_0.22_25/15%)] flex items-center justify-center">
+                  <TrendingDown className="h-3.5 w-3.5 text-loss" />
+                </div>
+                Top Losers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 pb-3">
+              {topMovers.losers.length > 0 ? (
+                <div className="space-y-0.5">
+                  {topMovers.losers.map((s: any) => (
+                    <MoverRow key={s.symbol} stock={s} onClick={() => setLocation(`/stock/${s.symbol}`)} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No data</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Most Active */}
+          <Card className="border-border/40 bg-card/50">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <div className="h-6 w-6 rounded-md bg-[oklch(0.75_0.15_60/15%)] flex items-center justify-center">
+                  <Flame className="h-3.5 w-3.5 text-[oklch(0.75_0.15_60)]" />
+                </div>
+                Most Active
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 pb-3">
+              {topMovers.mostActive.length > 0 ? (
+                <div className="space-y-0.5">
+                  {topMovers.mostActive.map((s: any) => (
+                    <div
+                      key={s.symbol}
+                      className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/20 cursor-pointer transition-colors"
+                      onClick={() => setLocation(`/stock/${s.symbol}`)}
+                    >
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <span className="font-mono text-sm font-semibold">{s.symbol}</span>
+                        <p className="text-[11px] text-muted-foreground truncate leading-tight">{s.name}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-right">
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">{formatLargeNumber(s.volume)}</span>
+                        <ChangeDisplay value={s.changePercent} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No data</p>
+              )}
             </CardContent>
           </Card>
         </div>

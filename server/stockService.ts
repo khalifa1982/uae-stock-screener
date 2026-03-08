@@ -360,6 +360,273 @@ async function fetchBatchQuotesDirect(symbols: string[]): Promise<Map<string, Ya
   return map;
 }
 
+// ─── Full Stock Profile (Yahoo quoteSummary) ──────────────────────
+
+const profileCache = new Map<string, { data: any; timestamp: number }>();
+const PROFILE_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+export async function fetchFullProfile(yahooSymbol: string): Promise<any> {
+  // Check cache
+  const cached = profileCache.get(yahooSymbol);
+  if (cached && Date.now() - cached.timestamp < PROFILE_CACHE_TTL) {
+    return cached.data;
+  }
+
+  try {
+    // Fetch company profile
+    const profileData = await callDataApi('YahooFinance/get_stock_profile', {
+      query: { symbol: yahooSymbol }
+    }) as any;
+    const summaryProfile = profileData?.quoteSummary?.result?.[0]?.summaryProfile || {};
+
+    // Fetch holders data
+    const holdersData = await callDataApi('YahooFinance/get_stock_holders', {
+      query: { symbol: yahooSymbol }
+    }) as any;
+    const insiderHolders = holdersData?.quoteSummary?.result?.[0]?.insiderHolders?.holders || [];
+
+    // Fetch full quoteSummary via direct Yahoo for financials
+    let financials: any = {};
+    try {
+      const { crumb, cookies } = await getYahooCrumb();
+      const modules = 'assetProfile,summaryDetail,financialData,defaultKeyStatistics,calendarEvents,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,recommendationTrend,upgradeDowngradeHistory,earningsHistory,earningsTrend';
+      const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(yahooSymbol)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': UA, 'Cookie': cookies },
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        financials = data?.quoteSummary?.result?.[0] || {};
+      }
+    } catch (e) {
+      console.warn(`[StockService] Failed to fetch financials for ${yahooSymbol}:`, e);
+    }
+
+    // Extract and format financial data
+    const assetProfile = financials.assetProfile || {};
+    const summaryDetail = financials.summaryDetail || {};
+    const financialData = financials.financialData || {};
+    const keyStats = financials.defaultKeyStatistics || {};
+    const calendarEvents = financials.calendarEvents || {};
+    const recommendationTrend = financials.recommendationTrend?.trend || [];
+    const upgradeDowngrade = financials.upgradeDowngradeHistory?.history || [];
+    const earningsHistory = financials.earningsHistory?.history || [];
+    const earningsTrend = financials.earningsTrend?.trend || [];
+
+    // Format income statements
+    const incomeStatements = (financials.incomeStatementHistory?.incomeStatementHistory || []).map((stmt: any) => ({
+      endDate: stmt.endDate?.fmt || stmt.endDate?.raw,
+      totalRevenue: stmt.totalRevenue?.raw,
+      costOfRevenue: stmt.costOfRevenue?.raw,
+      grossProfit: stmt.grossProfit?.raw,
+      operatingIncome: stmt.operatingIncome?.raw,
+      netIncome: stmt.netIncome?.raw,
+      ebit: stmt.ebit?.raw,
+      interestExpense: stmt.interestExpense?.raw,
+      incomeBeforeTax: stmt.incomeBeforeTax?.raw,
+      incomeTaxExpense: stmt.incomeTaxExpense?.raw,
+    }));
+
+    // Format balance sheets
+    const balanceSheets = (financials.balanceSheetHistory?.balanceSheetStatements || []).map((stmt: any) => ({
+      endDate: stmt.endDate?.fmt || stmt.endDate?.raw,
+      totalAssets: stmt.totalAssets?.raw,
+      totalLiab: stmt.totalLiab?.raw,
+      totalStockholderEquity: stmt.totalStockholderEquity?.raw,
+      cash: stmt.cash?.raw,
+      shortTermInvestments: stmt.shortTermInvestments?.raw,
+      netReceivables: stmt.netReceivables?.raw,
+      longTermDebt: stmt.longTermDebt?.raw,
+      shortLongTermDebt: stmt.shortLongTermDebt?.raw,
+      totalCurrentAssets: stmt.totalCurrentAssets?.raw,
+      totalCurrentLiabilities: stmt.totalCurrentLiabilities?.raw,
+    }));
+
+    // Format cash flow statements
+    const cashFlows = (financials.cashflowStatementHistory?.cashflowStatements || []).map((stmt: any) => ({
+      endDate: stmt.endDate?.fmt || stmt.endDate?.raw,
+      totalCashFromOperatingActivities: stmt.totalCashFromOperatingActivities?.raw,
+      totalCashflowsFromInvestingActivities: stmt.totalCashflowsFromInvestingActivities?.raw,
+      totalCashFromFinancingActivities: stmt.totalCashFromFinancingActivities?.raw,
+      capitalExpenditures: stmt.capitalExpenditures?.raw,
+      freeCashFlow: stmt.freeCashFlow?.raw,
+      dividendsPaid: stmt.dividendsPaid?.raw,
+      netIncome: stmt.netIncome?.raw,
+    }));
+
+    const profile = {
+      // Company Info
+      company: {
+        name: summaryProfile.longName || summaryProfile.shortName || '',
+        address: [summaryProfile.address1, summaryProfile.address2, summaryProfile.city, summaryProfile.country].filter(Boolean).join(', '),
+        phone: summaryProfile.phone || null,
+        fax: summaryProfile.fax || null,
+        website: summaryProfile.website || null,
+        industry: summaryProfile.industry || null,
+        sector: summaryProfile.sector || null,
+        description: summaryProfile.longBusinessSummary || null,
+        fullTimeEmployees: assetProfile.fullTimeEmployees || summaryProfile.fullTimeEmployees || null,
+        country: summaryProfile.country || null,
+        city: summaryProfile.city || null,
+        irWebsite: summaryProfile.irWebsite || null,
+        officers: (assetProfile.companyOfficers || summaryProfile.companyOfficers || []).map((o: any) => ({
+          name: o.name || '',
+          title: o.title || '',
+          age: o.age || null,
+          yearBorn: o.yearBorn || null,
+          totalPay: o.totalPay?.raw || null,
+          exercisedValue: o.exercisedValue?.raw || null,
+          unexercisedValue: o.unexercisedValue?.raw || null,
+        })),
+      },
+
+      // Key Statistics
+      keyStats: {
+        marketCap: summaryDetail.marketCap?.raw || keyStats.marketCap?.raw || null,
+        enterpriseValue: keyStats.enterpriseValue?.raw || null,
+        trailingPE: summaryDetail.trailingPE?.raw || null,
+        forwardPE: keyStats.forwardPE?.raw || null,
+        pegRatio: keyStats.pegRatio?.raw || null,
+        priceToBook: keyStats.priceToBook?.raw || null,
+        priceToSales: keyStats.priceToSalesTrailing12Months?.raw || null,
+        profitMargins: keyStats.profitMargins?.raw || null,
+        operatingMargins: financialData.operatingMargins?.raw || null,
+        returnOnAssets: financialData.returnOnAssets?.raw || null,
+        returnOnEquity: financialData.returnOnEquity?.raw || null,
+        revenueGrowth: financialData.revenueGrowth?.raw || null,
+        earningsGrowth: financialData.earningsGrowth?.raw || null,
+        currentRatio: financialData.currentRatio?.raw || null,
+        debtToEquity: financialData.debtToEquity?.raw || null,
+        totalRevenue: financialData.totalRevenue?.raw || null,
+        revenuePerShare: financialData.revenuePerShare?.raw || null,
+        totalDebt: financialData.totalDebt?.raw || null,
+        totalCash: financialData.totalCash?.raw || null,
+        totalCashPerShare: financialData.totalCashPerShare?.raw || null,
+        ebitda: financialData.ebitda?.raw || null,
+        ebitdaMargins: financialData.ebitdaMargins?.raw || null,
+        grossMargins: financialData.grossMargins?.raw || null,
+        freeCashflow: financialData.freeCashflow?.raw || null,
+        operatingCashflow: financialData.operatingCashflow?.raw || null,
+        sharesOutstanding: keyStats.sharesOutstanding?.raw || null,
+        floatShares: keyStats.floatShares?.raw || null,
+        beta: summaryDetail.beta?.raw || keyStats.beta?.raw || null,
+        bookValue: keyStats.bookValue?.raw || null,
+        earningsQuarterlyGrowth: keyStats.earningsQuarterlyGrowth?.raw || null,
+      },
+
+      // Dividend Info
+      dividends: {
+        dividendRate: summaryDetail.dividendRate?.raw || null,
+        dividendYield: summaryDetail.dividendYield?.raw || null,
+        exDividendDate: (() => { try { if (calendarEvents.exDividendDate?.raw && typeof calendarEvents.exDividendDate.raw === 'number') return new Date(calendarEvents.exDividendDate.raw * 1000).toISOString().split('T')[0]; if (calendarEvents.exDividendDate?.fmt) return calendarEvents.exDividendDate.fmt; if (typeof calendarEvents.exDividendDate === 'number' && calendarEvents.exDividendDate > 0) return new Date(calendarEvents.exDividendDate * 1000).toISOString().split('T')[0]; return null; } catch { return null; } })(),
+        payoutRatio: summaryDetail.payoutRatio?.raw || null,
+        fiveYearAvgDividendYield: summaryDetail.fiveYearAvgDividendYield?.raw || null,
+        trailingAnnualDividendRate: summaryDetail.trailingAnnualDividendRate?.raw || null,
+        trailingAnnualDividendYield: summaryDetail.trailingAnnualDividendYield?.raw || null,
+      },
+
+      // Analyst Recommendations
+      analyst: {
+        targetHighPrice: financialData.targetHighPrice?.raw || null,
+        targetLowPrice: financialData.targetLowPrice?.raw || null,
+        targetMeanPrice: financialData.targetMeanPrice?.raw || null,
+        targetMedianPrice: financialData.targetMedianPrice?.raw || null,
+        recommendationMean: financialData.recommendationMean?.raw || null,
+        recommendationKey: financialData.recommendationKey || null,
+        numberOfAnalystOpinions: financialData.numberOfAnalystOpinions?.raw || null,
+        recommendationTrend: recommendationTrend.map((t: any) => ({
+          period: t.period,
+          strongBuy: t.strongBuy,
+          buy: t.buy,
+          hold: t.hold,
+          sell: t.sell,
+          strongSell: t.strongSell,
+        })),
+        upgradeDowngradeHistory: upgradeDowngrade.slice(0, 10).map((u: any) => ({
+          date: (() => { try { if (typeof u.epochGradeDate === 'number' && u.epochGradeDate > 0) return new Date(u.epochGradeDate * 1000).toISOString().split('T')[0]; return null; } catch { return null; } })(),
+          firm: u.firm,
+          toGrade: u.toGrade,
+          fromGrade: u.fromGrade,
+          action: u.action,
+        })),
+      },
+
+      // Earnings
+      earnings: {
+        history: earningsHistory.map((e: any) => ({
+          quarter: e.quarter?.fmt || null,
+          date: e.period,
+          epsActual: e.epsActual?.raw || null,
+          epsEstimate: e.epsEstimate?.raw || null,
+          epsDifference: e.epsDifference?.raw || null,
+          surprisePercent: e.surprisePct?.raw || null,
+        })),
+        trend: earningsTrend.map((t: any) => ({
+          period: t.period,
+          endDate: t.endDate,
+          growth: t.growth?.raw || null,
+          earningsEstimate: {
+            avg: t.earningsEstimate?.avg?.raw || null,
+            low: t.earningsEstimate?.low?.raw || null,
+            high: t.earningsEstimate?.high?.raw || null,
+            numberOfAnalysts: t.earningsEstimate?.numberOfAnalysts?.raw || null,
+          },
+          revenueEstimate: {
+            avg: t.revenueEstimate?.avg?.raw || null,
+            low: t.revenueEstimate?.low?.raw || null,
+            high: t.revenueEstimate?.high?.raw || null,
+            numberOfAnalysts: t.revenueEstimate?.numberOfAnalysts?.raw || null,
+          },
+        })),
+      },
+
+      // Financial Statements
+      financialStatements: {
+        incomeStatements,
+        balanceSheets,
+        cashFlows,
+      },
+
+      // Insider Holders
+      insiderHolders: insiderHolders.map((h: any) => ({
+        name: h.name,
+        relation: h.relation,
+        transactionDescription: h.transactionDescription,
+        latestTransDate: h.latestTransDate?.fmt || null,
+        positionDirect: h.positionDirect?.raw || null,
+        positionDirectDate: h.positionDirectDate?.fmt || null,
+      })),
+
+      // Trading Info
+      tradingInfo: {
+        previousClose: summaryDetail.previousClose?.raw || null,
+        open: summaryDetail.open?.raw || null,
+        dayLow: summaryDetail.dayLow?.raw || null,
+        dayHigh: summaryDetail.dayHigh?.raw || null,
+        volume: summaryDetail.volume?.raw || null,
+        averageVolume: summaryDetail.averageVolume?.raw || null,
+        averageVolume10days: summaryDetail.averageVolume10days?.raw || null,
+        fiftyTwoWeekLow: summaryDetail.fiftyTwoWeekLow?.raw || null,
+        fiftyTwoWeekHigh: summaryDetail.fiftyTwoWeekHigh?.raw || null,
+        fiftyDayAverage: summaryDetail.fiftyDayAverage?.raw || null,
+        twoHundredDayAverage: summaryDetail.twoHundredDayAverage?.raw || null,
+        bid: summaryDetail.bid?.raw || null,
+        ask: summaryDetail.ask?.raw || null,
+        bidSize: summaryDetail.bidSize?.raw || null,
+        askSize: summaryDetail.askSize?.raw || null,
+        currency: summaryDetail.currency || 'AED',
+      },
+    };
+
+    // Cache the result
+    profileCache.set(yahooSymbol, { data: profile, timestamp: Date.now() });
+    return profile;
+  } catch (e) {
+    console.warn(`[StockService] Failed to fetch full profile for ${yahooSymbol}:`, e);
+    return null;
+  }
+}
+
 // Fetch data for multiple stocks with rate limiting
 export async function fetchMultipleStocks(stocks: StockInfo[], batchSize = 5) {
   const results: any[] = [];
