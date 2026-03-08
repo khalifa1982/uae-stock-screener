@@ -66,20 +66,26 @@ export default function Alerts() {
     playSoundOnly,
   } = useAlertNotifications();
 
+  const { data: tradingInfo } = trpc.monitor.tradingInfo.useQuery(undefined, {
+    refetchInterval: 120000, // Check trading status every 2 min
+    staleTime: 60000,
+  });
+
+  const isTrading = tradingInfo?.isTrading ?? false;
+
   const { data: monitorStatus, refetch: refetchStatus } = trpc.monitor.status.useQuery(undefined, {
-    refetchInterval: 30000,
+    refetchInterval: isTrading ? 30000 : 120000, // Faster during trading hours
+    staleTime: 15000,
   });
 
   const { data: todayAlerts, refetch: refetchToday } = trpc.monitor.todayAlerts.useQuery(undefined, {
-    refetchInterval: 30000, // Poll every 30s for new alerts
+    refetchInterval: isTrading ? 15000 : 120000, // Poll fast during trading, slow otherwise
+    staleTime: 10000,
   });
 
   const { data: recentAlerts, refetch: refetchRecent } = trpc.monitor.recentAlerts.useQuery(undefined, {
-    refetchInterval: 60000,
-  });
-
-  const { data: tradingInfo } = trpc.monitor.tradingInfo.useQuery(undefined, {
-    refetchInterval: 60000,
+    refetchInterval: isTrading ? 60000 : 300000, // 1 min during trading, 5 min otherwise
+    staleTime: 30000,
   });
 
   // Process new alerts for notifications

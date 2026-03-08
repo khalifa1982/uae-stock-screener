@@ -51,7 +51,12 @@ export default function Heatmap() {
 
   const { data: allStocks, isLoading, refetch } = trpc.stocks.fetchAll.useQuery(
     { exchange },
-    { refetchInterval: 5 * 60 * 1000 }
+    { 
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchInterval: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
   );
 
   const stocksWithData = useMemo(() => {

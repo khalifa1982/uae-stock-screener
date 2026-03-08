@@ -67,7 +67,8 @@ export default function NotificationCenter() {
     undefined,
     {
       enabled: isAuthenticated,
-      refetchInterval: 15000, // Poll every 15s for new notifications
+      refetchInterval: 60000, // Poll every 60s for new notifications
+      staleTime: 30000,
     }
   );
 
@@ -75,7 +76,8 @@ export default function NotificationCenter() {
     undefined,
     {
       enabled: isAuthenticated && open,
-      refetchInterval: open ? 10000 : false,
+      refetchInterval: open ? 30000 : false,
+      staleTime: 15000,
     }
   );
 

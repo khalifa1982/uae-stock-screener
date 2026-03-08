@@ -1,7 +1,36 @@
 import { ALL_STOCKS, StockInfo } from "../shared/stockData";
 import { callDataApi } from "./_core/dataApi";
 
-// Yahoo Finance direct API (fallback only)
+// ─── In-memory cache ────────────────────────────────────────────────
+// Avoids hitting the DB or external APIs on every request.
+// Cache is keyed by exchange and stores the full result array.
+interface CacheEntry {
+  data: any[];
+  timestamp: number;
+}
+
+const memoryCache = new Map<string, CacheEntry>();
+const MEMORY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+export function getFromMemoryCache(key: string): any[] | null {
+  const entry = memoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+export function setMemoryCache(key: string, data: any[]) {
+  memoryCache.set(key, { data, timestamp: Date.now() });
+}
+
+export function clearMemoryCache() {
+  memoryCache.clear();
+}
+
+// ─── Yahoo Finance direct API (fallback only) ──────────────────────
 const YAHOO_V7 = "https://query2.finance.yahoo.com/v7/finance";
 const YAHOO_V8 = "https://query2.finance.yahoo.com/v8/finance";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -56,7 +85,7 @@ interface YahooQuoteResult {
   symbol?: string;
 }
 
-// PRIMARY: Fetch a single stock's quote data via the built-in Data API (get_stock_chart)
+// PRIMARY: Fetch a single stock's quote data via the built-in Data API
 async function fetchQuoteViaDataApi(yahooSymbol: string): Promise<YahooQuoteResult | null> {
   try {
     const data = await callDataApi("YahooFinance/get_stock_chart", {
@@ -75,12 +104,12 @@ async function fetchQuoteViaDataApi(yahooSymbol: string): Promise<YahooQuoteResu
     return {
       regularMarketPrice: meta.regularMarketPrice ?? undefined,
       regularMarketPreviousClose: meta.chartPreviousClose ?? meta.previousClose ?? undefined,
-      regularMarketOpen: meta.regularMarketDayHigh ? undefined : undefined, // not in chart meta
+      regularMarketOpen: meta.regularMarketDayHigh ? undefined : undefined,
       regularMarketDayHigh: meta.regularMarketDayHigh ?? undefined,
       regularMarketDayLow: meta.regularMarketDayLow ?? undefined,
       regularMarketVolume: meta.regularMarketVolume ?? undefined,
-      averageDailyVolume3Month: undefined, // not in chart meta
-      marketCap: undefined, // not in chart meta
+      averageDailyVolume3Month: undefined,
+      marketCap: undefined,
       trailingPE: undefined,
       epsTrailingTwelveMonths: undefined,
       fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? undefined,
@@ -101,7 +130,6 @@ async function fetchQuoteViaDataApi(yahooSymbol: string): Promise<YahooQuoteResu
 
 // Fetch chart data using the built-in Data API (primary) or direct Yahoo (fallback)
 export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interval = "1d"): Promise<any> {
-  // Try built-in Data API first
   try {
     const data = await callDataApi("YahooFinance/get_stock_chart", {
       query: {
@@ -156,7 +184,8 @@ export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interv
   }
 }
 
-// Calculate RSI from closing prices
+// ─── Technical Indicators ───────────────────────────────────────────
+
 function calculateRSI(closes: number[], period = 14): number | null {
   if (closes.length < period + 1) return null;
   const validCloses = closes.filter(c => c != null && !isNaN(c));
@@ -193,18 +222,16 @@ function calculateEMA(data: number[], period: number): number | null {
   return ema;
 }
 
-// Fetch and process a single stock's data with technical indicators
+// ─── Single Stock Fetch ─────────────────────────────────────────────
+
 export async function fetchStockData(stock: StockInfo) {
-  // Try Data API first for the quote
   let quote = await fetchQuoteViaDataApi(stock.yahooSymbol);
 
-  // Fallback to direct Yahoo batch quote
   if (!quote) {
     const quotes = await fetchBatchQuotesDirect([stock.yahooSymbol]);
     quote = quotes.get(stock.yahooSymbol) || null;
   }
 
-  // Fetch chart for technical indicators
   const chart = await fetchYahooChart(stock.yahooSymbol, "6mo", "1d");
 
   let rsi: number | null = null;
@@ -256,23 +283,24 @@ export async function fetchStockData(stock: StockInfo) {
   };
 }
 
-// PRIMARY: Batch fetch quotes using the Data API (one at a time, with concurrency)
+// ─── Batch Fetch (Primary: Data API with high concurrency) ──────────
+
 export async function fetchBatchQuotes(symbols: string[]): Promise<Map<string, YahooQuoteResult>> {
   const map = new Map<string, YahooQuoteResult>();
 
-  // Use Data API with concurrency limit
-  const concurrency = 5;
+  // PERFORMANCE FIX: Higher concurrency (10 instead of 5), no delay between batches
+  const concurrency = 10;
   for (let i = 0; i < symbols.length; i += concurrency) {
     const batch = symbols.slice(i, i + concurrency);
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       batch.map(async (sym) => {
         const quote = await fetchQuoteViaDataApi(sym);
         if (quote) map.set(sym, quote);
       })
     );
-    // Small delay between batches to avoid rate limiting
-    if (i + concurrency < symbols.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+    // Minimal delay only if many batches remain
+    if (i + concurrency < symbols.length && symbols.length > 30) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 

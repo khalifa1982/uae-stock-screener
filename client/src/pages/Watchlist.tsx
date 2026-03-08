@@ -26,7 +26,12 @@ export default function Watchlist() {
 
   const { data: allStocks, refetch: refetchStocks } = trpc.stocks.fetchAll.useQuery(
     { exchange: "ALL" },
-    { refetchInterval: 5 * 60 * 1000 }
+    { 
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchInterval: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
   );
 
   const removeMutation = trpc.watchlist.remove.useMutation({

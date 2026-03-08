@@ -76,7 +76,12 @@ export default function Home() {
 
   const { data: stocks, isLoading, refetch, isFetching } = trpc.stocks.fetchAll.useQuery(
     { exchange },
-    { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false }
+    { 
+      staleTime: 5 * 60 * 1000, 
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      gcTime: 30 * 60 * 1000, // Keep data in cache for 30 min
+    }
   );
 
   const filteredStocks = useMemo(() => {

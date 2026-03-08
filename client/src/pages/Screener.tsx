@@ -108,7 +108,9 @@ export default function Screener() {
   }, [filters]);
 
   const { data: results, isLoading } = trpc.stocks.screen.useQuery(screenInput, {
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const sortedResults = useMemo(() => {

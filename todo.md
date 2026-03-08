@@ -99,3 +99,20 @@
 - [x] Notification router auth tests (5 tests)
 - [x] Notification data structure tests
 - [x] Notification CRUD operation tests
+
+## Phase 4 - Performance Investigation & Fixes
+
+- [x] Diagnose slow initial page load (server-side bottlenecks)
+- [x] Diagnose slow API response times (tRPC endpoints)
+- [x] Diagnose frontend bundle size and rendering performance
+- [x] Diagnose database query performance
+- [x] Diagnose network waterfall and request chain
+- [x] Fix: Added server-side in-memory cache (10 min TTL) - second request is 25ms vs 1.6s
+- [x] Fix: Background refresh (non-blocking) when cache expires - returns stale data instantly
+- [x] Fix: Increased Data API concurrency from 5 to 10 with reduced delays
+- [x] Fix: Only fetch DFM stocks from Yahoo (skip ADX which has no data)
+- [x] Fix: Added staleTime + gcTime to all frontend queries (5 min stale, 30 min gc)
+- [x] Fix: Reduced notification polling from 15s to 60s
+- [x] Fix: Adaptive alert polling (15s during trading, 120s outside trading hours)
+- [x] Fix: Added refetchOnWindowFocus: false to all queries
+- [x] Verified: fetchAll 1st call 1.6s (was 30-58s), 2nd call 25ms (instant)

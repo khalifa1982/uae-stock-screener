@@ -4,10 +4,79 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
-import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks } from "./stockService";
+import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache } from "./stockService";
 import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
+
+// ─── Background refresh state ───────────────────────────────────────
+// Prevents multiple simultaneous background refreshes
+const refreshInProgress = new Set<string>();
+
+async function backgroundRefresh(exchange: string) {
+  const key = `bg-refresh-${exchange}`;
+  if (refreshInProgress.has(key)) return; // Already refreshing
+  refreshInProgress.add(key);
+  
+  try {
+    console.log(`[Performance] Starting background refresh for ${exchange}...`);
+    const startTime = Date.now();
+    
+    // Only fetch DFM stocks (ADX has no Yahoo data)
+    const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : DFM_STOCKS;
+    const yahooSymbols = stocks.filter(s => s.yahooSymbol).map(s => s.yahooSymbol);
+    const quotes = await fetchBatchQuotes(yahooSymbols);
+    
+    // Build results for DFM stocks with fresh data
+    const freshResults: any[] = [];
+    const allStocksForExchange = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
+    
+    for (const stock of allStocksForExchange) {
+      const quote = quotes.get(stock.yahooSymbol);
+      const snapshot = {
+        symbol: stock.symbol,
+        exchange: stock.exchange,
+        name: stock.name,
+        sector: stock.sector,
+        yahooSymbol: stock.yahooSymbol,
+        price: quote?.regularMarketPrice ?? null,
+        previousClose: quote?.regularMarketPreviousClose ?? null,
+        open: quote?.regularMarketOpen ?? null,
+        dayHigh: quote?.regularMarketDayHigh ?? null,
+        dayLow: quote?.regularMarketDayLow ?? null,
+        volume: quote?.regularMarketVolume ?? null,
+        avgVolume: quote?.averageDailyVolume3Month ?? null,
+        marketCap: quote?.marketCap ?? null,
+        pe: quote?.trailingPE ?? null,
+        eps: quote?.epsTrailingTwelveMonths ?? null,
+        week52High: quote?.fiftyTwoWeekHigh ?? null,
+        week52Low: quote?.fiftyTwoWeekLow ?? null,
+        dividendYield: quote?.dividendYield ?? null,
+        beta: quote?.beta ?? null,
+        changePercent: quote?.regularMarketChangePercent ?? null,
+        rsi: null as number | null,
+        sma20: null as number | null,
+        sma50: null as number | null,
+        ema12: null as number | null,
+        ema26: null as number | null,
+        volumeRatio: null as number | null,
+      };
+      
+      try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
+      freshResults.push(snapshot);
+    }
+    
+    // Update memory cache with fresh data
+    setMemoryCache(`fetchAll-${exchange}`, freshResults);
+    
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[Performance] Background refresh for ${exchange} completed in ${elapsed}s (${freshResults.length} stocks)`);
+  } catch (e) {
+    console.warn(`[Performance] Background refresh failed for ${exchange}:`, e);
+  } finally {
+    refreshInProgress.delete(key);
+  }
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -48,6 +117,7 @@ export const appRouter = router({
         return { ...data, ...stock };
       }),
 
+    // PERFORMANCE OPTIMIZED: Cache-first loading with background refresh
     fetchAll: publicProcedure
       .input(z.object({
         exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
@@ -56,25 +126,48 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const exchange = input?.exchange || "ALL";
         const forceRefresh = input?.forceRefresh || false;
+        const cacheKey = `fetchAll-${exchange}`;
         
+        // 1. Check in-memory cache first (instant, ~0ms)
+        if (!forceRefresh) {
+          const memCached = getFromMemoryCache(cacheKey);
+          if (memCached && memCached.length > 0) {
+            return memCached;
+          }
+        }
+        
+        // 2. Check DB cache (fast, ~200ms)
         if (!forceRefresh) {
           const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
           if (cached.length > 0) {
+            const results = cached.map(snap => {
+              const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
+              return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
+            });
+            
+            // Store in memory cache for next request
+            setMemoryCache(cacheKey, results);
+            
+            // Check if data is stale and trigger background refresh
             const newest = cached.reduce((a, b) => 
               new Date(a.updatedAt) > new Date(b.updatedAt) ? a : b
             );
             const age = Date.now() - new Date(newest.updatedAt).getTime();
-            if (age < 15 * 60 * 1000) {
-              return cached.map(snap => {
-                const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
-                return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
-              });
+            if (age > 15 * 60 * 1000) {
+              // Trigger background refresh (non-blocking!)
+              backgroundRefresh(exchange).catch(() => {});
             }
+            
+            // Return stale data immediately while refresh happens in background
+            return results;
           }
         }
         
+        // 3. No cache at all — must fetch synchronously (first load only)
+        // Only fetch DFM stocks from Yahoo (ADX has no data)
         const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
-        const yahooSymbols = stocks.map(s => s.yahooSymbol);
+        const dfmStocks = stocks.filter(s => s.exchange === "DFM" && s.yahooSymbol);
+        const yahooSymbols = dfmStocks.map(s => s.yahooSymbol);
         const quotes = await fetchBatchQuotes(yahooSymbols);
         
         const results = [];
@@ -113,6 +206,8 @@ export const appRouter = router({
           results.push(snapshot);
         }
         
+        // Cache the results
+        setMemoryCache(cacheKey, results);
         return results;
       }),
 
@@ -260,7 +355,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // Manual scan - trigger an immediate volume check
     scan: protectedProcedure
       .input(z.object({
         threshold: z.number().optional().default(2.0),
@@ -271,7 +365,6 @@ export const appRouter = router({
         return { alerts, count: alerts.length };
       }),
 
-    // Get/update monitor settings
     settings: protectedProcedure.query(async ({ ctx }) => {
       return getMonitorSettingsForUser(ctx.user.id);
     }),
@@ -288,7 +381,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // Trading hours info
     tradingInfo: publicProcedure.query(() => {
       return {
         isTrading: isUAETradingHours(),

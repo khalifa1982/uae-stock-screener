@@ -110,12 +110,12 @@ export default function StockDetail() {
 
   const { data: detail, isLoading: detailLoading } = trpc.stocks.detail.useQuery(
     { symbol },
-    { enabled: !!symbol, staleTime: 5 * 60 * 1000 }
+    { enabled: !!symbol, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, refetchOnWindowFocus: false }
   );
 
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
     { symbol, range: chartRange, interval: "1d" },
-    { enabled: !!symbol, staleTime: 5 * 60 * 1000 }
+    { enabled: !!symbol, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, refetchOnWindowFocus: false }
   );
 
   const sentimentMutation = trpc.stocks.sentiment.useMutation();
