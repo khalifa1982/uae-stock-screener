@@ -247,11 +247,11 @@ export default function Home() {
                 <TabsTrigger value="ALL" className="text-xs px-4">All Markets</TabsTrigger>
                 <TabsTrigger value="DFM" className="text-xs px-4">
                   DFM
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">(59)</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground">(68)</span>
                 </TabsTrigger>
                 <TabsTrigger value="ADX" className="text-xs px-4">
                   ADX
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">(82)</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground">(102)</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>

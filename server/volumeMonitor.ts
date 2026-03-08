@@ -16,7 +16,7 @@
 import { DFM_STOCKS, ALL_STOCKS, StockInfo } from "../shared/stockData";
 import { fetchBatchQuotes } from "./stockService";
 import { notifyOwner } from "./_core/notification";
-import { getDb } from "./db";
+import { getDb, createNotificationsForAllUsers } from "./db";
 import { volumeAlerts, monitorSettings } from "../drizzle/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 
@@ -170,6 +170,21 @@ async function pollForVolumeSpikes(threshold = 2.0, minVolume = 100000): Promise
       const criticalAlerts = alerts.filter(a => a.severity === "high" || a.severity === "critical");
       if (criticalAlerts.length > 0) {
         await sendVolumeNotification(criticalAlerts);
+      }
+      // Create in-app notifications for ALL alerts (not just critical)
+      for (const alert of alerts) {
+        const sevMap: Record<string, "info" | "warning" | "critical"> = {
+          low: "info", medium: "info", high: "warning", critical: "critical",
+        };
+        await createNotificationsForAllUsers({
+          type: "volume_spike",
+          title: `Volume Spike: ${alert.stockName} (${alert.volumeMultiplier}x)`,
+          message: `${alert.stockName} (${alert.symbol}) volume is ${alert.volumeMultiplier}x the average at ${formatVolume(alert.currentVolume)}. Price: ${alert.price?.toFixed(2) ?? "N/A"} AED (${alert.changePercent != null ? (alert.changePercent >= 0 ? "+" : "") + alert.changePercent.toFixed(2) + "%" : "N/A"}).`,
+          symbol: alert.symbol,
+          exchange: alert.exchange,
+          severity: sevMap[alert.severity] || "info",
+          metadata: JSON.stringify({ volumeMultiplier: alert.volumeMultiplier, currentVolume: alert.currentVolume, avgVolume: alert.avgVolume, sector: alert.sector }),
+        });
       }
     }
     

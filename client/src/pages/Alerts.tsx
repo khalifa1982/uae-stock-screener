@@ -3,11 +3,17 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Activity, AlertTriangle, Bell, BellOff, Clock, RefreshCw, Scan, TrendingDown, TrendingUp, Volume2, Zap } from "lucide-react";
-import { useState, useMemo } from "react";
+import {
+  Activity, AlertTriangle, Bell, BellOff, BellRing, Clock,
+  RefreshCw, Scan, TrendingDown, TrendingUp, Volume2, VolumeX,
+  Zap, Play, Settings2
+} from "lucide-react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
+import { useAlertNotifications } from "@/hooks/useAlertNotifications";
 
 function formatVolume(vol: number): string {
   if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(2)}M`;
@@ -45,13 +51,27 @@ export default function Alerts() {
   const { isAuthenticated } = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState<any[] | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const prevAlertCountRef = useRef(0);
+
+  const {
+    prefs,
+    permissionState,
+    requestPermission,
+    toggleBrowserNotifications,
+    toggleSound,
+    setVolume,
+    processAlerts,
+    testNotification,
+    playSoundOnly,
+  } = useAlertNotifications();
 
   const { data: monitorStatus, refetch: refetchStatus } = trpc.monitor.status.useQuery(undefined, {
     refetchInterval: 30000,
   });
 
   const { data: todayAlerts, refetch: refetchToday } = trpc.monitor.todayAlerts.useQuery(undefined, {
-    refetchInterval: 60000,
+    refetchInterval: 30000, // Poll every 30s for new alerts
   });
 
   const { data: recentAlerts, refetch: refetchRecent } = trpc.monitor.recentAlerts.useQuery(undefined, {
@@ -62,10 +82,42 @@ export default function Alerts() {
     refetchInterval: 60000,
   });
 
+  // Process new alerts for notifications
+  useEffect(() => {
+    if (!todayAlerts || todayAlerts.length === 0) return;
+    const activeAlerts = todayAlerts.filter((a: any) => !a.dismissed);
+    if (activeAlerts.length > prevAlertCountRef.current) {
+      // New alerts detected - process them for notifications
+      const newCount = processAlerts(activeAlerts);
+      if (newCount && newCount > 0) {
+        toast.info(`${newCount} new volume spike${newCount > 1 ? "s" : ""} detected!`, {
+          duration: 5000,
+          action: {
+            label: "View",
+            onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+          },
+        });
+      }
+    }
+    prevAlertCountRef.current = activeAlerts.length;
+  }, [todayAlerts, processAlerts]);
+
   const scanMutation = trpc.monitor.scan.useMutation({
     onSuccess: (data) => {
       setScanResults(data.alerts);
-      toast.success(`Scan complete: ${data.count} volume spikes detected`);
+      if (data.count > 0) {
+        toast.success(`Scan complete: ${data.count} volume spikes detected`);
+        // Play sound for scan results
+        const maxSev = data.alerts.reduce((max: string, a: any) => {
+          const order = ["low", "medium", "high", "critical"];
+          return order.indexOf(a.severity) > order.indexOf(max) ? a.severity : max;
+        }, "low");
+        playSoundOnly(maxSev as any);
+        // Process for browser notifications too
+        processAlerts(data.alerts);
+      } else {
+        toast.info("Scan complete: No volume spikes detected");
+      }
       refetchToday();
       refetchRecent();
       refetchStatus();
@@ -107,6 +159,15 @@ export default function Alerts() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            className={`gap-2 ${showSettings ? "bg-accent" : ""}`}
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Alerts
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => { refetchStatus(); refetchToday(); refetchRecent(); }}
             className="gap-2"
           >
@@ -126,6 +187,111 @@ export default function Alerts() {
           )}
         </div>
       </div>
+
+      {/* Notification Settings Panel */}
+      {showSettings && (
+        <Card className="border-primary/20 bg-gradient-to-r from-card to-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BellRing className="h-4 w-4 text-primary" />
+              Notification Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Browser Notifications */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Browser Notifications</span>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  {permissionState === "unsupported"
+                    ? "Your browser does not support notifications"
+                    : permissionState === "denied"
+                      ? "Notifications blocked. Please enable in browser settings."
+                      : "Get push notifications even when the tab is in the background"}
+                </p>
+              </div>
+              <Switch
+                checked={prefs.browserNotifications}
+                onCheckedChange={toggleBrowserNotifications}
+                disabled={permissionState === "unsupported" || permissionState === "denied"}
+              />
+            </div>
+
+            {/* Sound Alerts */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  {prefs.soundEnabled ? (
+                    <Volume2 className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <VolumeX className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm font-medium">Alert Sound</span>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  Play an audible alert when volume spikes are detected
+                </p>
+              </div>
+              <Switch
+                checked={prefs.soundEnabled}
+                onCheckedChange={toggleSound}
+              />
+            </div>
+
+            {/* Volume Slider */}
+            {prefs.soundEnabled && (
+              <div className="ml-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Volume</span>
+                  <span className="text-xs font-mono text-muted-foreground">{Math.round(prefs.soundVolume * 100)}%</span>
+                </div>
+                <Slider
+                  value={[prefs.soundVolume * 100]}
+                  onValueChange={([v]) => setVolume(v / 100)}
+                  max={100}
+                  min={5}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* Test Button */}
+            <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={testNotification}
+                className="gap-2"
+              >
+                <Play className="h-3.5 w-3.5" />
+                Test Alert
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Sends a test notification with sound to verify your setup
+              </span>
+            </div>
+
+            {/* Permission Status */}
+            {permissionState === "default" && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Bell className="h-4 w-4 text-primary shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    Browser notification permission has not been granted yet.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={requestPermission} className="shrink-0 text-xs">
+                  Enable
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -191,25 +357,34 @@ export default function Alerts() {
           </CardContent>
         </Card>
 
-        {/* Last Poll */}
+        {/* Notification Status */}
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Poll</p>
-                <p className="text-sm font-medium">
-                  {monitorStatus?.lastPollTime
-                    ? formatTimeAgo(monitorStatus.lastPollTime)
-                    : "No polls yet"}
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Notifications</p>
+                <div className="flex items-center gap-2">
+                  {prefs.browserNotifications || prefs.soundEnabled ? (
+                    <>
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      <span className="text-sm font-medium">Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-2.5 w-2.5 rounded-full bg-zinc-500" />
+                      <span className="text-sm font-medium">Disabled</span>
+                    </>
+                  )}
+                </div>
               </div>
-              <Zap className="h-5 w-5 text-muted-foreground" />
+              <BellRing className="h-5 w-5 text-muted-foreground" />
             </div>
-            {monitorStatus?.errorCount ? (
-              <p className="text-[11px] text-orange-400 mt-2">
-                {monitorStatus.errorCount} errors encountered
-              </p>
-            ) : null}
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {[
+                prefs.browserNotifications ? "Push" : null,
+                prefs.soundEnabled ? `Sound (${Math.round(prefs.soundVolume * 100)}%)` : null,
+              ].filter(Boolean).join(" + ") || "Click Alerts to configure"}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -241,7 +416,7 @@ export default function Alerts() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {scanResults.map((alert, i) => (
+              {scanResults.map((alert: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
                   <div className="flex items-center gap-3">
                     <SeverityBadge severity={alert.severity} />
@@ -403,10 +578,10 @@ export default function Alerts() {
                         {alert.volumeMultiplier}x
                       </td>
                       <td className="py-2 px-3 text-right font-mono text-xs">
-                        {alert.price ? alert.price.toFixed(2) : "—"}
+                        {alert.price ? alert.price.toFixed(2) : "\u2014"}
                       </td>
                       <td className={`py-2 px-3 text-right font-mono text-xs ${(alert.changePercent || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {alert.changePercent != null ? `${alert.changePercent >= 0 ? "+" : ""}${alert.changePercent.toFixed(2)}%` : "—"}
+                        {alert.changePercent != null ? `${alert.changePercent >= 0 ? "+" : ""}${alert.changePercent.toFixed(2)}%` : "\u2014"}
                       </td>
                     </tr>
                   ))}

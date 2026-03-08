@@ -1,7 +1,7 @@
 # UAE Stock Screener - Project TODO
 
 - [x] Database schema for stocks, stock data snapshots, watchlists
-- [x] Backend API: stock list management (ADX 82 + DFM 59 stocks)
+- [x] Backend API: stock list management (ADX 102 + DFM 68 stocks)
 - [x] Backend API: real-time stock data fetching via Yahoo Finance (crumb auth + Data API)
 - [x] Backend API: technical indicators calculation (RSI, SMA, EMA, volume analysis)
 - [x] Backend API: multi-factor screening logic (P/E, market cap, volume, price ranges)
@@ -17,7 +17,7 @@
 - [x] Frontend: responsive design for all screen sizes
 - [x] Vitest tests for backend procedures (14 tests passing)
 - [x] ADX stocks listed for reference (no Yahoo Finance data available)
-- [x] DFM stocks with full live data (59 stocks with real-time prices)
+- [x] DFM stocks with full live data (68 stocks with real-time prices)
 - [x] Graceful handling of ADX stocks without price data
 - [x] Database deduplication with unique indexes
 
@@ -50,7 +50,7 @@
 
 ### Priority 5: Data API Integration
 - [x] Switched from direct Yahoo Finance to built-in Data API as primary source
-- [x] All 59 DFM stocks now reliably return price data
+- [x] All 68 DFM stocks now reliably return price data
 - [x] Fallback to direct Yahoo Finance with crumb auth if Data API fails
 
 ### Testing
@@ -58,3 +58,44 @@
 - [x] Trading hours tests corrected for UAE Sun-Thu schedule
 - [x] Stock data validation tests
 - [x] Router schema validation tests
+
+## Phase 3 - Browser Push Notifications with Audio Alerts
+
+- [x] Browser Notification API integration (request permission, show notifications)
+- [x] Audible alert sound when volume spike detected (Web Audio API synthesized tones)
+- [x] Frontend polling hook that checks for new alerts during trading hours
+- [x] Notification permission UI with toggle in Alerts page
+- [x] Sound on/off toggle with persistent preference (localStorage)
+- [x] Background tab notification support (notifications work when tab is not focused)
+- [x] Visual toast + browser notification combined for maximum visibility
+- [x] Test notification button for users to verify setup works
+
+## Phase 3b - Cross-check ADX and DFM Stock Lists
+
+- [x] Wide research across 10 sources for complete ADX and DFM listings
+- [x] Compared with current stockData.ts and identified 25 missing ADX + 15 missing DFM stocks
+- [x] Fixed renamed symbols (ETISALAT→EAND, FERTIGLOBE→FERTIGLB)
+- [x] Removed delisted/renamed stocks (MULTIPLY, QAHOLDING, RAK, AMCREIT)
+- [x] Updated stockData.ts: now 102 ADX + 68 DFM = 170 total stocks
+- [x] Verified Yahoo Finance symbols for new DFM stocks
+
+## Phase 3c - Custom In-App Notification System
+
+- [x] Notification bell icon in header with unread count badge (red dot + count)
+- [x] In-app notification center dropdown panel (Popover with ScrollArea)
+- [x] Notifications stored in database (notifications table with userId, type, severity)
+- [x] Real-time notification polling with auto-refresh (15s interval)
+- [x] Mark as read / dismiss individual notifications
+- [x] Mark all as read action
+- [x] Delete individual notifications
+- [x] Different notification types: volume spike, with severity levels (info/warning/critical)
+- [x] Sound alert on new notification arrival (Web Audio API)
+- [x] Toast notification on new alert arrival with "View" action
+- [x] Volume monitor creates in-app notifications for all users on spike detection
+- [x] Notification links to stock detail page
+
+### Testing
+- [x] Vitest tests: 45 tests passing across 5 test files
+- [x] Notification router auth tests (5 tests)
+- [x] Notification data structure tests
+- [x] Notification CRUD operation tests

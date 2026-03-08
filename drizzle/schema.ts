@@ -117,3 +117,24 @@ export const screenerPresets = mysqlTable("screener_presets", {
 
 export type ScreenerPreset = typeof screenerPresets.$inferSelect;
 export type InsertScreenerPreset = typeof screenerPresets.$inferInsert;
+
+// In-app notifications for users
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 32 }).notNull().default("volume_spike"),
+  title: varchar("title", { length: 256 }).notNull(),
+  message: text("message").notNull(),
+  symbol: varchar("symbol", { length: 32 }),
+  exchange: varchar("exchange", { length: 8 }),
+  severity: mysqlEnum("notif_severity", ["info", "warning", "critical"]).notNull().default("info"),
+  isRead: int("isRead").notNull().default(0),
+  metadata: text("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("user_notif_idx").on(table.userId, table.isRead),
+  index("notif_created_idx").on(table.createdAt),
+]);
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

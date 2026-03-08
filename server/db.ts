@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets } from "../drizzle/schema";
+import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets, notifications, InsertNotification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -193,4 +193,69 @@ export async function deletePreset(presetId: number, userId: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(screenerPresets).where(and(eq(screenerPresets.id, presetId), eq(screenerPresets.userId, userId)));
+}
+
+// Notification operations
+export async function createNotification(data: InsertNotification) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(notifications).values(data);
+  } catch (e) {
+    console.warn("[Database] Failed to create notification:", e);
+  }
+}
+
+export async function createNotificationsForAllUsers(data: Omit<InsertNotification, "userId">) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    const allUsers = await db.select({ id: users.id }).from(users);
+    if (allUsers.length === 0) return;
+    const values = allUsers.map(u => ({ ...data, userId: u.id }));
+    await db.insert(notifications).values(values);
+  } catch (e) {
+    console.warn("[Database] Failed to create notifications for all users:", e);
+  }
+}
+
+export async function getUserNotifications(userId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+export async function getUnreadNotificationCount(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
+  return result[0]?.count ?? 0;
+}
+
+export async function markNotificationRead(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications)
+    .set({ isRead: 1 })
+    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+}
+
+export async function markAllNotificationsRead(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notifications)
+    .set({ isRead: 1 })
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
+}
+
+export async function deleteNotification(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notifications)
+    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
 }

@@ -111,14 +111,14 @@ describe("shared/stockData", () => {
     }
   });
 
-  it("ADX has approximately 80 stocks", () => {
-    expect(ADX_STOCKS.length).toBeGreaterThanOrEqual(70);
-    expect(ADX_STOCKS.length).toBeLessThanOrEqual(100);
+  it("ADX has approximately 100 stocks", () => {
+    expect(ADX_STOCKS.length).toBeGreaterThanOrEqual(90);
+    expect(ADX_STOCKS.length).toBeLessThanOrEqual(120);
   });
 
-  it("DFM has approximately 59 stocks", () => {
-    expect(DFM_STOCKS.length).toBeGreaterThanOrEqual(50);
-    expect(DFM_STOCKS.length).toBeLessThanOrEqual(70);
+  it("DFM has approximately 68 stocks", () => {
+    expect(DFM_STOCKS.length).toBeGreaterThanOrEqual(60);
+    expect(DFM_STOCKS.length).toBeLessThanOrEqual(80);
   });
 });
 

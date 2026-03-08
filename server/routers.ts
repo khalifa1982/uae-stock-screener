@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 
@@ -296,6 +296,39 @@ export const appRouter = router({
         tradingHours: "Sun-Thu 10:00-14:00 GST (UTC+4)",
       };
     }),
+  }),
+
+  // In-app Notifications
+  notifications: router({
+    list: protectedProcedure
+      .input(z.object({ limit: z.number().optional().default(50) }).optional())
+      .query(async ({ ctx, input }) => {
+        return getUserNotifications(ctx.user.id, input?.limit || 50);
+      }),
+
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      return getUnreadNotificationCount(ctx.user.id);
+    }),
+
+    markRead: protectedProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await markNotificationRead(input.notificationId, ctx.user.id);
+        return { success: true };
+      }),
+
+    markAllRead: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        await markAllNotificationsRead(ctx.user.id);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteNotification(input.notificationId, ctx.user.id);
+        return { success: true };
+      }),
   }),
 
   // Screener Presets

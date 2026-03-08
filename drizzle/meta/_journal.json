@@ -29,6 +29,13 @@
       "when": 1772929382574,
       "tag": "0003_familiar_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1772932593254,
+      "tag": "0004_brave_kate_bishop",
+      "breakpoints": true
     }
   ]
 }
