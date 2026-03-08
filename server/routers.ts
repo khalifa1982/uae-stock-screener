@@ -5,8 +5,9 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 
 export const appRouter = router({
   system: systemRouter,
@@ -20,7 +21,6 @@ export const appRouter = router({
   }),
 
   stocks: router({
-    // Get the static stock list with exchange filter
     list: publicProcedure
       .input(z.object({
         exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
@@ -32,28 +32,22 @@ export const appRouter = router({
         return ALL_STOCKS;
       }),
 
-    // Get sectors list
     sectors: publicProcedure.query(() => SECTORS),
 
-    // Fetch real-time data for a single stock
     fetchOne: publicProcedure
       .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol && s.exchange === input.exchange);
         if (!stock) throw new Error("Stock not found");
-        
-        // Check cache first (less than 5 min old)
         const cached = await getStockSnapshot(input.symbol, input.exchange);
         if (cached && cached.updatedAt) {
           const age = Date.now() - new Date(cached.updatedAt).getTime();
           if (age < 5 * 60 * 1000 && cached.price) return cached;
         }
-        
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
 
-    // Fetch data for all stocks of an exchange (batch)
     fetchAll: publicProcedure
       .input(z.object({
         exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
@@ -63,17 +57,14 @@ export const appRouter = router({
         const exchange = input?.exchange || "ALL";
         const forceRefresh = input?.forceRefresh || false;
         
-        // Try to return cached data first
         if (!forceRefresh) {
           const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
           if (cached.length > 0) {
-            // Check if data is fresh enough (less than 15 min)
             const newest = cached.reduce((a, b) => 
               new Date(a.updatedAt) > new Date(b.updatedAt) ? a : b
             );
             const age = Date.now() - new Date(newest.updatedAt).getTime();
             if (age < 15 * 60 * 1000) {
-              // Merge with stock info
               return cached.map(snap => {
                 const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
                 return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
@@ -82,10 +73,7 @@ export const appRouter = router({
           }
         }
         
-        // Fetch fresh data
         const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
-        
-        // Use batch quote API for speed
         const yahooSymbols = stocks.map(s => s.yahooSymbol);
         const quotes = await fetchBatchQuotes(yahooSymbols);
         
@@ -121,20 +109,13 @@ export const appRouter = router({
             volumeRatio: null as number | null,
           };
           
-          // Save to DB
-          try {
-            await upsertStockSnapshot(snapshot);
-          } catch (e) {
-            // ignore save errors
-          }
-          
+          try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
           results.push(snapshot);
         }
         
         return results;
       }),
 
-    // Get chart data for a stock
     chart: publicProcedure
       .input(z.object({
         symbol: z.string(),
@@ -147,18 +128,15 @@ export const appRouter = router({
         return fetchYahooChart(stock.yahooSymbol, input.range, input.interval);
       }),
 
-    // Get detailed stock data with technical indicators
     detail: publicProcedure
       .input(z.object({ symbol: z.string() }))
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
-        
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
 
-    // Screen stocks based on filters
     screen: publicProcedure
       .input(z.object({
         exchange: z.enum(["ADX", "DFM", "ALL"]).optional().default("ALL"),
@@ -179,80 +157,39 @@ export const appRouter = router({
         highVolume: z.boolean().optional(),
       }))
       .query(async ({ input }) => {
-        // Get all cached snapshots
         let snapshots = await getAllStockSnapshots(input.exchange === "ALL" ? undefined : input.exchange);
-        
-        // Merge with stock info
         let results = snapshots.map(snap => {
           const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
           return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
         });
 
-        // Apply filters
-        if (input.sector) {
-          results = results.filter(s => s.sector === input.sector);
-        }
-        if (input.minPE !== undefined) {
-          results = results.filter(s => s.pe != null && s.pe >= input.minPE!);
-        }
-        if (input.maxPE !== undefined) {
-          results = results.filter(s => s.pe != null && s.pe <= input.maxPE!);
-        }
-        if (input.minPrice !== undefined) {
-          results = results.filter(s => s.price != null && s.price >= input.minPrice!);
-        }
-        if (input.maxPrice !== undefined) {
-          results = results.filter(s => s.price != null && s.price <= input.maxPrice!);
-        }
-        if (input.minMarketCap !== undefined) {
-          results = results.filter(s => s.marketCap != null && s.marketCap >= input.minMarketCap!);
-        }
-        if (input.maxMarketCap !== undefined) {
-          results = results.filter(s => s.marketCap != null && s.marketCap <= input.maxMarketCap!);
-        }
-        if (input.minVolume !== undefined) {
-          results = results.filter(s => s.volume != null && s.volume >= input.minVolume!);
-        }
-        if (input.minRSI !== undefined) {
-          results = results.filter(s => s.rsi != null && s.rsi >= input.minRSI!);
-        }
-        if (input.maxRSI !== undefined) {
-          results = results.filter(s => s.rsi != null && s.rsi <= input.maxRSI!);
-        }
-        if (input.minChangePercent !== undefined) {
-          results = results.filter(s => s.changePercent != null && s.changePercent >= input.minChangePercent!);
-        }
-        if (input.maxChangePercent !== undefined) {
-          results = results.filter(s => s.changePercent != null && s.changePercent <= input.maxChangePercent!);
-        }
-        if (input.aboveSMA50) {
-          results = results.filter(s => s.price != null && s.sma50 != null && s.price > s.sma50);
-        }
-        if (input.goldenCross) {
-          results = results.filter(s => s.sma20 != null && s.sma50 != null && s.sma20 > s.sma50);
-        }
-        if (input.highVolume) {
-          results = results.filter(s => s.volumeRatio != null && s.volumeRatio > 1.5);
-        }
+        if (input.sector) results = results.filter(s => s.sector === input.sector);
+        if (input.minPE !== undefined) results = results.filter(s => s.pe != null && s.pe >= input.minPE!);
+        if (input.maxPE !== undefined) results = results.filter(s => s.pe != null && s.pe <= input.maxPE!);
+        if (input.minPrice !== undefined) results = results.filter(s => s.price != null && s.price >= input.minPrice!);
+        if (input.maxPrice !== undefined) results = results.filter(s => s.price != null && s.price <= input.maxPrice!);
+        if (input.minMarketCap !== undefined) results = results.filter(s => s.marketCap != null && s.marketCap >= input.minMarketCap!);
+        if (input.maxMarketCap !== undefined) results = results.filter(s => s.marketCap != null && s.marketCap <= input.maxMarketCap!);
+        if (input.minVolume !== undefined) results = results.filter(s => s.volume != null && s.volume >= input.minVolume!);
+        if (input.minRSI !== undefined) results = results.filter(s => s.rsi != null && s.rsi >= input.minRSI!);
+        if (input.maxRSI !== undefined) results = results.filter(s => s.rsi != null && s.rsi <= input.maxRSI!);
+        if (input.minChangePercent !== undefined) results = results.filter(s => s.changePercent != null && s.changePercent >= input.minChangePercent!);
+        if (input.maxChangePercent !== undefined) results = results.filter(s => s.changePercent != null && s.changePercent <= input.maxChangePercent!);
+        if (input.aboveSMA50) results = results.filter(s => s.price != null && s.sma50 != null && s.price > s.sma50);
+        if (input.goldenCross) results = results.filter(s => s.sma20 != null && s.sma50 != null && s.sma20 > s.sma50);
+        if (input.highVolume) results = results.filter(s => s.volumeRatio != null && s.volumeRatio > 1.5);
 
         return results;
       }),
 
-    // AI Sentiment analysis for a stock
     sentiment: publicProcedure
       .input(z.object({ symbol: z.string(), name: z.string() }))
       .mutation(async ({ input }) => {
         try {
           const result = await invokeLLM({
             messages: [
-              {
-                role: "system",
-                content: "You are a financial analyst specializing in UAE stock markets (ADX and DFM). Analyze the given stock and provide a brief sentiment assessment. Return JSON with: sentiment (bullish/bearish/neutral), score (-1 to 1), and summary (2-3 sentences)."
-              },
-              {
-                role: "user",
-                content: `Analyze the current market sentiment for ${input.name} (${input.symbol}) listed on the UAE stock exchange. Consider recent market conditions, sector trends, and the company's position in the UAE economy. Return your analysis as JSON.`
-              }
+              { role: "system", content: "You are a financial analyst specializing in UAE stock markets (ADX and DFM). Analyze the given stock and provide a brief sentiment assessment. Return JSON with: sentiment (bullish/bearish/neutral), score (-1 to 1), and summary (2-3 sentences)." },
+              { role: "user", content: `Analyze the current market sentiment for ${input.name} (${input.symbol}) listed on the UAE stock exchange. Consider recent market conditions, sector trends, and the company's position in the UAE economy. Return your analysis as JSON.` }
             ],
             response_format: {
               type: "json_schema",
@@ -272,11 +209,8 @@ export const appRouter = router({
               },
             },
           });
-
           const content = result.choices[0]?.message?.content;
-          if (typeof content === "string") {
-            return JSON.parse(content);
-          }
+          if (typeof content === "string") return JSON.parse(content);
           return { sentiment: "neutral", score: 0, summary: "Unable to analyze sentiment at this time." };
         } catch (e) {
           console.warn("[Sentiment] Analysis failed:", e);
@@ -299,6 +233,86 @@ export const appRouter = router({
       .input(z.object({ symbol: z.string() }))
       .mutation(async ({ ctx, input }) => {
         await removeFromWatchlist(ctx.user.id, input.symbol);
+        return { success: true };
+      }),
+  }),
+
+  // Volume Monitor & Alerts
+  monitor: router({
+    status: publicProcedure.query(() => {
+      return getMonitorStatus();
+    }),
+
+    recentAlerts: publicProcedure
+      .input(z.object({ limit: z.number().optional().default(50) }).optional())
+      .query(async ({ input }) => {
+        return getRecentAlerts(input?.limit || 50);
+      }),
+
+    todayAlerts: publicProcedure.query(async () => {
+      return getTodayAlerts();
+    }),
+
+    dismiss: protectedProcedure
+      .input(z.object({ alertId: z.number() }))
+      .mutation(async ({ input }) => {
+        await dismissAlert(input.alertId);
+        return { success: true };
+      }),
+
+    // Manual scan - trigger an immediate volume check
+    scan: protectedProcedure
+      .input(z.object({
+        threshold: z.number().optional().default(2.0),
+        minVolume: z.number().optional().default(100000),
+      }).optional())
+      .mutation(async ({ input }) => {
+        const alerts = await manualPoll(input?.threshold, input?.minVolume);
+        return { alerts, count: alerts.length };
+      }),
+
+    // Get/update monitor settings
+    settings: protectedProcedure.query(async ({ ctx }) => {
+      return getMonitorSettingsForUser(ctx.user.id);
+    }),
+
+    updateSettings: protectedProcedure
+      .input(z.object({
+        enabled: z.boolean().optional(),
+        volumeThreshold: z.number().min(1).max(10).optional(),
+        minVolumeAbsolute: z.number().min(0).optional(),
+        notifyOnSpike: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await upsertMonitorSettings(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    // Trading hours info
+    tradingInfo: publicProcedure.query(() => {
+      return {
+        isTrading: isUAETradingHours(),
+        nextSession: isUAETradingHours() ? null : getNextTradingSession(),
+        tradingHours: "Sun-Thu 10:00-14:00 GST (UTC+4)",
+      };
+    }),
+  }),
+
+  // Screener Presets
+  presets: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return getUserPresets(ctx.user.id);
+    }),
+    save: protectedProcedure
+      .input(z.object({ name: z.string(), filters: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        await savePreset(ctx.user.id, input.name, input.filters);
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deletePreset(input.id, ctx.user.id);
         return { success: true };
       }),
   }),

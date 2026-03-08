@@ -1,6 +1,6 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists } from "../drizzle/schema";
+import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -66,11 +66,10 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// Stock snapshot operations - uses onDuplicateKeyUpdate with unique index
+// Stock snapshot operations
 export async function upsertStockSnapshot(data: InsertStockSnapshot): Promise<void> {
   const db = await getDb();
   if (!db) return;
-
   try {
     await db.insert(stockSnapshots).values(data).onDuplicateKeyUpdate({
       set: {
@@ -144,4 +143,54 @@ export async function getUserWatchlist(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(watchlists).where(eq(watchlists.userId, userId));
+}
+
+// Monitor settings operations
+export async function getMonitorSettingsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(monitorSettings).where(eq(monitorSettings.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function upsertMonitorSettings(userId: number, settings: { enabled?: boolean; volumeThreshold?: number; minVolumeAbsolute?: number; notifyOnSpike?: boolean }) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(monitorSettings).values({
+      userId,
+      enabled: settings.enabled !== false ? 1 : 0,
+      volumeThreshold: settings.volumeThreshold ?? 2.0,
+      minVolumeAbsolute: settings.minVolumeAbsolute ?? 100000,
+      notifyOnSpike: settings.notifyOnSpike !== false ? 1 : 0,
+    }).onDuplicateKeyUpdate({
+      set: {
+        ...(settings.enabled !== undefined ? { enabled: settings.enabled ? 1 : 0 } : {}),
+        ...(settings.volumeThreshold !== undefined ? { volumeThreshold: settings.volumeThreshold } : {}),
+        ...(settings.minVolumeAbsolute !== undefined ? { minVolumeAbsolute: settings.minVolumeAbsolute } : {}),
+        ...(settings.notifyOnSpike !== undefined ? { notifyOnSpike: settings.notifyOnSpike ? 1 : 0 } : {}),
+      },
+    });
+  } catch (e) {
+    console.warn("[Database] Failed to upsert monitor settings:", e);
+  }
+}
+
+// Screener preset operations
+export async function getUserPresets(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(screenerPresets).where(eq(screenerPresets.userId, userId));
+}
+
+export async function savePreset(userId: number, name: string, filters: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(screenerPresets).values({ userId, name, filters });
+}
+
+export async function deletePreset(presetId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(screenerPresets).where(and(eq(screenerPresets.id, presetId), eq(screenerPresets.userId, userId)));
 }

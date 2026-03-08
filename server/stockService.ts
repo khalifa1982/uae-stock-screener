@@ -1,12 +1,11 @@
 import { ALL_STOCKS, StockInfo } from "../shared/stockData";
 import { callDataApi } from "./_core/dataApi";
 
-// Yahoo Finance API with crumb authentication (fallback for direct calls)
+// Yahoo Finance direct API (fallback only)
 const YAHOO_V7 = "https://query2.finance.yahoo.com/v7/finance";
 const YAHOO_V8 = "https://query2.finance.yahoo.com/v8/finance";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-// Session management for Yahoo Finance crumb auth
 let cachedCrumb: string | null = null;
 let cachedCookies: string | null = null;
 let crumbExpiry = 0;
@@ -57,6 +56,49 @@ interface YahooQuoteResult {
   symbol?: string;
 }
 
+// PRIMARY: Fetch a single stock's quote data via the built-in Data API (get_stock_chart)
+async function fetchQuoteViaDataApi(yahooSymbol: string): Promise<YahooQuoteResult | null> {
+  try {
+    const data = await callDataApi("YahooFinance/get_stock_chart", {
+      query: {
+        symbol: yahooSymbol,
+        interval: "1d",
+        range: "5d",
+        includeAdjustedClose: "true",
+      },
+    }) as any;
+
+    const result = data?.chart?.result?.[0];
+    if (!result?.meta) return null;
+
+    const meta = result.meta;
+    return {
+      regularMarketPrice: meta.regularMarketPrice ?? undefined,
+      regularMarketPreviousClose: meta.chartPreviousClose ?? meta.previousClose ?? undefined,
+      regularMarketOpen: meta.regularMarketDayHigh ? undefined : undefined, // not in chart meta
+      regularMarketDayHigh: meta.regularMarketDayHigh ?? undefined,
+      regularMarketDayLow: meta.regularMarketDayLow ?? undefined,
+      regularMarketVolume: meta.regularMarketVolume ?? undefined,
+      averageDailyVolume3Month: undefined, // not in chart meta
+      marketCap: undefined, // not in chart meta
+      trailingPE: undefined,
+      epsTrailingTwelveMonths: undefined,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? undefined,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? undefined,
+      dividendYield: undefined,
+      beta: undefined,
+      regularMarketChangePercent: meta.regularMarketPrice && meta.chartPreviousClose
+        ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100
+        : undefined,
+      shortName: meta.shortName ?? undefined,
+      symbol: meta.symbol ?? yahooSymbol,
+    };
+  } catch (e) {
+    console.warn(`[StockService] Data API quote failed for ${yahooSymbol}:`, e);
+    return null;
+  }
+}
+
 // Fetch chart data using the built-in Data API (primary) or direct Yahoo (fallback)
 export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interval = "1d"): Promise<any> {
   // Try built-in Data API first
@@ -66,7 +108,7 @@ export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interv
         symbol: yahooSymbol,
         interval,
         range,
-        includeAdjustedClose: true,
+        includeAdjustedClose: "true",
       },
     }) as any;
 
@@ -153,9 +195,14 @@ function calculateEMA(data: number[], period: number): number | null {
 
 // Fetch and process a single stock's data with technical indicators
 export async function fetchStockData(stock: StockInfo) {
-  // Fetch quote via batch (single stock)
-  const quotes = await fetchBatchQuotes([stock.yahooSymbol]);
-  const quote = quotes.get(stock.yahooSymbol);
+  // Try Data API first for the quote
+  let quote = await fetchQuoteViaDataApi(stock.yahooSymbol);
+
+  // Fallback to direct Yahoo batch quote
+  if (!quote) {
+    const quotes = await fetchBatchQuotesDirect([stock.yahooSymbol]);
+    quote = quotes.get(stock.yahooSymbol) || null;
+  }
 
   // Fetch chart for technical indicators
   const chart = await fetchYahooChart(stock.yahooSymbol, "6mo", "1d");
@@ -209,8 +256,41 @@ export async function fetchStockData(stock: StockInfo) {
   };
 }
 
-// Batch fetch quotes using Yahoo Finance with crumb auth
+// PRIMARY: Batch fetch quotes using the Data API (one at a time, with concurrency)
 export async function fetchBatchQuotes(symbols: string[]): Promise<Map<string, YahooQuoteResult>> {
+  const map = new Map<string, YahooQuoteResult>();
+
+  // Use Data API with concurrency limit
+  const concurrency = 5;
+  for (let i = 0; i < symbols.length; i += concurrency) {
+    const batch = symbols.slice(i, i + concurrency);
+    const results = await Promise.allSettled(
+      batch.map(async (sym) => {
+        const quote = await fetchQuoteViaDataApi(sym);
+        if (quote) map.set(sym, quote);
+      })
+    );
+    // Small delay between batches to avoid rate limiting
+    if (i + concurrency < symbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  // If Data API got less than half, try direct Yahoo as fallback
+  if (map.size < symbols.length / 2) {
+    console.log(`[StockService] Data API returned ${map.size}/${symbols.length}, trying direct Yahoo fallback...`);
+    const missing = symbols.filter(s => !map.has(s));
+    const directResults = await fetchBatchQuotesDirect(missing);
+    for (const [sym, quote] of Array.from(directResults.entries())) {
+      if (!map.has(sym)) map.set(sym, quote);
+    }
+  }
+
+  return map;
+}
+
+// FALLBACK: Batch fetch quotes using direct Yahoo Finance with crumb auth
+async function fetchBatchQuotesDirect(symbols: string[]): Promise<Map<string, YahooQuoteResult>> {
   const map = new Map<string, YahooQuoteResult>();
 
   try {
@@ -231,15 +311,15 @@ export async function fetchBatchQuotes(symbols: string[]): Promise<Map<string, Y
             if (r.symbol) map.set(r.symbol, r);
           }
         } else {
-          console.warn(`[StockService] Batch quote failed: ${resp.status}`);
-          if (resp.status === 401 || resp.status === 403) {
+          console.warn(`[StockService] Direct batch quote failed: ${resp.status}`);
+          if (resp.status === 401 || resp.status === 403 || resp.status === 429) {
             cachedCrumb = null;
             cachedCookies = null;
             crumbExpiry = 0;
           }
         }
       } catch (e) {
-        console.warn("[StockService] Batch quote fetch failed:", e);
+        console.warn("[StockService] Direct batch quote fetch failed:", e);
       }
       if (i + batchSize < symbols.length) {
         await new Promise(resolve => setTimeout(resolve, 300));

@@ -1,4 +1,4 @@
-import { int, float, bigint, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex } from "drizzle-orm/mysql-core";
+import { int, float, bigint, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex, boolean, index } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -63,3 +63,57 @@ export const watchlists = mysqlTable("watchlists", {
 
 export type Watchlist = typeof watchlists.$inferSelect;
 export type InsertWatchlist = typeof watchlists.$inferInsert;
+
+// Volume alerts - tracks detected volume spikes
+export const volumeAlerts = mysqlTable("volume_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  symbol: varchar("symbol", { length: 32 }).notNull(),
+  exchange: varchar("exchange", { length: 8 }).notNull(),
+  stockName: varchar("stockName", { length: 128 }),
+  sector: varchar("sector", { length: 64 }),
+  currentVolume: bigint("currentVolume", { mode: "number" }).notNull(),
+  avgVolume: bigint("avgVolume", { mode: "number" }).notNull(),
+  volumeMultiplier: float("volumeMultiplier").notNull(),
+  price: float("price"),
+  changePercent: float("changePercent"),
+  alertType: varchar("alertType", { length: 32 }).notNull().default("volume_spike"),
+  severity: mysqlEnum("severity", ["low", "medium", "high", "critical"]).notNull().default("medium"),
+  notified: int("notified").notNull().default(0),
+  dismissed: int("dismissed").notNull().default(0),
+  detectedAt: timestamp("detectedAt").defaultNow().notNull(),
+}, (table) => [
+  index("symbol_detected_idx").on(table.symbol, table.detectedAt),
+  index("detected_at_idx").on(table.detectedAt),
+]);
+
+export type VolumeAlert = typeof volumeAlerts.$inferSelect;
+export type InsertVolumeAlert = typeof volumeAlerts.$inferInsert;
+
+// Monitor settings - user-configurable alert thresholds
+export const monitorSettings = mysqlTable("monitor_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  enabled: int("enabled").notNull().default(1),
+  volumeThreshold: float("volumeThreshold").notNull().default(2.0),
+  minVolumeAbsolute: bigint("minVolumeAbsolute", { mode: "number" }).notNull().default(100000),
+  notifyOnSpike: int("notifyOnSpike").notNull().default(1),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MonitorSettings = typeof monitorSettings.$inferSelect;
+export type InsertMonitorSettings = typeof monitorSettings.$inferInsert;
+
+// Screener presets - saved filter configurations
+export const screenerPresets = mysqlTable("screener_presets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  filters: text("filters").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("user_presets_idx").on(table.userId),
+]);
+
+export type ScreenerPreset = typeof screenerPresets.$inferSelect;
+export type InsertScreenerPreset = typeof screenerPresets.$inferInsert;
