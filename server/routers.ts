@@ -14,6 +14,8 @@ import { getTwelveDataStats } from "./services/twelveDataService";
 import { getSWSStats } from "./services/simplyWallStService";
 import { getYahooStats } from "./services/yahooFinanceService";
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
+import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
+import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -979,6 +981,67 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
           console.warn("[Sentiment] Analysis failed:", e);
           return { sentiment: "neutral", score: 0, summary: "Sentiment analysis temporarily unavailable." };
         }
+      }),
+
+    // ─── TradingView News ─────────────────────────────────────────
+    news: publicProcedure
+      .input(z.object({ symbol: z.string(), count: z.number().optional().default(20) }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        return fetchTVNews(stock.symbol, stock.exchange, input.count);
+      }),
+
+    marketNews: publicProcedure
+      .input(z.object({ count: z.number().optional().default(30) }).optional())
+      .query(async ({ input }) => {
+        return fetchUAEMarketNews(input?.count || 30);
+      }),
+
+    // ─── TradingView Forecast/Analyst Data ────────────────────────
+    forecast: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        return fetchTVForecast(stock.symbol, stock.exchange);
+      }),
+
+    // ─── TradingView Extended Financials ──────────────────────────
+    extendedFinancials: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        return fetchTVExtendedFinancials(stock.symbol, stock.exchange);
+      }),
+
+    // ─── TradingView Performance ─────────────────────────────────
+    performance: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        return fetchTVPerformance(stock.symbol, stock.exchange);
+      }),
+
+    // ─── Seasonality (computed from historical chart data) ───────
+    seasonality: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        // Use 5 years of weekly data for seasonality
+        const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk');
+        if (!rawChart || !rawChart.timestamps || !rawChart.close) {
+          return [];
+        }
+        // Transform Yahoo chart format into { date, close } array for computeSeasonality
+        const chartData = rawChart.timestamps.map((ts: number, i: number) => ({
+          date: new Date(ts).toISOString().split('T')[0],
+          close: rawChart.close[i] ?? 0,
+        })).filter((p: any) => p.close > 0);
+        return computeSeasonality(chartData);
       }),
   }),
 

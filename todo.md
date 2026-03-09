@@ -287,3 +287,32 @@
 ### Testing
 - [x] 25 Snowflake engine tests (value checks, health checks, dividend checks, fair value, edge cases)
 - [x] 104 total tests passing across 9 test files
+
+## Phase 11 - Consolidate to TradingView as Single Data Source (TradingView-Style Stock Pages)
+
+### Data Layer Consolidation
+- [x] Research all TradingView API endpoints (news headlines, scanner columns, forecasts)
+- [x] Build TradingView news fetcher (tvNewsService.ts - latest headlines with provider, time, related tickers)
+- [x] Build TradingView financials detail fetcher (tvExtendedService.ts - 30+ columns: valuation, margins, returns, income)
+- [x] Build TradingView forecasts fetcher (price targets, analyst ratings, EPS/revenue estimates, earnings history)
+- [x] Build TradingView seasonals computation (5yr weekly data -> monthly avg returns with win rates)
+- [x] Build TradingView performance fetcher (1W/1M/3M/6M/YTD/1Y/5Y/All + volatility + beta)
+- [ ] Remove Yahoo Finance dependency (still used for chart data and seasonality source)
+
+### Stock Detail Page Restructure
+- [x] New tab layout: Overview | Technicals | Financials | News | Forecasts | Seasonals | Profile | AI Analysis
+- [x] News tab: 127+ headlines for EMAAR, with date, source badges, related ticker tags, links to TradingView
+- [x] Forecasts tab: Price Target bar (Low/Median/Current/High), Analyst Rating gauge (Strong Buy), Recommendation Trend table, EPS Estimates, Revenue Forecast, Earnings History
+- [x] Seasonals tab: Historical monthly performance bar chart (green/red) + data table (Month, Avg Return, Win Rate, Best/Worst Year)
+- [x] Enhanced Financials tab: Valuation Ratios (TradingView), Margins & Returns, Income Statement (Annual + Quarterly), Dividend Info
+- [x] Technicals tab: Already built and verified
+- [x] AI Analysis tab: Kept with Snowflake + AI Deep Analysis
+
+### Bug Fixes
+- [x] Fixed seasonality data transformation (Yahoo chart format -> computeSeasonality array format)
+- [x] Fixed margin display (TradingView returns percentages, formatPercent was multiplying by 100 again)
+
+### Testing
+- [x] Tests for new TradingView services (tvExtended.test.ts - 12 tests)
+- [x] All 116 tests passing across 10 test files
+- [x] Verified all tabs render correctly for EMAAR stock

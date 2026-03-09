@@ -3,6 +3,10 @@ import { useState, useMemo } from "react";
 import { SnowflakeChart } from "@/components/SnowflakeChart";
 import { FairValueGauge } from "@/components/FairValueGauge";
 import { AnalysisChecks } from "@/components/AnalysisChecks";
+import { StockNewsTab } from "@/components/StockNewsTab";
+import { StockForecastsTab } from "@/components/StockForecastsTab";
+import { StockSeasonalsTab } from "@/components/StockSeasonalsTab";
+import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +20,7 @@ import {
   Activity, BarChart3, Brain, Loader2, DollarSign, Target,
   Gauge, Building2, Users, Globe, FileText, PieChart,
   Calendar, Briefcase, BookOpen, ExternalLink, Layers,
-  Shield, Zap, ArrowUpDown, Hash, CircleDot,
+  Shield, Zap, ArrowUpDown, Hash, CircleDot, Newspaper,
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import {
@@ -357,6 +361,9 @@ export default function StockDetail() {
           <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="technicals" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
           <TabsTrigger value="financials" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
+          <TabsTrigger value="news" className="text-xs gap-1.5"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
+          <TabsTrigger value="forecasts" className="text-xs gap-1.5"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
+          <TabsTrigger value="seasonals" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> AI Analysis</TabsTrigger>
         </TabsList>
@@ -800,6 +807,9 @@ export default function StockDetail() {
 
         {/* ═══════════════ FINANCIALS TAB ═══════════════ */}
         <TabsContent value="financials" className="space-y-6 mt-4">
+          {/* TradingView Extended Financials (always shown) */}
+          <StockFinancialsExtended symbol={symbol} />
+
           {profileLoading ? (
             <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}</div>
           ) : profile ? (
@@ -960,6 +970,21 @@ export default function StockDetail() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ═══════════════ NEWS TAB ═══════════════ */}
+        <TabsContent value="news" className="space-y-6 mt-4">
+          <StockNewsTab symbol={symbol} />
+        </TabsContent>
+
+        {/* ═══════════════ FORECASTS TAB ═══════════════ */}
+        <TabsContent value="forecasts" className="space-y-6 mt-4">
+          <StockForecastsTab symbol={symbol} currentPrice={price} />
+        </TabsContent>
+
+        {/* ═══════════════ SEASONALS TAB ═══════════════ */}
+        <TabsContent value="seasonals" className="space-y-6 mt-4">
+          <StockSeasonalsTab symbol={symbol} />
         </TabsContent>
 
         {/* ═══════════════ PROFILE TAB ═══════════════ */}
