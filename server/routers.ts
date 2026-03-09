@@ -18,64 +18,121 @@ import { getYahooStats } from "./services/yahooFinanceService";
 // Prevents multiple simultaneous background refreshes
 const refreshInProgress = new Set<string>();
 
+/**
+ * Map TradingView data to our internal snapshot format.
+ * TradingView is the PRIMARY data source for all UAE stocks (174 stocks, both ADX & DFM).
+ */
+function tvToSnapshot(tv: any, stock: { symbol: string; exchange: string; name: string; sector: string; yahooSymbol: string }) {
+  return {
+    symbol: stock.symbol,
+    exchange: stock.exchange,
+    name: stock.name,
+    sector: stock.sector,
+    yahooSymbol: stock.yahooSymbol,
+    price: tv.close ?? null,
+    previousClose: tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null,
+    open: tv.open ?? null,
+    dayHigh: tv.high ?? null,
+    dayLow: tv.low ?? null,
+    volume: tv.volume ?? null,
+    avgVolume: null as number | null,
+    marketCap: tv.marketCap ?? null,
+    pe: tv.pe ?? null,
+    eps: tv.eps ?? null,
+    week52High: tv.allTimeHigh ?? null,
+    week52Low: tv.allTimeLow ?? null,
+    dividendYield: tv.dividendYield ?? null,
+    beta: tv.beta ?? null,
+    changePercent: tv.change ?? null,
+    rsi: tv.rsi ?? null,
+    sma20: tv.sma20 ?? null,
+    sma50: tv.sma50 ?? null,
+    ema12: tv.ema20 ?? null, // Map EMA20 to ema12 slot
+    ema26: tv.ema50 ?? null, // Map EMA50 to ema26 slot
+    volumeRatio: null as number | null,
+    // Extended TV data (not stored in DB but returned in API)
+    sma200: tv.sma200 ?? null,
+    ema200: tv.ema200 ?? null,
+    macdValue: tv.macdValue ?? null,
+    macdSignal: tv.macdSignal ?? null,
+    recommendAll: tv.recommendAll ?? null,
+    grossMargin: tv.grossMargin ?? null,
+    operatingMargin: tv.operatingMargin ?? null,
+    netIncome: tv.netIncome ?? null,
+    totalRevenue: tv.totalRevenue ?? null,
+    totalDebt: tv.totalDebt ?? null,
+    totalAssets: tv.totalAssets ?? null,
+    ebitda: tv.ebitda ?? null,
+    freeCashFlow: tv.freeCashFlow ?? null,
+    returnOnEquity: tv.returnOnEquity ?? null,
+    debtToEquity: tv.debtToEquity ?? null,
+    currentRatio: tv.currentRatio ?? null,
+    priceToBook: tv.priceToBook ?? null,
+    priceToSales: tv.priceToSales ?? null,
+    sharesOutstanding: tv.sharesOutstanding ?? null,
+    perfWeek: tv.perfWeek ?? null,
+    perfMonth: tv.perfMonth ?? null,
+    perf3Month: tv.perf3Month ?? null,
+    perfYear: tv.perfYear ?? null,
+  };
+}
+
 async function backgroundRefresh(exchange: string) {
   const key = `bg-refresh-${exchange}`;
   if (refreshInProgress.has(key)) return; // Already refreshing
   refreshInProgress.add(key);
   
   try {
-    console.log(`[Performance] Starting background refresh for ${exchange}...`);
+    console.log(`[Performance] Starting background refresh for ${exchange} via TradingView...`);
     const startTime = Date.now();
     
-    // Only fetch DFM stocks (ADX has no Yahoo data)
-    const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : DFM_STOCKS;
-    const yahooSymbols = stocks.filter(s => s.yahooSymbol).map(s => s.yahooSymbol);
-    const quotes = await fetchBatchQuotes(yahooSymbols);
+    // PRIMARY: Fetch ALL stocks from TradingView Scanner (covers both ADX & DFM)
+    const tvStocks = await fetchAllTVStocks();
     
-    // Build results for DFM stocks with fresh data
+    // Build a map from TV ticker to TV data: "ADX:IHC" → data
+    const tvMap = new Map<string, any>();
+    for (const tv of tvStocks) {
+      // TV ticker format: "ADX:IHC" or "DFM:EMAAR"
+      const parts = tv.ticker.split(':');
+      if (parts.length === 2) {
+        tvMap.set(`${parts[0]}:${parts[1]}`, tv);
+      }
+    }
+    
     const freshResults: any[] = [];
     const allStocksForExchange = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
     
     for (const stock of allStocksForExchange) {
-      const quote = quotes.get(stock.yahooSymbol);
-      const snapshot = {
-        symbol: stock.symbol,
-        exchange: stock.exchange,
-        name: stock.name,
-        sector: stock.sector,
-        yahooSymbol: stock.yahooSymbol,
-        price: quote?.regularMarketPrice ?? null,
-        previousClose: quote?.regularMarketPreviousClose ?? null,
-        open: quote?.regularMarketOpen ?? null,
-        dayHigh: quote?.regularMarketDayHigh ?? null,
-        dayLow: quote?.regularMarketDayLow ?? null,
-        volume: quote?.regularMarketVolume ?? null,
-        avgVolume: quote?.averageDailyVolume3Month ?? null,
-        marketCap: quote?.marketCap ?? null,
-        pe: quote?.trailingPE ?? null,
-        eps: quote?.epsTrailingTwelveMonths ?? null,
-        week52High: quote?.fiftyTwoWeekHigh ?? null,
-        week52Low: quote?.fiftyTwoWeekLow ?? null,
-        dividendYield: quote?.dividendYield ?? null,
-        beta: quote?.beta ?? null,
-        changePercent: quote?.regularMarketChangePercent ?? null,
-        rsi: null as number | null,
-        sma20: null as number | null,
-        sma50: null as number | null,
-        ema12: null as number | null,
-        ema26: null as number | null,
-        volumeRatio: null as number | null,
-      };
+      const tvKey = `${stock.exchange}:${stock.symbol}`;
+      const tvData = tvMap.get(tvKey);
       
-      try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
-      freshResults.push(snapshot);
+      if (tvData) {
+        const snapshot = tvToSnapshot(tvData, stock);
+        try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
+        freshResults.push(snapshot);
+      } else {
+        // Stock not found in TradingView, push with null data
+        freshResults.push({
+          symbol: stock.symbol,
+          exchange: stock.exchange,
+          name: stock.name,
+          sector: stock.sector,
+          yahooSymbol: stock.yahooSymbol,
+          price: null, previousClose: null, open: null, dayHigh: null, dayLow: null,
+          volume: null, avgVolume: null, marketCap: null, pe: null, eps: null,
+          week52High: null, week52Low: null, dividendYield: null, beta: null,
+          changePercent: null, rsi: null, sma20: null, sma50: null, ema12: null,
+          ema26: null, volumeRatio: null,
+        });
+      }
     }
     
     // Update memory cache with fresh data
     setMemoryCache(`fetchAll-${exchange}`, freshResults);
     
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[Performance] Background refresh for ${exchange} completed in ${elapsed}s (${freshResults.length} stocks)`);
+    const matched = freshResults.filter(r => r.price != null).length;
+    console.log(`[Performance] Background refresh for ${exchange} completed in ${elapsed}s (${matched}/${freshResults.length} stocks with data)`);
   } catch (e) {
     console.warn(`[Performance] Background refresh failed for ${exchange}:`, e);
   } finally {
@@ -113,11 +170,24 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol && s.exchange === input.exchange);
         if (!stock) throw new Error("Stock not found");
+        
+        // Check DB cache first
         const cached = await getStockSnapshot(input.symbol, input.exchange);
         if (cached && cached.updatedAt) {
           const age = Date.now() - new Date(cached.updatedAt).getTime();
           if (age < 5 * 60 * 1000 && cached.price) return cached;
         }
+        
+        // PRIMARY: TradingView
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        if (tvStocks.length > 0) {
+          const snapshot = tvToSnapshot(tvStocks[0], stock);
+          try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
+          return snapshot;
+        }
+        
+        // FALLBACK: Yahoo Finance
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
@@ -144,7 +214,9 @@ export const appRouter = router({
         // 2. Check DB cache (fast, ~200ms)
         if (!forceRefresh) {
           const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
-          if (cached.length > 0) {
+          const expectedCount = exchange === "ADX" ? ADX_STOCKS.length : exchange === "DFM" ? DFM_STOCKS.length : ALL_STOCKS.length;
+          // Only use DB cache if it has a reasonable number of stocks (>80% coverage)
+          if (cached.length > expectedCount * 0.8) {
             const results = cached.map(snap => {
               const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
               return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
@@ -165,50 +237,42 @@ export const appRouter = router({
             
             // Return stale data immediately while refresh happens in background
             return results;
+          } else if (cached.length > 0) {
+            // DB has partial data - trigger background refresh to fill gaps
+            backgroundRefresh(exchange).catch(() => {});
           }
         }
         
         // 3. No cache at all — must fetch synchronously (first load only)
-        // Only fetch DFM stocks from Yahoo (ADX has no data)
-        const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
-        const dfmStocks = stocks.filter(s => s.exchange === "DFM" && s.yahooSymbol);
-        const yahooSymbols = dfmStocks.map(s => s.yahooSymbol);
-        const quotes = await fetchBatchQuotes(yahooSymbols);
+        // PRIMARY: Use TradingView Scanner for ALL stocks (both ADX & DFM)
+        const tvStocks = await fetchAllTVStocks();
+        const tvMap = new Map<string, any>();
+        for (const tv of tvStocks) {
+          const parts = tv.ticker.split(':');
+          if (parts.length === 2) tvMap.set(`${parts[0]}:${parts[1]}`, tv);
+        }
         
+        const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
         const results = [];
         for (const stock of stocks) {
-          const quote = quotes.get(stock.yahooSymbol);
-          const snapshot = {
-            symbol: stock.symbol,
-            exchange: stock.exchange,
-            name: stock.name,
-            sector: stock.sector,
-            yahooSymbol: stock.yahooSymbol,
-            price: quote?.regularMarketPrice ?? null,
-            previousClose: quote?.regularMarketPreviousClose ?? null,
-            open: quote?.regularMarketOpen ?? null,
-            dayHigh: quote?.regularMarketDayHigh ?? null,
-            dayLow: quote?.regularMarketDayLow ?? null,
-            volume: quote?.regularMarketVolume ?? null,
-            avgVolume: quote?.averageDailyVolume3Month ?? null,
-            marketCap: quote?.marketCap ?? null,
-            pe: quote?.trailingPE ?? null,
-            eps: quote?.epsTrailingTwelveMonths ?? null,
-            week52High: quote?.fiftyTwoWeekHigh ?? null,
-            week52Low: quote?.fiftyTwoWeekLow ?? null,
-            dividendYield: quote?.dividendYield ?? null,
-            beta: quote?.beta ?? null,
-            changePercent: quote?.regularMarketChangePercent ?? null,
-            rsi: null as number | null,
-            sma20: null as number | null,
-            sma50: null as number | null,
-            ema12: null as number | null,
-            ema26: null as number | null,
-            volumeRatio: null as number | null,
-          };
+          const tvKey = `${stock.exchange}:${stock.symbol}`;
+          const tvData = tvMap.get(tvKey);
           
-          try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
-          results.push(snapshot);
+          if (tvData) {
+            const snapshot = tvToSnapshot(tvData, stock);
+            try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
+            results.push(snapshot);
+          } else {
+            results.push({
+              symbol: stock.symbol, exchange: stock.exchange, name: stock.name,
+              sector: stock.sector, yahooSymbol: stock.yahooSymbol,
+              price: null, previousClose: null, open: null, dayHigh: null, dayLow: null,
+              volume: null, avgVolume: null, marketCap: null, pe: null, eps: null,
+              week52High: null, week52Low: null, dividendYield: null, beta: null,
+              changePercent: null, rsi: null, sma20: null, sma50: null, ema12: null,
+              ema26: null, volumeRatio: null,
+            });
+          }
         }
         
         // Cache the results
@@ -233,6 +297,44 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
+        
+        // PRIMARY: Try TradingView first (works for ALL UAE stocks)
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        if (tvStocks.length > 0) {
+          const tvData = tvStocks[0];
+          return {
+            ...stock,
+            price: tvData.close ?? null,
+            previousClose: tvData.close != null && tvData.changeAbs != null ? tvData.close - tvData.changeAbs : null,
+            open: tvData.open ?? null,
+            dayHigh: tvData.high ?? null,
+            dayLow: tvData.low ?? null,
+            volume: tvData.volume ?? null,
+            avgVolume: null,
+            marketCap: tvData.marketCap ?? null,
+            pe: tvData.pe ?? null,
+            eps: tvData.eps ?? null,
+            week52High: tvData.allTimeHigh ?? null,
+            week52Low: tvData.allTimeLow ?? null,
+            dividendYield: tvData.dividendYield ?? null,
+            beta: tvData.beta ?? null,
+            changePercent: tvData.change ?? null,
+            rsi: tvData.rsi ?? null,
+            sma20: tvData.sma20 ?? null,
+            sma50: tvData.sma50 ?? null,
+            ema12: tvData.ema20 ?? null,
+            ema26: tvData.ema50 ?? null,
+            volumeRatio: null,
+            sma200: tvData.sma200 ?? null,
+            ema200: tvData.ema200 ?? null,
+            macdValue: tvData.macdValue ?? null,
+            macdSignal: tvData.macdSignal ?? null,
+            recommendAll: tvData.recommendAll ?? null,
+          };
+        }
+        
+        // FALLBACK: Yahoo Finance
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
@@ -257,10 +359,20 @@ export const appRouter = router({
         highVolume: z.boolean().optional(),
       }))
       .query(async ({ input }) => {
-        let snapshots = await getAllStockSnapshots(input.exchange === "ALL" ? undefined : input.exchange);
-        let results = snapshots.map(snap => {
-          const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
-          return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
+        // ALWAYS use TradingView as primary data source for screening
+        // This ensures ALL stocks (ADX + DFM) have data
+        const tvStocks = await fetchAllTVStocks();
+        const tvMap = new Map<string, any>();
+        for (const tv of tvStocks) {
+          const parts = tv.ticker.split(':');
+          if (parts.length === 2) tvMap.set(`${parts[0]}:${parts[1]}`, tv);
+        }
+        
+        const stockList = input.exchange === "ADX" ? ADX_STOCKS : input.exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
+        let results: any[] = stockList.map(stock => {
+          const tvData = tvMap.get(`${stock.exchange}:${stock.symbol}`);
+          if (tvData) return tvToSnapshot(tvData, stock);
+          return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, yahooSymbol: stock.yahooSymbol, price: null, previousClose: null, open: null, dayHigh: null, dayLow: null, volume: null, avgVolume: null, marketCap: null, pe: null, eps: null, week52High: null, week52Low: null, dividendYield: null, beta: null, changePercent: null, rsi: null, sma20: null, sma50: null, ema12: null, ema26: null, volumeRatio: null };
         });
 
         if (input.sector) results = results.filter(s => s.sector === input.sector);
@@ -288,74 +400,97 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
-        if (!stock.yahooSymbol) return { stock, profile: null, available: false };
-        const raw = await fetchFullProfile(stock.yahooSymbol);
-        if (!raw) return { stock, profile: null, available: false };
+        
+        // Always fetch TradingView data as supplement (works for ALL stocks)
+        let tvData: any = null;
+        try {
+          const tvKey = `${stock.exchange}:${stock.symbol}`;
+          const tvStocks = await fetchTVStocksByTickers([tvKey]);
+          if (tvStocks.length > 0) tvData = tvStocks[0];
+        } catch (e) { /* ignore TV errors */ }
+        
+        // Try Yahoo Finance for detailed profile
+        let raw: any = null;
+        if (stock.yahooSymbol) {
+          raw = await fetchFullProfile(stock.yahooSymbol);
+        }
+        
+        // If neither source has data, return unavailable
+        if (!raw && !tvData) return { stock, profile: null, available: false };
         // Flatten the nested profile into a single object for the frontend
-        const co = raw.company || {} as any;
-        const ks = raw.keyStats || {} as any;
-        const div = raw.dividends || {} as any;
-        const an = raw.analyst || {} as any;
-        const ti = raw.tradingInfo || {} as any;
+        // Use Yahoo data when available, fill gaps with TradingView
+        const co = raw?.company || {} as any;
+        const ks = raw?.keyStats || {} as any;
+        const div = raw?.dividends || {} as any;
+        const an = raw?.analyst || {} as any;
+        const ti = raw?.tradingInfo || {} as any;
+        const tv = tvData || {} as any;
+        
+        // Helper: pick first non-null value (Yahoo first, then TradingView)
+        const pick = (...vals: any[]) => {
+          for (const v of vals) { if (v != null && v !== 0) return v; }
+          return null;
+        };
+        
         const profile = {
           // Company info
-          name: co.name || null,
+          name: co.name || tv.description || null,
           description: co.description || null,
-          sector: co.sector || null,
-          industry: co.industry || null,
+          sector: co.sector || tv.sector || stock.sector || null,
+          industry: co.industry || tv.industry || null,
           website: co.website || null,
           logo: co.logo || null,
-          fullTimeEmployees: co.fullTimeEmployees || null,
+          fullTimeEmployees: pick(co.fullTimeEmployees, tv.employees),
           country: co.country || null,
           city: co.city || null,
           phone: co.phone || null,
           officers: co.officers || [],
-          // Key Stats - Valuation
-          marketCap: ks.marketCap || null,
+          // Key Stats - Valuation (merge Yahoo + TV)
+          marketCap: pick(ks.marketCap, tv.marketCap),
           enterpriseValue: ks.enterpriseValue || null,
-          trailingPE: ks.trailingPE || null,
+          trailingPE: pick(ks.trailingPE, tv.pe),
           forwardPE: ks.forwardPE || null,
           pegRatio: ks.pegRatio || null,
-          priceToSales: ks.priceToSales || null,
-          priceToBook: ks.priceToBook || null,
+          priceToSales: pick(ks.priceToSales, tv.priceToSales),
+          priceToBook: pick(ks.priceToBook, tv.priceToBook),
           evToRevenue: ks.evToRevenue || null,
           evToEbitda: ks.evToEbitda || null,
-          // Key Stats - Profitability
-          totalRevenue: ks.totalRevenue || null,
+          // Key Stats - Profitability (merge Yahoo + TV)
+          totalRevenue: pick(ks.totalRevenue, tv.totalRevenue),
           revenueGrowth: ks.revenueGrowth || null,
-          grossMargin: ks.grossMargin || null,
+          grossMargin: pick(ks.grossMargin, tv.grossMargin),
           ebitdaMargin: ks.ebitdaMargin || null,
-          operatingMargin: ks.operatingMargin || null,
-          profitMargin: ks.profitMargin || null,
-          returnOnEquity: ks.returnOnEquity || null,
+          operatingMargin: pick(ks.operatingMargin, tv.operatingMargin),
+          profitMargin: pick(ks.profitMargin, tv.afterTaxMargin),
+          returnOnEquity: pick(ks.returnOnEquity, tv.returnOnEquity),
           returnOnAssets: ks.returnOnAssets || null,
-          // Key Stats - Financial Health
+          // Key Stats - Financial Health (merge Yahoo + TV)
           totalCash: ks.totalCash || null,
-          totalDebt: ks.totalDebt || null,
-          debtToEquity: ks.debtToEquity || null,
-          currentRatio: ks.currentRatio || null,
+          totalDebt: pick(ks.totalDebt, tv.totalDebt),
+          debtToEquity: pick(ks.debtToEquity, tv.debtToEquity),
+          currentRatio: pick(ks.currentRatio, tv.currentRatio),
           quickRatio: ks.quickRatio || null,
           bookValue: ks.bookValue || null,
-          freeCashflow: ks.freeCashflow || null,
+          freeCashflow: pick(ks.freeCashflow, tv.freeCashFlow),
           operatingCashflow: ks.operatingCashflow || null,
-          // Key Stats - Per Share
-          trailingEps: ks.trailingEps || null,
+          // Key Stats - Per Share (merge Yahoo + TV)
+          trailingEps: pick(ks.trailingEps, tv.eps),
           forwardEps: ks.forwardEps || null,
           revenuePerShare: ks.revenuePerShare || null,
-          // Key Stats - Trading
-          beta: ks.beta || null,
-          fiftyTwoWeekHigh: ks.fiftyTwoWeekHigh || null,
-          fiftyTwoWeekLow: ks.fiftyTwoWeekLow || null,
-          fiftyDayAverage: ks.fiftyDayAverage || null,
-          twoHundredDayAverage: ks.twoHundredDayAverage || null,
-          sharesOutstanding: ks.sharesOutstanding || null,
+          // Key Stats - Trading (merge Yahoo + TV)
+          beta: pick(ks.beta, tv.beta),
+          fiftyTwoWeekHigh: pick(ks.fiftyTwoWeekHigh, tv.allTimeHigh),
+          fiftyTwoWeekLow: pick(ks.fiftyTwoWeekLow, tv.allTimeLow),
+          fiftyDayAverage: pick(ks.fiftyDayAverage, tv.sma50),
+          twoHundredDayAverage: pick(ks.twoHundredDayAverage, tv.sma200),
+          sharesOutstanding: pick(ks.sharesOutstanding, tv.sharesOutstanding),
           floatShares: ks.floatShares || null,
           heldPercentInsiders: ks.heldPercentInsiders || null,
           heldPercentInstitutions: ks.heldPercentInstitutions || null,
           shortRatio: ks.shortRatio || null,
-          // Dividends
+          // Dividends (merge Yahoo + TV)
           dividendRate: div.dividendRate || null,
-          dividendYield: div.dividendYield || null,
+          dividendYield: pick(div.dividendYield, tv.dividendYield),
           exDividendDate: div.exDividendDate || null,
           payoutRatio: div.payoutRatio || null,
           fiveYearAvgDividendYield: div.fiveYearAvgDividendYield || null,
@@ -371,21 +506,40 @@ export const appRouter = router({
           numberOfAnalystOpinions: an.numberOfAnalystOpinions || null,
           recommendations: an.recommendationTrend || [],
           // Earnings
-          earnings: raw.earnings?.history || [],
-          // Financial Statements (stockService uses plural names)
-          incomeStatement: raw.financialStatements?.incomeStatements || [],
-          balanceSheet: raw.financialStatements?.balanceSheets || [],
-          cashFlow: raw.financialStatements?.cashFlows || [],
+          earnings: raw?.earnings?.history || [],
+          // Financial Statements
+          incomeStatement: raw?.financialStatements?.incomeStatements || [],
+          balanceSheet: raw?.financialStatements?.balanceSheets || [],
+          cashFlow: raw?.financialStatements?.cashFlows || [],
           // Insider Holders
-          insiderHolders: raw.insiderHolders || [],
-          // Trading Info
-          previousClose: ti.previousClose || null,
-          open: ti.open || null,
-          dayHigh: ti.dayHigh || null,
-          dayLow: ti.dayLow || null,
-          volume: ti.volume || null,
+          insiderHolders: raw?.insiderHolders || [],
+          // Trading Info (merge Yahoo + TV)
+          previousClose: pick(ti.previousClose, tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null),
+          open: pick(ti.open, tv.open),
+          dayHigh: pick(ti.dayHigh, tv.high),
+          dayLow: pick(ti.dayLow, tv.low),
+          volume: pick(ti.volume, tv.volume),
           averageVolume: ti.averageVolume || null,
           averageVolume10days: ti.averageVolume10days || null,
+          // TradingView-exclusive data
+          tvRecommendation: tv.recommendAll ?? null,
+          tvRSI: tv.rsi ?? null,
+          tvMACD: tv.macdValue ?? null,
+          tvMACDSignal: tv.macdSignal ?? null,
+          tvSMA20: tv.sma20 ?? null,
+          tvSMA50: tv.sma50 ?? null,
+          tvSMA200: tv.sma200 ?? null,
+          tvEMA20: tv.ema20 ?? null,
+          tvEMA50: tv.ema50 ?? null,
+          tvEMA200: tv.ema200 ?? null,
+          tvEBITDA: tv.ebitda ?? null,
+          tvNetIncome: tv.netIncome ?? null,
+          tvTotalAssets: tv.totalAssets ?? null,
+          tvGrossProfit: tv.grossProfit ?? null,
+          tvPerfWeek: tv.perfWeek ?? null,
+          tvPerfMonth: tv.perfMonth ?? null,
+          tvPerf3Month: tv.perf3Month ?? null,
+          tvPerfYear: tv.perfYear ?? null,
         };
         return { stock, profile, available: true };
       }),
@@ -401,12 +555,21 @@ export const appRouter = router({
         const limit = input?.limit || 5;
         const cacheKey = `fetchAll-${exchange}`;
         
+        // Try memory cache first
         let stocks = getFromMemoryCache(cacheKey);
         if (!stocks || stocks.length === 0) {
-          const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
-          stocks = cached.map(snap => {
-            const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
-            return { ...snap, name: info?.name, sector: info?.sector };
+          // Always use TradingView as primary source
+          const tvStocks = await fetchAllTVStocks();
+          const tvMap = new Map<string, any>();
+          for (const tv of tvStocks) {
+            const parts = tv.ticker.split(':');
+            if (parts.length === 2) tvMap.set(`${parts[0]}:${parts[1]}`, tv);
+          }
+          const stockList = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
+          stocks = stockList.map(stock => {
+            const tvData = tvMap.get(`${stock.exchange}:${stock.symbol}`);
+            if (tvData) return tvToSnapshot(tvData, stock);
+            return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, price: null, changePercent: null, volume: null };
           });
         }
         
@@ -436,10 +599,18 @@ export const appRouter = router({
         
         let stocks = getFromMemoryCache(cacheKey);
         if (!stocks || stocks.length === 0) {
-          const cached = await getAllStockSnapshots(exchange === "ALL" ? undefined : exchange);
-          stocks = cached.map(snap => {
-            const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
-            return { ...snap, name: info?.name, sector: info?.sector };
+          // Always use TradingView as primary source
+          const tvStocks = await fetchAllTVStocks();
+          const tvMap = new Map<string, any>();
+          for (const tv of tvStocks) {
+            const parts = tv.ticker.split(':');
+            if (parts.length === 2) tvMap.set(`${parts[0]}:${parts[1]}`, tv);
+          }
+          const stockList = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
+          stocks = stockList.map(stock => {
+            const tvData = tvMap.get(`${stock.exchange}:${stock.symbol}`);
+            if (tvData) return tvToSnapshot(tvData, stock);
+            return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, price: null, changePercent: null, volume: null };
           });
         }
         

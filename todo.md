@@ -179,3 +179,16 @@
 - [ ] Analyst recommendations table
 - [ ] Dividends and earnings history tables
 - [ ] Persist all fetched data from all sources
+
+## Phase 7 - Bug Fixes: Empty Data & Key Statistics
+
+- [x] Fix: Many symbols showing empty data on stock detail pages
+- [x] Fix: Key Statistics section empty for all stocks
+- [x] Improve data fetching to use TradingView as primary source for key stats
+- [x] Add fallback chain: TradingView → Yahoo Finance for all data points
+- [x] Ensure all 170 UAE stocks have populated data (TradingView covers 174 tickers)
+- [x] Dashboard now shows 170 stocks (was 68 DFM only)
+- [x] Top Movers includes both ADX and DFM stocks
+- [x] Default view changed to "All Markets" instead of DFM only
+- [x] Removed stale ADX warning banner
+- [x] All 64 tests passing across 7 test files

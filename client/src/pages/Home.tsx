@@ -91,7 +91,7 @@ function StockTableSkeleton() {
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const [exchange, setExchange] = useState<"ADX" | "DFM" | "ALL">("DFM");
+  const [exchange, setExchange] = useState<"ADX" | "DFM" | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>("marketCap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -200,7 +200,10 @@ export default function Home() {
     };
   }, [stocks]);
 
-  const showADXNotice = exchange === "ADX" || (exchange === "ALL" && stocks && stocks.some(s => s.exchange === "ADX" && s.price == null));
+  // Only show notice if most ADX stocks have no data
+  const adxStocksWithoutData = stocks ? stocks.filter(s => s.exchange === "ADX" && s.price == null).length : 0;
+  const totalADXStocks = stocks ? stocks.filter(s => s.exchange === "ADX").length : 0;
+  const showADXNotice = totalADXStocks > 0 && adxStocksWithoutData > totalADXStocks * 0.5;
 
   return (
     <div className="space-y-6">
@@ -387,7 +390,7 @@ export default function Home() {
           <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
           <div>
             <p className="text-foreground/80">
-              <strong className="text-foreground">ADX stocks</strong> are listed for reference but real-time price data is currently unavailable. Yahoo Finance does not cover the Abu Dhabi Securities Exchange. DFM stocks have full live data.
+              Some <strong className="text-foreground">ADX stocks</strong> may have limited data. Data is sourced from TradingView Scanner API. Stocks with no trading activity may show incomplete information.
             </p>
           </div>
         </div>
