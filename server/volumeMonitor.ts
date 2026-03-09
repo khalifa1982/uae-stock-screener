@@ -318,7 +318,7 @@ export function startVolumeMonitor(): void {
   
   isMonitoring = true;
   console.log("[VolumeMonitor] Starting volume spike monitor...");
-  console.log(`[VolumeMonitor] UAE trading hours: Sun-Thu 10:00-14:00 GST (UTC+4)`);
+  console.log(`[VolumeMonitor] UAE trading hours: Mon-Fri 9:30-15:00 GST (UTC+4)`);
   
   // Poll every 60 seconds
   monitorInterval = setInterval(async () => {

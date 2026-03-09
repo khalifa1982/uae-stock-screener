@@ -224,3 +224,37 @@
 - [x] Market status tests (12 tests for all phases)
 - [x] TradingView value normalization tests
 - [x] Updated monitor tests for Mon-Fri schedule
+
+## Phase 9 - Comprehensive Stock Detail Page (TradingView + StockAnalysis + SimplyWallSt)
+
+### Research Complete
+- [x] Wide research across TradingView, StockAnalysis.com, Simply Wall St (9 parallel tasks)
+- [x] Cataloged 588 total fields across all platforms
+- [x] Confirmed 100 TradingView Scanner API columns available for UAE stocks (97 non-null)
+
+### Backend: Enhanced TradingView Service
+- [x] Update TradingView service to fetch all 100 columns
+- [x] Add comprehensive profile endpoint with all new fields (85+ TV fields)
+- [x] Add pivot points, all oscillators, all moving averages to API response
+- [x] Normalize TradingView percentage values (margins, performance, yields)
+
+### Frontend: Stock Detail Page Sections (from research)
+- [x] Technical Analysis Summary Gauge (Buy/Sell/Neutral bar like TradingView)
+- [x] Oscillators Table (RSI, Stoch K/D, CCI, ADX, AO, Momentum, MACD, BB) with Buy/Sell signals
+- [x] Moving Averages Table (SMA 5/10/20/30/50/100/200, EMA 5/10/20/30/50/100/200, Ichimoku, VWMA, Hull) with Buy/Sell signals
+- [x] Pivot Points Table (Classic S1/S2/S3, Middle, R1/R2/R3)
+- [x] Performance & Returns (1W, 1M, 3M, 6M, YTD, 1Y, 5Y, All-Time)
+- [x] Volatility Section (Daily, Weekly, Monthly, ATR, Beta)
+- [x] Income Statement (Revenue, Gross Profit, Net Income, EPS, EBITDA)
+- [x] Balance Sheet (Total Assets, Liabilities, Debt, Current Assets, Equity)
+- [x] Cash Flow (Free Cash Flow)
+- [x] Financial Ratios (all margins, ROE, ROA, ROIC, Current Ratio, Quick Ratio, D/E)
+- [x] Dividends Section (Yield, DPS)
+- [x] Valuation Metrics (P/E, P/S, P/B, P/FCF, EV/EBITDA)
+- [ ] Snowflake Analysis Scores (Value, Future, Past, Health, Dividend) - requires custom calculation
+- [x] Company Profile (sector, industry, country, exchange, financial snapshot)
+- [x] Volume Analysis (Current vs 10/30/60/90-day averages)
+- [x] Bollinger Bands (Upper/Lower)
+- [x] Fixed Profile tab showing data for all stocks (was showing 'not available' for ADX)
+- [x] Fixed volume monitor log message (Mon-Fri instead of Sun-Thu)
+- [x] 79 tests passing across 8 test files
