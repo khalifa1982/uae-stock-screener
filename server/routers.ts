@@ -13,6 +13,7 @@ import { fetchAllTVStocks, fetchTVStocksByTickers, getTradingViewStats } from ".
 import { getTwelveDataStats } from "./services/twelveDataService";
 import { getSWSStats } from "./services/simplyWallStService";
 import { getYahooStats } from "./services/yahooFinanceService";
+import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -714,6 +715,234 @@ export const appRouter = router({
           csv: [headers.join(','), ...rows].join('\n'),
           filename: `uae-stocks-${exchange.toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`,
         };
+      }),
+
+    // ─── Snowflake Analysis ───────────────────────────────────────
+    snowflake: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        
+        // Fetch all stocks for market averages
+        const allTVStocks = await fetchAllTVStocks();
+        const marketAvgs = computeMarketAverages(allTVStocks);
+        
+        // Fetch this specific stock's data
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        const tv = tvStocks.length > 0 ? tvStocks[0] : null;
+        if (!tv) throw new Error("No data available for this stock");
+        
+        // Also get Yahoo data for payout ratio
+        let yahooProfile: any = null;
+        if (stock.yahooSymbol) {
+          try { yahooProfile = await fetchFullProfile(stock.yahooSymbol); } catch(e) {}
+        }
+        const div = yahooProfile?.dividends || {};
+        
+        const sector = tv.sector || stock.sector || 'Unknown';
+        
+        // Build snowflake input
+        const snowflakeInput: SnowflakeInput = {
+          close: tv.close,
+          pe: tv.pe,
+          pb: tv.priceToBook,
+          peg: tv.pegRatio,
+          marketCap: tv.marketCap,
+          eps: tv.eps,
+          epsForecast: tv.epsForecast,
+          netIncome: tv.netIncome,
+          totalRevenue: tv.totalRevenue,
+          ebitda: tv.ebitda,
+          grossProfit: tv.grossProfit,
+          roe: tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null,
+          roa: tv.returnOnAssets != null ? tv.returnOnAssets / 100 : null,
+          roic: tv.returnOnInvestedCapital != null ? tv.returnOnInvestedCapital / 100 : null,
+          grossMargin: tv.grossMargin != null ? tv.grossMargin / 100 : null,
+          operatingMargin: tv.operatingMargin != null ? tv.operatingMargin / 100 : null,
+          netMargin: tv.netMargin != null ? tv.netMargin / 100 : null,
+          totalAssets: tv.totalAssets,
+          totalLiabilities: tv.totalLiabilities,
+          totalCurrentAssets: tv.totalCurrentAssets,
+          totalCurrentLiabilities: tv.totalCurrentLiabilities,
+          totalDebt: tv.totalDebt,
+          debtToEquity: tv.debtToEquity,
+          currentRatio: tv.currentRatio,
+          freeCashFlow: tv.freeCashFlow,
+          operatingCashFlow: tv.operatingCashFlow,
+          sharesOutstanding: tv.sharesOutstanding,
+          bookValuePerShare: tv.bookValuePerShare,
+          dividendYield: tv.dividendYield != null ? tv.dividendYield / 100 : null,
+          dividendPerShare: tv.dividendPerShare,
+          payoutRatio: div.payoutRatio || null,
+          perfYear: tv.perfYear,
+          perf5Year: tv.perf5Year,
+          sector,
+          industry: tv.industry,
+          marketAvgPE: marketAvgs.marketAvgPE,
+          industryAvgPE: marketAvgs.industryAvgPE[sector] || null,
+          industryAvgPB: marketAvgs.industryAvgPB[sector] || null,
+          industryAvgROA: marketAvgs.industryAvgROA[sector] || null,
+          marketAvgEarningsGrowth: marketAvgs.marketAvgEarningsGrowth,
+          marketAvgRevenueGrowth: marketAvgs.marketAvgRevenueGrowth,
+          marketDividendYield25thPctile: marketAvgs.marketDividendYield25thPctile,
+          marketDividendYield75thPctile: marketAvgs.marketDividendYield75thPctile,
+        };
+        
+        const result = computeSnowflake(snowflakeInput);
+        
+        // Get peer stocks for comparison (same sector, top 5 by market cap)
+        const peers = allTVStocks
+          .filter(s => s.sector === sector && s.ticker !== tvKey && s.marketCap != null)
+          .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
+          .slice(0, 5)
+          .map(peer => {
+            const peerInput: SnowflakeInput = {
+              close: peer.close,
+              pe: peer.pe,
+              pb: peer.priceToBook,
+              peg: peer.pegRatio,
+              marketCap: peer.marketCap,
+              eps: peer.eps,
+              epsForecast: peer.epsForecast,
+              netIncome: peer.netIncome,
+              totalRevenue: peer.totalRevenue,
+              ebitda: peer.ebitda,
+              grossProfit: peer.grossProfit,
+              roe: peer.returnOnEquity != null ? peer.returnOnEquity / 100 : null,
+              roa: peer.returnOnAssets != null ? peer.returnOnAssets / 100 : null,
+              roic: peer.returnOnInvestedCapital != null ? peer.returnOnInvestedCapital / 100 : null,
+              grossMargin: peer.grossMargin != null ? peer.grossMargin / 100 : null,
+              operatingMargin: peer.operatingMargin != null ? peer.operatingMargin / 100 : null,
+              netMargin: peer.netMargin != null ? peer.netMargin / 100 : null,
+              totalAssets: peer.totalAssets,
+              totalLiabilities: peer.totalLiabilities,
+              totalCurrentAssets: peer.totalCurrentAssets,
+              totalCurrentLiabilities: peer.totalCurrentLiabilities,
+              totalDebt: peer.totalDebt,
+              debtToEquity: peer.debtToEquity,
+              currentRatio: peer.currentRatio,
+              freeCashFlow: peer.freeCashFlow,
+              operatingCashFlow: peer.operatingCashFlow,
+              sharesOutstanding: peer.sharesOutstanding,
+              bookValuePerShare: peer.bookValuePerShare,
+              dividendYield: peer.dividendYield != null ? peer.dividendYield / 100 : null,
+              dividendPerShare: peer.dividendPerShare,
+              payoutRatio: null,
+              perfYear: peer.perfYear,
+              perf5Year: peer.perf5Year,
+              sector: peer.sector,
+              industry: peer.industry,
+              marketAvgPE: marketAvgs.marketAvgPE,
+              industryAvgPE: marketAvgs.industryAvgPE[sector] || null,
+              industryAvgPB: marketAvgs.industryAvgPB[sector] || null,
+              industryAvgROA: marketAvgs.industryAvgROA[sector] || null,
+              marketAvgEarningsGrowth: marketAvgs.marketAvgEarningsGrowth,
+              marketAvgRevenueGrowth: marketAvgs.marketAvgRevenueGrowth,
+              marketDividendYield25thPctile: marketAvgs.marketDividendYield25thPctile,
+              marketDividendYield75thPctile: marketAvgs.marketDividendYield75thPctile,
+            };
+            const peerResult = computeSnowflake(peerInput);
+            return {
+              ticker: peer.ticker,
+              name: peer.description || peer.name,
+              logoId: peer.logoId,
+              snowflake: peerResult.snowflake,
+            };
+          });
+        
+        return {
+          snowflake: result.snowflake,
+          fairValue: result.fairValue,
+          peers,
+          marketAverages: {
+            pe: marketAvgs.marketAvgPE,
+            industryPE: marketAvgs.industryAvgPE[sector] || null,
+            industryPB: marketAvgs.industryAvgPB[sector] || null,
+            earningsGrowth: marketAvgs.marketAvgEarningsGrowth,
+            dividendYield25: marketAvgs.marketDividendYield25thPctile,
+            dividendYield75: marketAvgs.marketDividendYield75thPctile,
+          },
+        };
+      }),
+
+    // ─── AI Company Analysis (Gemini-powered) ─────────────────────
+    aiAnalysis: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .mutation(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        
+        // Get stock data for context
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        const tv = tvStocks.length > 0 ? tvStocks[0] : null;
+        
+        const stockContext = tv ? `
+Company: ${tv.description || stock.name} (${stock.symbol})
+Exchange: ${stock.exchange}
+Sector: ${tv.sector || stock.sector}
+Industry: ${tv.industry || 'N/A'}
+Current Price: AED ${tv.close?.toFixed(2) || 'N/A'}
+Market Cap: AED ${tv.marketCap ? (tv.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+P/E Ratio: ${tv.pe?.toFixed(2) || 'N/A'}
+P/B Ratio: ${tv.priceToBook?.toFixed(2) || 'N/A'}
+ROE: ${tv.returnOnEquity?.toFixed(2) || 'N/A'}%
+ROA: ${tv.returnOnAssets?.toFixed(2) || 'N/A'}%
+Debt/Equity: ${tv.debtToEquity?.toFixed(2) || 'N/A'}%
+Dividend Yield: ${tv.dividendYield?.toFixed(2) || 'N/A'}%
+Net Margin: ${tv.netMargin?.toFixed(2) || 'N/A'}%
+Revenue: AED ${tv.totalRevenue ? (tv.totalRevenue / 1e9).toFixed(2) + 'B' : 'N/A'}
+Net Income: AED ${tv.netIncome ? (tv.netIncome / 1e6).toFixed(0) + 'M' : 'N/A'}
+1Y Performance: ${tv.perfYear?.toFixed(2) || 'N/A'}%
+5Y Performance: ${tv.perf5Year?.toFixed(2) || 'N/A'}%
+RSI: ${tv.rsi?.toFixed(1) || 'N/A'}
+Beta: ${tv.beta?.toFixed(2) || 'N/A'}
+` : `Company: ${stock.name} (${stock.symbol}), Exchange: ${stock.exchange}`;
+        
+        try {
+          const result = await invokeLLM({
+            messages: [
+              { role: "system", content: `You are a senior equity research analyst specializing in UAE markets (ADX and DFM). Provide comprehensive, data-driven analysis in the style of Simply Wall St. Be specific with numbers and comparisons. Return JSON with the exact schema specified.` },
+              { role: "user", content: `Provide a comprehensive analysis for this UAE-listed stock:\n${stockContext}\n\nReturn a detailed analysis as JSON.` }
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "stock_analysis",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    summary: { type: "string", description: "2-3 paragraph executive summary of the company and its investment thesis" },
+                    rewards: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "3-5 key rewards/positive factors for investing"
+                    },
+                    risks: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "3-5 key risks/negative factors for investing"
+                    },
+                    outlook: { type: "string", description: "1-2 paragraph forward-looking outlook" },
+                    rating: { type: "string", description: "One of: Strong Buy, Buy, Hold, Sell, Strong Sell" },
+                    confidence: { type: "number", description: "Confidence level 0-100" },
+                  },
+                  required: ["summary", "rewards", "risks", "outlook", "rating", "confidence"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          });
+          const content = result.choices[0]?.message?.content;
+          if (typeof content === "string") return JSON.parse(content);
+          return { summary: "Analysis unavailable.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
+        } catch (e) {
+          console.warn("[AI Analysis] Failed:", e);
+          return { summary: "AI analysis temporarily unavailable. Please try again later.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
+        }
       }),
 
     sentiment: publicProcedure

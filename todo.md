@@ -251,10 +251,39 @@
 - [x] Financial Ratios (all margins, ROE, ROA, ROIC, Current Ratio, Quick Ratio, D/E)
 - [x] Dividends Section (Yield, DPS)
 - [x] Valuation Metrics (P/E, P/S, P/B, P/FCF, EV/EBITDA)
-- [ ] Snowflake Analysis Scores (Value, Future, Past, Health, Dividend) - requires custom calculation
+- [x] Snowflake Analysis Scores (Value, Future, Past, Health, Dividend) - custom calculation engine built
 - [x] Company Profile (sector, industry, country, exchange, financial snapshot)
 - [x] Volume Analysis (Current vs 10/30/60/90-day averages)
 - [x] Bollinger Bands (Upper/Lower)
 - [x] Fixed Profile tab showing data for all stocks (was showing 'not available' for ADX)
 - [x] Fixed volume monitor log message (Mon-Fri instead of Sun-Thu)
 - [x] 79 tests passing across 8 test files
+
+## Phase 10 - Simply Wall St-Style Analysis & Gemini AI
+
+### Snowflake Analysis (Based on SWS GitHub Model)
+- [x] Study Simply Wall St Snowflake model from GitHub (MODEL.markdown) - all 30 checks documented
+- [x] Build Snowflake scoring engine (Value, Future, Past, Health, Dividend - 6 checks each)
+- [x] Implement radar/snowflake chart visualization (SVG-based, color-coded green-to-red)
+- [x] Risk Checks display (Pass/Fail for each metric with explanations)
+- [x] Expandable category sections showing individual check details (actual vs threshold)
+- [x] Peer Comparison table (top 5 sector peers with Snowflake scores)
+- [x] Market Context section (market avg P/E, sector averages, dividend percentiles)
+
+### AI-Powered Analysis (Built-in LLM)
+- [x] AI Deep Analysis endpoint with comprehensive stock research reports
+- [x] Generate comprehensive stock analysis narratives per stock (Buy/Hold/Sell rating + confidence)
+- [x] Rewards & Risk Analysis sections (5 rewards + 5 risks per stock)
+- [x] Executive Summary + Forward Outlook sections
+- [x] Quick Sentiment check (kept from original)
+
+### Fair Value Estimation
+- [x] DCF-based fair value calculation (2-Stage DCF model)
+- [x] Show current price vs fair value (% undervalued/overvalued)
+- [x] Fair Value gauge visualization with price bar
+- [x] Model parameters display (FCF, Growth Rate, Discount Rate, Terminal Growth)
+- [x] Fallback to Residual Income and Earnings Power models when DCF data unavailable
+
+### Testing
+- [x] 25 Snowflake engine tests (value checks, health checks, dividend checks, fair value, edge cases)
+- [x] 104 total tests passing across 9 test files

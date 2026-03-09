@@ -1,5 +1,8 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { SnowflakeChart } from "@/components/SnowflakeChart";
+import { FairValueGauge } from "@/components/FairValueGauge";
+import { AnalysisChecks } from "@/components/AnalysisChecks";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -261,6 +264,12 @@ export default function StockDetail() {
   );
 
   const sentimentMutation = trpc.stocks.sentiment.useMutation();
+  const aiAnalysisMutation = trpc.stocks.aiAnalysis.useMutation();
+
+  const { data: snowflakeData, isLoading: snowflakeLoading } = trpc.stocks.snowflake.useQuery(
+    { symbol },
+    { enabled: !!symbol && activeTab === "analysis", staleTime: 600_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
 
   const chartPoints = useMemo(() => {
     if (!chartData || !chartData.timestamps) return [];
@@ -1138,21 +1147,356 @@ export default function StockDetail() {
 
         {/* ═══════════════ AI ANALYSIS TAB ═══════════════ */}
         <TabsContent value="analysis" className="space-y-6 mt-4">
+          {/* Snowflake Score Overview */}
+          {snowflakeLoading ? (
+            <Card className="border-border/50">
+              <CardContent className="py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Computing Snowflake analysis...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : snowflakeData ? (
+            <>
+              {/* Snowflake Score Card */}
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" /> Snowflake Score
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Comprehensive analysis across 5 dimensions, 30 checks total</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col lg:flex-row items-center gap-6">
+                    {/* Snowflake Chart */}
+                    <div className="flex flex-col items-center">
+                      <SnowflakeChart
+                        data={{
+                          value: snowflakeData.snowflake.value.score,
+                          future: snowflakeData.snowflake.future.score,
+                          past: snowflakeData.snowflake.past.score,
+                          health: snowflakeData.snowflake.health.score,
+                          dividend: snowflakeData.snowflake.dividend.score,
+                        }}
+                        color={snowflakeData.snowflake.color}
+                        size={260}
+                      />
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-3xl font-bold font-mono" style={{ color: snowflakeData.snowflake.color }}>
+                          {snowflakeData.snowflake.totalScore}
+                        </span>
+                        <span className="text-lg text-muted-foreground font-medium">/30</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {snowflakeData.snowflake.totalScore >= 21 ? 'Excellent' : snowflakeData.snowflake.totalScore >= 16 ? 'Good' : snowflakeData.snowflake.totalScore >= 11 ? 'Average' : 'Below Average'}
+                      </span>
+                    </div>
+
+                    {/* Score Summary Grid */}
+                    <div className="flex-1 w-full">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { cat: snowflakeData.snowflake.value, icon: '💎', desc: 'Is it trading at a fair price?' },
+                          { cat: snowflakeData.snowflake.future, icon: '🚀', desc: 'Expected future growth' },
+                          { cat: snowflakeData.snowflake.past, icon: '📊', desc: 'Historical performance track record' },
+                          { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
+                          { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
+                        ].map(({ cat, icon, desc }) => (
+                          <div key={cat.name} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                            <span className="text-xl">{icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-semibold">{cat.name}</span>
+                                <span className="text-sm font-bold font-mono">{cat.score}/{cat.maxScore}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground truncate">{desc}</p>
+                              <div className="flex gap-0.5 mt-1">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className="h-1 flex-1 rounded-full"
+                                    style={{
+                                      background: i < cat.score ? snowflakeData.snowflake.color : 'var(--secondary)',
+                                      opacity: i < cat.score ? 1 : 0.3,
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Fair Value Estimation */}
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" /> Fair Value Estimation
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Intrinsic value calculated using {snowflakeData.fairValue.method} model</p>
+                </CardHeader>
+                <CardContent>
+                  <FairValueGauge
+                    currentPrice={snowflakeData.fairValue.currentPrice}
+                    fairValue={snowflakeData.fairValue.fairValue}
+                    discount={snowflakeData.fairValue.discount}
+                    method={snowflakeData.fairValue.method}
+                  />
+                  {snowflakeData.fairValue.details.freeCashFlow && (
+                    <div className="mt-4 pt-4 border-t border-border/30">
+                      <p className="text-xs text-muted-foreground mb-2">Model Parameters</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: 'FCF', value: `AED ${(snowflakeData.fairValue.details.freeCashFlow / 1e9).toFixed(2)}B` },
+                          { label: 'Growth Rate', value: `${snowflakeData.fairValue.details.growthRate}%` },
+                          { label: 'Discount Rate', value: `${snowflakeData.fairValue.details.discountRate}%` },
+                          { label: 'Terminal Growth', value: `${snowflakeData.fairValue.details.terminalGrowthRate}%` },
+                        ].map(p => (
+                          <div key={p.label} className="text-center p-2 rounded bg-secondary/30">
+                            <div className="text-[10px] text-muted-foreground">{p.label}</div>
+                            <div className="text-xs font-mono font-medium">{p.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Detailed Checks */}
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" /> Detailed Analysis Checks
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">30 individual checks across 5 categories (click to expand)</p>
+                </CardHeader>
+                <CardContent>
+                  <AnalysisChecks
+                    categories={[
+                      snowflakeData.snowflake.value,
+                      snowflakeData.snowflake.future,
+                      snowflakeData.snowflake.past,
+                      snowflakeData.snowflake.health,
+                      snowflakeData.snowflake.dividend,
+                    ]}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Peer Comparison */}
+              {snowflakeData.peers && snowflakeData.peers.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" /> Peer Comparison
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">Snowflake scores of top peers in the same sector</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/30">
+                            <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Company</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Total</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Value</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Future</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Past</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Health</th>
+                            <th className="text-center py-2 px-1 text-xs font-medium text-muted-foreground">Dividend</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Current stock row */}
+                          <tr className="border-b border-border/20 bg-primary/5">
+                            <td className="py-2 px-2 font-semibold text-xs">{stockInfo.name}</td>
+                            <td className="py-2 px-1 text-center font-bold font-mono" style={{ color: snowflakeData.snowflake.color }}>{snowflakeData.snowflake.totalScore}</td>
+                            <td className="py-2 px-1 text-center font-mono text-xs">{snowflakeData.snowflake.value.score}/6</td>
+                            <td className="py-2 px-1 text-center font-mono text-xs">{snowflakeData.snowflake.future.score}/6</td>
+                            <td className="py-2 px-1 text-center font-mono text-xs">{snowflakeData.snowflake.past.score}/6</td>
+                            <td className="py-2 px-1 text-center font-mono text-xs">{snowflakeData.snowflake.health.score}/6</td>
+                            <td className="py-2 px-1 text-center font-mono text-xs">{snowflakeData.snowflake.dividend.score}/6</td>
+                          </tr>
+                          {/* Peer rows */}
+                          {snowflakeData.peers.map((peer: any) => (
+                            <tr key={peer.ticker} className="border-b border-border/10 hover:bg-secondary/20">
+                              <td className="py-2 px-2 text-xs truncate max-w-[140px]">{peer.name}</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs font-medium" style={{ color: peer.snowflake.color }}>{peer.snowflake.totalScore}</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs">{peer.snowflake.value.score}/6</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs">{peer.snowflake.future.score}/6</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs">{peer.snowflake.past.score}/6</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs">{peer.snowflake.health.score}/6</td>
+                              <td className="py-2 px-1 text-center font-mono text-xs">{peer.snowflake.dividend.score}/6</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Market Averages */}
+              {snowflakeData.marketAverages && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <PieChart className="h-4 w-4 text-primary" /> Market Context
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: 'Market Avg P/E', value: snowflakeData.marketAverages.pe?.toFixed(1) + 'x' },
+                        { label: 'Sector Avg P/E', value: snowflakeData.marketAverages.industryPE ? snowflakeData.marketAverages.industryPE.toFixed(1) + 'x' : 'N/A' },
+                        { label: 'Sector Avg P/B', value: snowflakeData.marketAverages.industryPB ? snowflakeData.marketAverages.industryPB.toFixed(2) + 'x' : 'N/A' },
+                        { label: 'Avg Earnings Growth', value: snowflakeData.marketAverages.earningsGrowth?.toFixed(1) + '%' },
+                        { label: 'Div Yield 25th %', value: (snowflakeData.marketAverages.dividendYield25 * 100).toFixed(2) + '%' },
+                        { label: 'Div Yield 75th %', value: (snowflakeData.marketAverages.dividendYield75 * 100).toFixed(2) + '%' },
+                      ].map(m => (
+                        <div key={m.label} className="p-3 rounded-lg bg-secondary/30 border border-border/30">
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</div>
+                          <div className="text-sm font-mono font-semibold mt-0.5">{m.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <Card className="border-border/50">
+              <CardContent className="py-8">
+                <p className="text-sm text-muted-foreground text-center">Unable to load Snowflake analysis. Please try again.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* AI Deep Analysis */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" /> AI Deep Analysis
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">Comprehensive AI-powered research report</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => aiAnalysisMutation.mutate({ symbol })}
+                  disabled={aiAnalysisMutation.isPending}
+                >
+                  {aiAnalysisMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                  Generate Report
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {aiAnalysisMutation.data && aiAnalysisMutation.data.summary !== "AI analysis temporarily unavailable. Please try again later." ? (
+                <div className="space-y-5">
+                  {/* Rating Badge */}
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      className={`text-sm px-3 py-1.5 ${
+                        aiAnalysisMutation.data.rating?.includes('Buy')
+                          ? 'bg-[oklch(0.72_0.17_155/15%)] text-gain border-[oklch(0.72_0.17_155/30%)]'
+                          : aiAnalysisMutation.data.rating?.includes('Sell')
+                          ? 'bg-[oklch(0.65_0.22_25/15%)] text-loss border-[oklch(0.65_0.22_25/30%)]'
+                          : 'bg-secondary text-muted-foreground'
+                      }`}
+                      variant="outline"
+                    >
+                      {aiAnalysisMutation.data.rating}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Confidence: <span className="font-mono font-medium text-foreground">{aiAnalysisMutation.data.confidence}%</span>
+                    </span>
+                  </div>
+
+                  {/* Summary */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Executive Summary</h4>
+                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.summary}</p>
+                  </div>
+
+                  {/* Rewards & Risks */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                        <TrendingUp className="h-3.5 w-3.5 text-gain" /> Key Rewards
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {aiAnalysisMutation.data.rewards?.map((r: string, i: number) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
+                            <span className="text-gain mt-0.5">+</span>
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                        <TrendingDown className="h-3.5 w-3.5 text-loss" /> Key Risks
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {aiAnalysisMutation.data.risks?.map((r: string, i: number) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
+                            <span className="text-loss mt-0.5">-</span>
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Outlook */}
+                  {aiAnalysisMutation.data.outlook && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Forward Outlook</h4>
+                      <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.outlook}</p>
+                    </div>
+                  )}
+                </div>
+              ) : aiAnalysisMutation.isPending ? (
+                <div className="flex items-center gap-3 py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Generating comprehensive analysis report...</span>
+                </div>
+              ) : aiAnalysisMutation.data?.summary === "AI analysis temporarily unavailable. Please try again later." ? (
+                <p className="text-sm text-muted-foreground py-4">AI analysis temporarily unavailable. Please try again later.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4">
+                  Click "Generate Report" to get a comprehensive AI-powered analysis including investment thesis, rewards, risks, and forward outlook.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Sentiment (kept from original) */}
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-primary" /> AI Sentiment Analysis
+                  <Activity className="h-4 w-4 text-primary" /> Quick Sentiment
                 </CardTitle>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => sentimentMutation.mutate({ symbol, name: stockInfo.name })} disabled={sentimentMutation.isPending}>
-                  {sentimentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  Analyze
+                  {sentimentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}
+                  Check
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {sentimentMutation.data ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-4">
                     <Badge className={`text-sm px-3 py-1 ${sentimentMutation.data.sentiment === "bullish" ? "bg-[oklch(0.72_0.17_155/15%)] text-gain border-[oklch(0.72_0.17_155/30%)]" : sentimentMutation.data.sentiment === "bearish" ? "bg-[oklch(0.65_0.22_25/15%)] text-loss border-[oklch(0.65_0.22_25/30%)]" : "bg-secondary text-muted-foreground"}`} variant="outline">
                       {sentimentMutation.data.sentiment === "bullish" ? <TrendingUp className="h-4 w-4 mr-1.5" /> : sentimentMutation.data.sentiment === "bearish" ? <TrendingDown className="h-4 w-4 mr-1.5" /> : null}
@@ -1165,11 +1509,11 @@ export default function StockDetail() {
               ) : sentimentMutation.isPending ? (
                 <div className="flex items-center gap-3 py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Analyzing market sentiment...</span>
+                  <span className="text-sm text-muted-foreground">Checking sentiment...</span>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground py-4">
-                  Click "Analyze" to get AI-powered sentiment analysis for this stock based on current market conditions and sector trends.
+                  Quick AI sentiment check based on current market conditions.
                 </p>
               )}
             </CardContent>

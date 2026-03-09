@@ -38,10 +38,13 @@ const INCOME_COLUMNS = [
 const BALANCE_SHEET_COLUMNS = [
   'total_assets', 'total_liabilities_fq', 'total_debt',
   'total_current_assets', 'total_shares_outstanding_fundamental',
+  'total_current_liabilities_fq', 'long_term_debt_fq', 'short_term_debt_fq',
+  'book_value_per_share_fq',
 ];
 
 const CASH_FLOW_COLUMNS = [
   'free_cash_flow',
+  'cash_f_operating_activities_ttm',
 ];
 
 const PROFITABILITY_COLUMNS = [
@@ -51,6 +54,7 @@ const PROFITABILITY_COLUMNS = [
 
 const DIVIDEND_COLUMNS = [
   'dividends_yield', 'dps_common_stock_prim_issue_fy',
+  'price_earnings_growth_ttm',
 ];
 
 const RATIO_COLUMNS = [
@@ -166,9 +170,14 @@ export interface TVStockData {
   totalDebt: number | null;
   totalCurrentAssets: number | null;
   sharesOutstanding: number | null;
+  totalCurrentLiabilities: number | null;
+  longTermDebt: number | null;
+  shortTermDebt: number | null;
+  bookValuePerShare: number | null;
 
   // Cash Flow
   freeCashFlow: number | null;
+  operatingCashFlow: number | null;
 
   // Profitability
   grossMargin: number | null;
@@ -182,6 +191,7 @@ export interface TVStockData {
   // Dividends
   dividendYield: number | null;
   dividendPerShare: number | null;
+  pegRatio: number | null;
 
   // Ratios
   currentRatio: number | null;
@@ -325,14 +335,19 @@ function parseRow(ticker: string, values: any[]): TVStockData {
     epsDiluted: v(i++),
     ebitda: v(i++),
     epsForecast: v(i++),
-    // Balance Sheet (5)
+    // Balance Sheet (9)
     totalAssets: v(i++),
     totalLiabilities: v(i++),
     totalDebt: v(i++),
     totalCurrentAssets: v(i++),
     sharesOutstanding: v(i++),
-    // Cash Flow (1)
+    totalCurrentLiabilities: v(i++),
+    longTermDebt: v(i++),
+    shortTermDebt: v(i++),
+    bookValuePerShare: v(i++),
+    // Cash Flow (2)
     freeCashFlow: v(i++),
+    operatingCashFlow: v(i++),
     // Profitability (7)
     grossMargin: v(i++),
     operatingMargin: v(i++),
@@ -341,9 +356,10 @@ function parseRow(ticker: string, values: any[]): TVStockData {
     returnOnEquity: v(i++),
     returnOnAssets: v(i++),
     returnOnInvestedCapital: v(i++),
-    // Dividends (2)
+    // Dividends (3)
     dividendYield: v(i++),
     dividendPerShare: v(i++),
+    pegRatio: v(i++),
     // Ratios (4)
     currentRatio: v(i++),
     quickRatio: v(i++),
