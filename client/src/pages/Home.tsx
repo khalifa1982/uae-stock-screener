@@ -1,5 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
+import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,12 +56,30 @@ function ChangeDisplay({ value }: { value: number | null | undefined }) {
   );
 }
 
+function StockLogo({ logoUrl, symbol, size = "sm" }: { logoUrl?: string | null; symbol: string; size?: "sm" | "md" }) {
+  const dim = size === "sm" ? "h-6 w-6" : "h-8 w-8";
+  const imgDim = size === "sm" ? "h-4 w-4" : "h-5.5 w-5.5";
+  if (logoUrl) {
+    return (
+      <div className={`${dim} rounded-md bg-white/10 border border-border/30 flex items-center justify-center overflow-hidden shrink-0`}>
+        <img src={logoUrl} alt="" className={`${imgDim} object-contain`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+      </div>
+    );
+  }
+  return (
+    <div className={`${dim} rounded-md bg-muted/50 border border-border/30 flex items-center justify-center shrink-0`}>
+      <span className="text-[9px] font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
+    </div>
+  );
+}
+
 function MoverRow({ stock, onClick }: { stock: any; onClick: () => void }) {
   return (
     <div
       className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/20 cursor-pointer transition-colors"
       onClick={onClick}
     >
+      <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />
       <div className="min-w-0 flex-1 overflow-hidden">
         <span className="font-mono text-sm font-semibold">{stock.symbol}</span>
         <p className="text-[11px] text-muted-foreground truncate leading-tight">{stock.name}</p>
@@ -96,10 +116,13 @@ export default function Home() {
   const [sortField, setSortField] = useState<SortField>("marketCap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  const autoRefreshInterval = useAutoRefreshInterval();
+
   const { data: stocks, isLoading, refetch, isFetching } = trpc.stocks.fetchAll.useQuery(
     { exchange },
     { 
-      staleTime: 5 * 60 * 1000, 
+      staleTime: autoRefreshInterval ? 20 * 1000 : 5 * 60 * 1000,
+      refetchInterval: autoRefreshInterval,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       gcTime: 30 * 60 * 1000,
@@ -109,7 +132,8 @@ export default function Home() {
   const { data: topMovers } = trpc.stocks.topMovers.useQuery(
     { exchange, limit: 5 },
     {
-      staleTime: 5 * 60 * 1000,
+      staleTime: autoRefreshInterval ? 20 * 1000 : 5 * 60 * 1000,
+      refetchInterval: autoRefreshInterval,
       refetchOnWindowFocus: false,
       gcTime: 30 * 60 * 1000,
     }
@@ -210,9 +234,18 @@ export default function Home() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Market Dashboard</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight">Market Dashboard</h1>
+            <MarketStatusBadge />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">
             UAE Stock Market — ADX & DFM Exchanges
+            {autoRefreshInterval && (
+              <span className="ml-2 text-xs text-primary/70">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse mr-1 align-middle" />
+                Live — refreshing every {autoRefreshInterval / 1000}s
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 self-start">
@@ -365,6 +398,7 @@ export default function Home() {
                       className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/20 cursor-pointer transition-colors"
                       onClick={() => setLocation(`/stock/${s.symbol}`)}
                     >
+                      <StockLogo logoUrl={s.logoUrl} symbol={s.symbol} />
                       <div className="min-w-0 flex-1 overflow-hidden">
                         <span className="font-mono text-sm font-semibold">{s.symbol}</span>
                         <p className="text-[11px] text-muted-foreground truncate leading-tight">{s.name}</p>
@@ -491,12 +525,23 @@ export default function Home() {
                           onClick={() => setLocation(`/stock/${stock.symbol}`)}
                         >
                           <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-foreground">{stock.symbol}</span>
+                            <div className="flex items-center gap-2.5">
+                              {stock.logoUrl ? (
+                                <div className="h-7 w-7 rounded-md bg-white/10 border border-border/30 flex items-center justify-center overflow-hidden shrink-0">
+                                  <img src={stock.logoUrl} alt="" className="h-5 w-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                </div>
+                              ) : (
+                                <div className="h-7 w-7 rounded-md bg-muted/50 border border-border/30 flex items-center justify-center shrink-0">
+                                  <span className="text-[10px] font-bold text-muted-foreground">{stock.symbol.slice(0, 2)}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-mono font-semibold text-foreground">{stock.symbol}</span>
+                                <span className="text-xs text-muted-foreground lg:hidden block mt-0.5 truncate max-w-[180px]">
+                                  {stock.name}
+                                </span>
+                              </div>
                             </div>
-                            <span className="text-xs text-muted-foreground lg:hidden block mt-0.5 truncate max-w-[180px]">
-                              {stock.name}
-                            </span>
                           </td>
                           <td className="p-3 hidden lg:table-cell">
                             <span className="text-sm text-foreground/80 truncate block max-w-[260px]">{stock.name}</span>

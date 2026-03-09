@@ -29,6 +29,8 @@ function tvToSnapshot(tv: any, stock: { symbol: string; exchange: string; name: 
     name: stock.name,
     sector: stock.sector,
     yahooSymbol: stock.yahooSymbol,
+    logoUrl: tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null,
+    description: tv.description ?? null,
     price: tv.close ?? null,
     previousClose: tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null,
     open: tv.open ?? null,
@@ -372,7 +374,7 @@ export const appRouter = router({
         let results: any[] = stockList.map(stock => {
           const tvData = tvMap.get(`${stock.exchange}:${stock.symbol}`);
           if (tvData) return tvToSnapshot(tvData, stock);
-          return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, yahooSymbol: stock.yahooSymbol, price: null, previousClose: null, open: null, dayHigh: null, dayLow: null, volume: null, avgVolume: null, marketCap: null, pe: null, eps: null, week52High: null, week52Low: null, dividendYield: null, beta: null, changePercent: null, rsi: null, sma20: null, sma50: null, ema12: null, ema26: null, volumeRatio: null };
+          return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, yahooSymbol: stock.yahooSymbol, logoUrl: null, description: null, price: null, previousClose: null, open: null, dayHigh: null, dayLow: null, volume: null, avgVolume: null, marketCap: null, pe: null, eps: null, week52High: null, week52Low: null, dividendYield: null, beta: null, changePercent: null, rsi: null, sma20: null, sma50: null, ema12: null, ema26: null, volumeRatio: null };
         });
 
         if (input.sector) results = results.filter(s => s.sector === input.sector);
@@ -439,7 +441,7 @@ export const appRouter = router({
           sector: co.sector || tv.sector || stock.sector || null,
           industry: co.industry || tv.industry || null,
           website: co.website || null,
-          logo: co.logo || null,
+          logo: co.logo || (tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null),
           fullTimeEmployees: pick(co.fullTimeEmployees, tv.employees),
           country: co.country || null,
           city: co.city || null,
@@ -458,11 +460,11 @@ export const appRouter = router({
           // Key Stats - Profitability (merge Yahoo + TV)
           totalRevenue: pick(ks.totalRevenue, tv.totalRevenue),
           revenueGrowth: ks.revenueGrowth || null,
-          grossMargin: pick(ks.grossMargin, tv.grossMargin),
+          grossMargin: pick(ks.grossMargin, tv.grossMargin != null ? tv.grossMargin / 100 : null),
           ebitdaMargin: ks.ebitdaMargin || null,
-          operatingMargin: pick(ks.operatingMargin, tv.operatingMargin),
-          profitMargin: pick(ks.profitMargin, tv.afterTaxMargin),
-          returnOnEquity: pick(ks.returnOnEquity, tv.returnOnEquity),
+          operatingMargin: pick(ks.operatingMargin, tv.operatingMargin != null ? tv.operatingMargin / 100 : null),
+          profitMargin: pick(ks.profitMargin, tv.afterTaxMargin != null ? tv.afterTaxMargin / 100 : null),
+          returnOnEquity: pick(ks.returnOnEquity, tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null),
           returnOnAssets: ks.returnOnAssets || null,
           // Key Stats - Financial Health (merge Yahoo + TV)
           totalCash: ks.totalCash || null,
@@ -490,7 +492,7 @@ export const appRouter = router({
           shortRatio: ks.shortRatio || null,
           // Dividends (merge Yahoo + TV)
           dividendRate: div.dividendRate || null,
-          dividendYield: pick(div.dividendYield, tv.dividendYield),
+          dividendYield: pick(div.dividendYield, tv.dividendYield != null ? tv.dividendYield / 100 : null),
           exDividendDate: div.exDividendDate || null,
           payoutRatio: div.payoutRatio || null,
           fiveYearAvgDividendYield: div.fiveYearAvgDividendYield || null,
@@ -522,24 +524,44 @@ export const appRouter = router({
           averageVolume: ti.averageVolume || null,
           averageVolume10days: ti.averageVolume10days || null,
           // TradingView-exclusive data
+          // TradingView Technical Analysis
           tvRecommendation: tv.recommendAll ?? null,
+          tvRecommendMA: tv.recommendMA ?? null,
+          tvRecommendOther: tv.recommendOther ?? null,
           tvRSI: tv.rsi ?? null,
           tvMACD: tv.macdValue ?? null,
           tvMACDSignal: tv.macdSignal ?? null,
+          tvStochK: tv.stochK ?? null,
+          tvStochD: tv.stochD ?? null,
+          tvADX: tv.adx ?? null,
+          tvCCI20: tv.cci20 ?? null,
+          tvBBUpper: tv.bbUpper ?? null,
+          tvBBLower: tv.bbLower ?? null,
+          tvMomentum: tv.momentum ?? null,
+          tvAwesomeOscillator: tv.awesomeOscillator ?? null,
+          // Moving Averages
           tvSMA20: tv.sma20 ?? null,
           tvSMA50: tv.sma50 ?? null,
           tvSMA200: tv.sma200 ?? null,
           tvEMA20: tv.ema20 ?? null,
           tvEMA50: tv.ema50 ?? null,
           tvEMA200: tv.ema200 ?? null,
+          // Financials from TV
           tvEBITDA: tv.ebitda ?? null,
           tvNetIncome: tv.netIncome ?? null,
           tvTotalAssets: tv.totalAssets ?? null,
           tvGrossProfit: tv.grossProfit ?? null,
+          tvTotalCurrentAssets: tv.totalCurrentAssets ?? null,
+          tvPreTaxMargin: tv.preTaxMargin != null ? tv.preTaxMargin / 100 : null,
+          // Performance
           tvPerfWeek: tv.perfWeek ?? null,
           tvPerfMonth: tv.perfMonth ?? null,
           tvPerf3Month: tv.perf3Month ?? null,
+          tvPerf6Month: tv.perf6Month ?? null,
+          tvPerfYTD: tv.perfYTD ?? null,
           tvPerfYear: tv.perfYear ?? null,
+          tvVolatilityWeek: tv.volatilityWeek ?? null,
+          tvVolatilityMonth: tv.volatilityMonth ?? null,
         };
         return { stock, profile, available: true };
       }),

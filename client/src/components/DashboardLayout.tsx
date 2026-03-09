@@ -23,6 +23,7 @@ import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
 import { Activity, Bell, BarChart3, Eye, Filter, Grid3X3, LayoutDashboard, LogOut, PanelLeft, Settings2, TrendingUp } from "lucide-react";
+import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -242,6 +243,7 @@ function DashboardLayoutContent({
                 {activeMenuItem?.label ?? "UAE Screener"}
               </span>
             </div>
+            <MarketStatusBadge />
           </div>
           <div className="flex items-center gap-2">
             <NotificationCenter />

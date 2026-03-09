@@ -1,5 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
+import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,9 +157,11 @@ export default function StockDetail() {
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
 
+  const autoRefreshInterval = useAutoRefreshInterval();
+
   const { data: detail, isLoading: detailLoading } = trpc.stocks.detail.useQuery(
     { symbol },
-    { enabled: !!symbol, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, refetchOnWindowFocus: false }
+    { enabled: !!symbol, staleTime: autoRefreshInterval ? 20 * 1000 : 5 * 60 * 1000, refetchInterval: autoRefreshInterval, gcTime: 30 * 60 * 1000, refetchOnWindowFocus: false }
   );
 
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
@@ -210,9 +214,13 @@ export default function StockDetail() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div className="flex items-start gap-4">
             {/* Company Logo */}
-            {profile?.logo && (
+            {profile?.logo ? (
               <div className="h-14 w-14 rounded-xl bg-white/10 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
                 <img src={profile.logo} alt={stockInfo.name} className="h-10 w-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+            ) : (
+              <div className="h-14 w-14 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center shrink-0">
+                <span className="text-lg font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
               </div>
             )}
             <div>
@@ -352,7 +360,7 @@ export default function StockDetail() {
                     <MetricCard label="EPS" value={formatNumber(detail.eps || profile?.trailingEps)} icon={TrendingUp} />
                     <MetricCard label="52W High" value={formatNumber(detail.week52High || profile?.fiftyTwoWeekHigh)} icon={ArrowUp} />
                     <MetricCard label="52W Low" value={formatNumber(detail.week52Low || profile?.fiftyTwoWeekLow)} icon={ArrowDown} />
-                    <MetricCard label="Div Yield" value={detail.dividendYield != null ? (detail.dividendYield * 100).toFixed(2) + "%" : profile?.dividendYield ? formatPercent(profile.dividendYield) : "—"} icon={DollarSign} />
+                    <MetricCard label="Div Yield" value={detail.dividendYield != null ? detail.dividendYield.toFixed(2) + "%" : profile?.dividendYield ? formatPercent(profile.dividendYield) : "\u2014"} icon={DollarSign} />
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-8">No data available</p>
@@ -375,33 +383,27 @@ export default function StockDetail() {
                 ) : detail ? (
                   <>
                     <RSIGauge value={detail.rsi} />
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/30">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 20</span>
-                        <span className="font-mono text-sm font-medium">{detail.sma20 != null ? formatNumber(detail.sma20, 3) : "—"}</span>
+                        <span className="font-mono text-xs font-medium">{detail.sma20 != null ? formatNumber(detail.sma20, 3) : "\u2014"}</span>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 50</span>
-                        <span className="font-mono text-sm font-medium">{detail.sma50 != null ? formatNumber(detail.sma50, 3) : "—"}</span>
+                        <span className="font-mono text-xs font-medium">{detail.sma50 != null ? formatNumber(detail.sma50, 3) : "\u2014"}</span>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/30">
-                        <span className="text-xs text-muted-foreground">EMA 12</span>
-                        <span className="font-mono text-sm font-medium">{detail.ema12 != null ? formatNumber(detail.ema12, 3) : "—"}</span>
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                        <span className="text-xs text-muted-foreground">EMA 20</span>
+                        <span className="font-mono text-xs font-medium">{detail.ema12 != null ? formatNumber(detail.ema12, 3) : "\u2014"}</span>
                       </div>
-                      <div className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/30">
-                        <span className="text-xs text-muted-foreground">EMA 26</span>
-                        <span className="font-mono text-sm font-medium">{detail.ema26 != null ? formatNumber(detail.ema26, 3) : "—"}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/30">
-                        <span className="text-xs text-muted-foreground">Vol Ratio</span>
-                        <span className={`font-mono text-sm font-medium ${detail.volumeRatio != null && detail.volumeRatio > 1.5 ? "text-chart-4" : ""}`}>
-                          {detail.volumeRatio != null ? detail.volumeRatio.toFixed(2) + "x" : "—"}
-                        </span>
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                        <span className="text-xs text-muted-foreground">EMA 50</span>
+                        <span className="font-mono text-xs font-medium">{detail.ema26 != null ? formatNumber(detail.ema26, 3) : "\u2014"}</span>
                       </div>
                       {detail.price != null && detail.sma50 != null && (
-                        <div className={`p-3 rounded-lg border ${detail.price > detail.sma50 ? "border-[oklch(0.72_0.17_155/30%)] bg-[oklch(0.72_0.17_155/5%)]" : "border-[oklch(0.65_0.22_25/30%)] bg-[oklch(0.65_0.22_25/5%)]"}`}>
+                        <div className={`p-2.5 rounded-lg border ${detail.price > detail.sma50 ? "border-[oklch(0.72_0.17_155/30%)] bg-[oklch(0.72_0.17_155/5%)]" : "border-[oklch(0.65_0.22_25/30%)] bg-[oklch(0.65_0.22_25/5%)]"}`}>
                           <div className="flex items-center gap-2">
-                            {detail.price > detail.sma50 ? <TrendingUp className="h-4 w-4 text-gain" /> : <TrendingDown className="h-4 w-4 text-loss" />}
+                            {detail.price > detail.sma50 ? <TrendingUp className="h-3.5 w-3.5 text-gain" /> : <TrendingDown className="h-3.5 w-3.5 text-loss" />}
                             <span className={`text-xs font-medium ${detail.price > detail.sma50 ? "text-gain" : "text-loss"}`}>
                               Price is {detail.price > detail.sma50 ? "above" : "below"} SMA 50
                             </span>
@@ -416,6 +418,115 @@ export default function StockDetail() {
               </CardContent>
             </Card>
           </div>
+
+          {/* TradingView Technical Analysis Summary */}
+          {profile && (profile.tvRecommendation != null || profile.tvMACD != null || profile.tvStochK != null) && (
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-primary" /> Technical Analysis Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Overall Recommendation */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recommendation</h4>
+                    <div className="space-y-2">
+                      {profile.tvRecommendation != null && (
+                        <div className="p-3 rounded-lg bg-secondary/30 border border-border/30">
+                          <p className="text-[11px] text-muted-foreground mb-1">Overall</p>
+                          <p className={`text-lg font-bold ${profile.tvRecommendation >= 0.1 ? "text-gain" : profile.tvRecommendation <= -0.1 ? "text-loss" : "text-foreground"}`}>
+                            {profile.tvRecommendation >= 0.5 ? "Strong Buy" : profile.tvRecommendation >= 0.1 ? "Buy" : profile.tvRecommendation > -0.1 ? "Neutral" : profile.tvRecommendation > -0.5 ? "Sell" : "Strong Sell"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground font-mono">Score: {profile.tvRecommendation.toFixed(3)}</p>
+                        </div>
+                      )}
+                      {profile.tvRecommendMA != null && (
+                        <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/20">
+                          <span className="text-xs text-muted-foreground">Moving Avg</span>
+                          <span className={`font-mono text-xs font-medium ${profile.tvRecommendMA >= 0.1 ? "text-gain" : profile.tvRecommendMA <= -0.1 ? "text-loss" : ""}`}>
+                            {profile.tvRecommendMA >= 0.5 ? "Strong Buy" : profile.tvRecommendMA >= 0.1 ? "Buy" : profile.tvRecommendMA > -0.1 ? "Neutral" : profile.tvRecommendMA > -0.5 ? "Sell" : "Strong Sell"}
+                          </span>
+                        </div>
+                      )}
+                      {profile.tvRecommendOther != null && (
+                        <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/20">
+                          <span className="text-xs text-muted-foreground">Oscillators</span>
+                          <span className={`font-mono text-xs font-medium ${profile.tvRecommendOther >= 0.1 ? "text-gain" : profile.tvRecommendOther <= -0.1 ? "text-loss" : ""}`}>
+                            {profile.tvRecommendOther >= 0.5 ? "Strong Buy" : profile.tvRecommendOther >= 0.1 ? "Buy" : profile.tvRecommendOther > -0.1 ? "Neutral" : profile.tvRecommendOther > -0.5 ? "Sell" : "Strong Sell"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Oscillators */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Oscillators</h4>
+                    <div className="space-y-1.5">
+                      <DataRow label="MACD" value={profile.tvMACD != null ? formatNumber(profile.tvMACD, 4) : "\u2014"} />
+                      <DataRow label="MACD Signal" value={profile.tvMACDSignal != null ? formatNumber(profile.tvMACDSignal, 4) : "\u2014"} />
+                      <DataRow label="Stochastic %K" value={profile.tvStochK != null ? formatNumber(profile.tvStochK, 2) : "\u2014"} />
+                      <DataRow label="Stochastic %D" value={profile.tvStochD != null ? formatNumber(profile.tvStochD, 2) : "\u2014"} />
+                      <DataRow label="CCI (20)" value={profile.tvCCI20 != null ? formatNumber(profile.tvCCI20, 2) : "\u2014"} />
+                      <DataRow label="Momentum" value={profile.tvMomentum != null ? formatNumber(profile.tvMomentum, 4) : "\u2014"} />
+                      <DataRow label="Awesome Osc." value={profile.tvAwesomeOscillator != null ? formatNumber(profile.tvAwesomeOscillator, 4) : "\u2014"} />
+                    </div>
+                  </div>
+                  {/* Moving Averages & Bands */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Moving Averages</h4>
+                    <div className="space-y-1.5">
+                      <DataRow label="SMA 20" value={profile.tvSMA20 != null ? formatNumber(profile.tvSMA20, 3) : "\u2014"} />
+                      <DataRow label="SMA 50" value={profile.tvSMA50 != null ? formatNumber(profile.tvSMA50, 3) : "\u2014"} />
+                      <DataRow label="SMA 200" value={profile.tvSMA200 != null ? formatNumber(profile.tvSMA200, 3) : "\u2014"} highlight />
+                      <DataRow label="EMA 20" value={profile.tvEMA20 != null ? formatNumber(profile.tvEMA20, 3) : "\u2014"} />
+                      <DataRow label="EMA 50" value={profile.tvEMA50 != null ? formatNumber(profile.tvEMA50, 3) : "\u2014"} />
+                      <DataRow label="EMA 200" value={profile.tvEMA200 != null ? formatNumber(profile.tvEMA200, 3) : "\u2014"} highlight />
+                      <DataRow label="BB Upper" value={profile.tvBBUpper != null ? formatNumber(profile.tvBBUpper, 3) : "\u2014"} />
+                      <DataRow label="BB Lower" value={profile.tvBBLower != null ? formatNumber(profile.tvBBLower, 3) : "\u2014"} />
+                      <DataRow label="ADX" value={profile.tvADX != null ? formatNumber(profile.tvADX, 2) : "\u2014"} />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Performance */}
+          {profile && (profile.tvPerfWeek != null || profile.tvPerfMonth != null) && (
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" /> Performance & Volatility
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                  {[
+                    { label: "1 Week", val: profile.tvPerfWeek },
+                    { label: "1 Month", val: profile.tvPerfMonth },
+                    { label: "3 Months", val: profile.tvPerf3Month },
+                    { label: "6 Months", val: profile.tvPerf6Month },
+                    { label: "YTD", val: profile.tvPerfYTD },
+                    { label: "1 Year", val: profile.tvPerfYear },
+                    { label: "Vol (W)", val: profile.tvVolatilityWeek },
+                    { label: "Vol (M)", val: profile.tvVolatilityMonth },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="p-3 rounded-lg bg-secondary/30 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+                      <p className={`text-sm font-bold font-mono ${
+                        val != null && label.startsWith("Vol") ? "text-foreground" :
+                        val != null && val > 0 ? "text-gain" : val != null && val < 0 ? "text-loss" : "text-muted-foreground"
+                      }`}>
+                        {val != null ? (label.startsWith("Vol") ? val.toFixed(2) + "%" : (val > 0 ? "+" : "") + val.toFixed(2) + "%") : "\u2014"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Key Statistics from Profile */}
           {profile && (
@@ -531,13 +642,60 @@ export default function StockDetail() {
               {(!profile.incomeStatement || profile.incomeStatement.length === 0) &&
                (!profile.balanceSheet || profile.balanceSheet.length === 0) &&
                (!profile.cashFlow || profile.cashFlow.length === 0) && (
-                <Card className="border-border/50">
-                  <CardContent className="py-12 text-center">
-                    <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">Financial statements are not available for this stock.</p>
-                    <p className="text-xs text-muted-foreground mt-1">This data is sourced from Yahoo Finance and may not be available for all UAE-listed companies.</p>
-                  </CardContent>
-                </Card>
+                <>
+                  {/* Show TradingView financial data as fallback */}
+                  {(profile.tvNetIncome != null || profile.tvEBITDA != null || profile.tvTotalAssets != null) ? (
+                    <Card className="border-border/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" /> Financial Summary
+                          <Badge variant="outline" className="text-[10px] ml-2">TradingView</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Income</h4>
+                            <div className="space-y-1">
+                              <DataRow label="Total Revenue" value={formatLargeNumber(profile.totalRevenue)} highlight />
+                              <DataRow label="Gross Profit" value={formatLargeNumber(profile.tvGrossProfit)} />
+                              <DataRow label="EBITDA" value={formatLargeNumber(profile.tvEBITDA)} />
+                              <DataRow label="Net Income" value={formatLargeNumber(profile.tvNetIncome)} />
+                              <DataRow label="EPS" value={formatNumber(profile.trailingEps)} />
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Balance Sheet</h4>
+                            <div className="space-y-1">
+                              <DataRow label="Total Assets" value={formatLargeNumber(profile.tvTotalAssets)} highlight />
+                              <DataRow label="Current Assets" value={formatLargeNumber(profile.tvTotalCurrentAssets)} />
+                              <DataRow label="Total Debt" value={formatLargeNumber(profile.totalDebt)} />
+                              <DataRow label="Debt/Equity" value={formatNumber(profile.debtToEquity, 2)} />
+                              <DataRow label="Current Ratio" value={formatNumber(profile.currentRatio, 2)} />
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Margins</h4>
+                            <div className="space-y-1">
+                              <DataRow label="Gross Margin" value={profile.grossMargin != null ? formatPercent(profile.grossMargin) : "\u2014"} />
+                              <DataRow label="Operating Margin" value={profile.operatingMargin != null ? formatPercent(profile.operatingMargin) : "\u2014"} />
+                              <DataRow label="Pre-Tax Margin" value={profile.tvPreTaxMargin != null ? formatPercent(profile.tvPreTaxMargin) : "\u2014"} />
+                              <DataRow label="Net Margin" value={profile.profitMargin != null ? formatPercent(profile.profitMargin) : "\u2014"} />
+                              <DataRow label="Free Cash Flow" value={formatLargeNumber(profile.freeCashflow)} />
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border-border/50">
+                      <CardContent className="py-12 text-center">
+                        <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-muted-foreground">Financial statements are not available for this stock.</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
               )}
             </>
           ) : (

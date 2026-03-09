@@ -192,3 +192,35 @@
 - [x] Default view changed to "All Markets" instead of DFM only
 - [x] Removed stale ADX warning banner
 - [x] All 64 tests passing across 7 test files
+
+## Phase 8 - Live Refresh, Market Status, Full Profiles & Logos
+
+### Live Auto-Refresh
+- [x] 30-second auto-refresh without page reload during market hours
+- [x] Smooth data transition (no flicker/loading state on refresh)
+- [x] Auto-refresh pauses when market is closed
+
+### Market Hours & Status
+- [x] Correct market hours: Mon-Fri 9:30am-3pm UAE time
+- [x] Market phases: Pre-Open (9:00-9:30), Open (9:30-2:50), Pre-Close (2:50-3:00), Closed
+- [x] Live market status indicator in header bar + dashboard (open/closed/pre-open/pre-close)
+- [x] Countdown to next market phase
+- [x] Update volume monitor to use correct Mon-Fri schedule
+
+### Company Logos
+- [x] Fetch company logos for all 173 UAE stocks from TradingView
+- [x] Display logos in stock table, top movers, most active, and detail pages
+- [x] Fallback to initials/icon when logo unavailable
+
+### Full Stock Detail Pages
+- [x] Technical Analysis Summary (Recommendation, Oscillators, Moving Averages)
+- [x] Performance & Volatility section (1W, 1M, 3M, 6M, YTD, 1Y, Vol)
+- [x] Financials tab: TradingView financial summary when Yahoo data unavailable
+- [x] Fixed percentage display (margins, performance, dividend yield)
+- [x] All Key Statistics populated from TradingView data
+
+### Testing
+- [x] 79 tests passing across 8 test files
+- [x] Market status tests (12 tests for all phases)
+- [x] TradingView value normalization tests
+- [x] Updated monitor tests for Mon-Fri schedule

@@ -11,9 +11,9 @@ describe("Volume Monitor", () => {
   });
 
   describe("isUAETradingHours", () => {
-    it("returns true during UAE trading hours (Sun-Thu 10:00-13:59 GST)", () => {
-      // Sunday 12:00 GST = Sunday 08:00 UTC (March 8, 2026 is a Sunday)
-      vi.setSystemTime(new Date("2026-03-08T08:00:00.000Z"));
+    it("returns true during UAE trading hours (Mon-Fri 9:30-14:59 GST)", () => {
+      // Monday 12:00 GST = Monday 08:00 UTC (March 9, 2026 is a Monday)
+      vi.setSystemTime(new Date("2026-03-09T08:00:00.000Z"));
       expect(isUAETradingHours()).toBe(true);
     });
 
@@ -29,76 +29,80 @@ describe("Volume Monitor", () => {
       expect(isUAETradingHours()).toBe(true);
     });
 
-    it("returns false before market open (before 10:00 GST)", () => {
-      // Sunday 09:00 GST = Sunday 05:00 UTC
-      vi.setSystemTime(new Date("2026-03-08T05:00:00.000Z"));
+    it("returns false before market open (before 9:30 GST)", () => {
+      // Monday 09:00 GST = Monday 05:00 UTC
+      vi.setSystemTime(new Date("2026-03-09T05:00:00.000Z"));
       expect(isUAETradingHours()).toBe(false);
     });
 
-    it("returns false after market close (at 14:00 GST)", () => {
-      // Sunday 14:00 GST = Sunday 10:00 UTC
-      vi.setSystemTime(new Date("2026-03-08T10:00:00.000Z"));
+    it("returns false after market close (at 15:00 GST)", () => {
+      // Monday 15:00 GST = Monday 11:00 UTC
+      vi.setSystemTime(new Date("2026-03-09T11:00:00.000Z"));
       expect(isUAETradingHours()).toBe(false);
     });
 
-    it("returns false on Friday (UAE weekend)", () => {
-      // Friday 12:00 GST = Friday 08:00 UTC (March 13, 2026 is a Friday)
-      vi.setSystemTime(new Date("2026-03-13T08:00:00.000Z"));
-      expect(isUAETradingHours()).toBe(false);
-    });
-
-    it("returns false on Saturday (UAE weekend)", () => {
-      // Saturday 12:00 GST = Saturday 08:00 UTC
+    it("returns false on Saturday (weekend)", () => {
+      // Saturday 12:00 GST = Saturday 08:00 UTC (March 7, 2026 is a Saturday)
       vi.setSystemTime(new Date("2026-03-07T08:00:00.000Z"));
       expect(isUAETradingHours()).toBe(false);
     });
 
-    it("returns true at exactly 10:00 GST on a trading day", () => {
-      // Wednesday 10:00 GST = Wednesday 06:00 UTC (March 11, 2026 is a Wednesday)
-      vi.setSystemTime(new Date("2026-03-11T06:00:00.000Z"));
+    it("returns false on Sunday (weekend)", () => {
+      // Sunday 12:00 GST = Sunday 08:00 UTC (March 8, 2026 is a Sunday)
+      vi.setSystemTime(new Date("2026-03-08T08:00:00.000Z"));
+      expect(isUAETradingHours()).toBe(false);
+    });
+
+    it("returns true at exactly 9:30 GST on a trading day", () => {
+      // Wednesday 9:30 GST = Wednesday 05:30 UTC (March 11, 2026 is a Wednesday)
+      vi.setSystemTime(new Date("2026-03-11T05:30:00.000Z"));
       expect(isUAETradingHours()).toBe(true);
     });
 
-    it("returns false at exactly 14:00 GST on a trading day", () => {
-      // Wednesday 14:00 GST = Wednesday 10:00 UTC
-      vi.setSystemTime(new Date("2026-03-11T10:00:00.000Z"));
+    it("returns false at exactly 15:00 GST on a trading day", () => {
+      // Wednesday 15:00 GST = Wednesday 11:00 UTC
+      vi.setSystemTime(new Date("2026-03-11T11:00:00.000Z"));
       expect(isUAETradingHours()).toBe(false);
     });
   });
 
   describe("getNextTradingSession", () => {
-    it("returns next day 10:00 GST when called after market close on a trading day", () => {
-      // Sunday 15:00 GST = Sunday 11:00 UTC (March 8, 2026 is a Sunday)
-      vi.setSystemTime(new Date("2026-03-08T11:00:00.000Z"));
+    it("returns next day 9:30 GST when called after market close on a trading day", () => {
+      // Monday 16:00 GST = Monday 12:00 UTC (March 9, 2026 is a Monday)
+      vi.setSystemTime(new Date("2026-03-09T12:00:00.000Z"));
       const next = getNextTradingSession();
-      // Should be Monday 10:00 GST = Monday 06:00 UTC
+      // Should be Tuesday 9:30 GST = Tuesday 05:30 UTC
+      expect(next.getUTCDay()).toBe(2); // Tuesday
+      expect(next.getUTCHours()).toBe(5); // 9:30 GST = 05:30 UTC
+      expect(next.getUTCMinutes()).toBe(30);
+    });
+
+    it("skips weekend (Sat-Sun) when called on Friday after close", () => {
+      // Friday 16:00 GST = Friday 12:00 UTC (March 13, 2026 is a Friday)
+      vi.setSystemTime(new Date("2026-03-13T12:00:00.000Z"));
+      const next = getNextTradingSession();
+      // Should be Monday 9:30 GST = Monday 05:30 UTC
       expect(next.getUTCDay()).toBe(1); // Monday
-      expect(next.getUTCHours()).toBe(6); // 10:00 GST = 06:00 UTC
+      expect(next.getUTCHours()).toBe(5);
+      expect(next.getUTCMinutes()).toBe(30);
     });
 
-    it("skips UAE weekend (Fri-Sat) when called on Thursday after close", () => {
-      // Thursday 15:00 GST = Thursday 11:00 UTC (March 12, 2026 is a Thursday)
-      vi.setSystemTime(new Date("2026-03-12T11:00:00.000Z"));
+    it("skips to Monday when called on Saturday", () => {
+      // Saturday 12:00 GST = Saturday 08:00 UTC (March 7, 2026 is a Saturday)
+      vi.setSystemTime(new Date("2026-03-07T08:00:00.000Z"));
       const next = getNextTradingSession();
-      // Should be Sunday 10:00 GST = Sunday 06:00 UTC
-      expect(next.getUTCDay()).toBe(0); // Sunday
-      expect(next.getUTCHours()).toBe(6);
+      expect(next.getUTCDay()).toBe(1); // Monday
+      expect(next.getUTCHours()).toBe(5);
+      expect(next.getUTCMinutes()).toBe(30);
     });
 
-    it("skips to Sunday when called on Friday", () => {
-      // Friday 12:00 GST = Friday 08:00 UTC (March 13, 2026 is a Friday)
-      vi.setSystemTime(new Date("2026-03-13T08:00:00.000Z"));
+    it("skips to Monday when called on Sunday", () => {
+      // Sunday 12:00 GST = Sunday 08:00 UTC (March 8, 2026 is a Sunday)
+      vi.setSystemTime(new Date("2026-03-08T08:00:00.000Z"));
       const next = getNextTradingSession();
-      expect(next.getUTCDay()).toBe(0); // Sunday
-      expect(next.getUTCHours()).toBe(6);
-    });
-
-    it("skips to Sunday when called on Saturday", () => {
-      // Saturday 12:00 GST = Saturday 08:00 UTC (March 14, 2026 is a Saturday)
-      vi.setSystemTime(new Date("2026-03-14T08:00:00.000Z"));
-      const next = getNextTradingSession();
-      expect(next.getUTCDay()).toBe(0); // Sunday
-      expect(next.getUTCHours()).toBe(6);
+      expect(next.getUTCDay()).toBe(1); // Monday
+      expect(next.getUTCHours()).toBe(5);
+      expect(next.getUTCMinutes()).toBe(30);
     });
   });
 });

@@ -48,7 +48,8 @@ export interface VolumeAlertData {
 /**
  * Check if current time is within UAE trading hours
  * UAE/GST = UTC+4
- * Trading hours: Sun-Thu 10:00-14:00 GST (DFM closes at 13:45, pre-close till 14:00)
+ * Trading hours: Mon-Fri 9:30-15:00 GST
+ * Pre-Open: 9:00-9:30, Open: 9:30-14:50, Pre-Close: 14:50-15:00
  */
 export function isUAETradingHours(): boolean {
   const now = new Date();
@@ -58,10 +59,12 @@ export function isUAETradingHours(): boolean {
   const uaeMinute = uaeTime.getUTCMinutes();
   const uaeDay = uaeTime.getUTCDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
 
-  // UAE markets: Sun-Thu, 10:00 - 14:00 (DFM closes at 13:45, monitor till 14:00)
-  // Weekend in UAE: Friday (5) & Saturday (6)
-  if (uaeDay === 5 || uaeDay === 6) return false; // Weekend: Fri & Sat
-  if (uaeHour < 10 || uaeHour >= 14) return false;
+  // UAE markets: Mon-Fri, 9:30 - 15:00
+  // Weekend: Saturday (6) & Sunday (0)
+  if (uaeDay === 0 || uaeDay === 6) return false; // Weekend: Sat & Sun
+  const timeInMinutes = uaeHour * 60 + uaeMinute;
+  // Active from 9:30 (570) to 15:00 (900)
+  if (timeInMinutes < 570 || timeInMinutes >= 900) return false;
   return true;
 }
 
@@ -74,15 +77,15 @@ export function getNextTradingSession(): Date {
   const uaeNow = new Date(now.getTime() + uaeOffset);
   
   let targetDate = new Date(uaeNow);
-  targetDate.setUTCHours(10, 0, 0, 0);
+  targetDate.setUTCHours(9, 30, 0, 0); // Market opens at 9:30
   
   // If it's past 3pm today or weekend, move to next trading day
-  if (uaeNow.getUTCHours() >= 14 || uaeNow.getUTCDay() === 5 || uaeNow.getUTCDay() === 6) {
+  if (uaeNow.getUTCHours() >= 15 || uaeNow.getUTCDay() === 0 || uaeNow.getUTCDay() === 6) {
     targetDate.setUTCDate(targetDate.getUTCDate() + 1);
   }
   
-  // Skip UAE weekends (Friday=5, Saturday=6)
-  while (targetDate.getUTCDay() === 5 || targetDate.getUTCDay() === 6) {
+  // Skip weekends (Saturday=6, Sunday=0)
+  while (targetDate.getUTCDay() === 0 || targetDate.getUTCDay() === 6) {
     targetDate.setUTCDate(targetDate.getUTCDate() + 1);
   }
   
