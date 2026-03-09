@@ -8,6 +8,11 @@ import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks,
 import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
+import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
+import { fetchAllTVStocks, fetchTVStocksByTickers, getTradingViewStats } from "./services/tradingViewService";
+import { getTwelveDataStats } from "./services/twelveDataService";
+import { getSWSStats } from "./services/simplyWallStService";
+import { getYahooStats } from "./services/yahooFinanceService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -617,6 +622,37 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await deletePreset(input.id, ctx.user.id);
         return { success: true };
+      }),
+  }),
+
+  // Admin - API Data Sources
+  admin: router({
+    // Full health check (pings all APIs)
+    apiHealthCheck: publicProcedure.query(async () => {
+      return checkAllApiHealth();
+    }),
+
+    // Quick snapshot (no API calls, uses cached status)
+    apiStatus: publicProcedure.query(() => {
+      return getApiStatusSnapshot();
+    }),
+
+    // TradingView data fetch
+    tvFetchAll: publicProcedure.query(async () => {
+      const stocks = await fetchAllTVStocks();
+      return {
+        count: stocks.length,
+        stocks: stocks.slice(0, 10), // Return top 10 for preview
+        stats: getTradingViewStats(),
+      };
+    }),
+
+    // TradingView fetch specific stocks
+    tvFetchStocks: publicProcedure
+      .input(z.object({ tickers: z.array(z.string()) }))
+      .query(async ({ input }) => {
+        const stocks = await fetchTVStocksByTickers(input.tickers);
+        return { count: stocks.length, stocks };
       }),
   }),
 });

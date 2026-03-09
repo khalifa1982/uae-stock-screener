@@ -22,7 +22,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
-import { Activity, Bell, BarChart3, Eye, Filter, Grid3X3, LayoutDashboard, LogOut, PanelLeft, TrendingUp } from "lucide-react";
+import { Activity, Bell, BarChart3, Eye, Filter, Grid3X3, LayoutDashboard, LogOut, PanelLeft, Settings2, TrendingUp } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -34,6 +34,7 @@ const menuItems = [
   { icon: Bell, label: "Volume Alerts", path: "/alerts" },
   { icon: Eye, label: "Watchlist", path: "/watchlist" },
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
+  { icon: Settings2, label: "API Sources", path: "/admin" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

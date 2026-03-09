@@ -155,3 +155,27 @@
 - [ ] FMP API integration for financial statements
 - [x] Yahoo Finance profile data integration (quoteSummary with 10+ modules)
 - [x] Fallback chain: Data API → Yahoo Finance direct with crumb auth
+
+## Phase 6 - API Integrations & Admin Dashboard
+
+### Step 1: API Services (Build First)
+- [x] TwelveData API service (main data model) - real-time quotes, fundamentals, technicals
+- [x] TradingView scraper service - technical analysis summaries, recommendations
+- [x] Simply Wall St scraper service - company valuation, risk analysis
+- [x] Yahoo Finance Data API (already integrated, keep as fallback)
+
+### Step 2: Admin Page
+- [x] Admin page with all 4 API data sources listed
+- [x] Connection status indicator (connected/disconnected/error)
+- [x] API health check endpoints (ping each service)
+- [x] Last successful fetch timestamp per API
+- [x] Admin page accessible from sidebar navigation
+
+### Step 3: Database Expansion (After APIs Work)
+- [ ] Full company profiles table (description, officers, sector, industry)
+- [ ] Financial statements tables (income, balance sheet, cash flow)
+- [ ] Key statistics table (all ratios, margins, growth metrics)
+- [ ] Technical indicators table (RSI, SMA, EMA, MACD)
+- [ ] Analyst recommendations table
+- [ ] Dividends and earnings history tables
+- [ ] Persist all fetched data from all sources
