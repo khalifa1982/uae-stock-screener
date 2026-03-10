@@ -14,24 +14,33 @@ import Admin from "./pages/Admin";
 import Calendar from "./pages/Calendar";
 import NotificationSettings from "./pages/NotificationSettings";
 import DashboardLayout from "./components/DashboardLayout";
+import Login from "./pages/Login";
 
 function Router() {
   return (
-    <DashboardLayout>
-      <Switch>
-        <Route path={"/"} component={Home} />
-        <Route path={"/screener"} component={Screener} />
-        <Route path={"/alerts"} component={Alerts} />
-        <Route path={"/watchlist"} component={Watchlist} />
-        <Route path={"/heatmap"} component={Heatmap} />
-        <Route path={"/calendar"} component={Calendar} />
-        <Route path={"/notifications"} component={NotificationSettings} />
-        <Route path={"/admin"} component={Admin} />
-        <Route path={"/stock/:symbol"} component={StockDetail} />
-        <Route path={"/404"} component={NotFound} />
-        <Route component={NotFound} />
-      </Switch>
-    </DashboardLayout>
+    <Switch>
+      {/* Login page outside dashboard layout */}
+      <Route path={"/login"} component={Login} />
+      
+      {/* All other routes inside dashboard layout */}
+      <Route>
+        <DashboardLayout>
+          <Switch>
+            <Route path={"/"} component={Home} />
+            <Route path={"/screener"} component={Screener} />
+            <Route path={"/alerts"} component={Alerts} />
+            <Route path={"/watchlist"} component={Watchlist} />
+            <Route path={"/heatmap"} component={Heatmap} />
+            <Route path={"/calendar"} component={Calendar} />
+            <Route path={"/notifications"} component={NotificationSettings} />
+            <Route path={"/admin"} component={Admin} />
+            <Route path={"/stock/:symbol"} component={StockDetail} />
+            <Route path={"/404"} component={NotFound} />
+            <Route component={NotFound} />
+          </Switch>
+        </DashboardLayout>
+      </Route>
+    </Switch>
   );
 }
 

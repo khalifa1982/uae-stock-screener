@@ -43,6 +43,13 @@
       "when": 1773126405068,
       "tag": "0005_clean_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773148947342,
+      "tag": "0006_mean_whirlwind",
+      "breakpoints": true
     }
   ]
 }

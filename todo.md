@@ -611,3 +611,24 @@
 - [x] Restrict API/data sources page visibility to admin user only (role guard + access denied page)
 - [x] Hide API nav link in sidebar for non-admin users
 - [x] Set owner user (id=1) to admin role in database
+
+## Phase 21 - Northflank Migration
+
+- [x] Replace Manus LLM with direct Gemini API (server/_core/llm.ts)
+- [x] Replace Manus Data API with yahoo-finance2 npm package (server/_core/dataApi.ts)
+- [x] Replace Manus OAuth with standalone email/password auth (server/_core/oauth.ts)
+- [x] Add passwordHash field to users table (drizzle/schema.ts)
+- [x] Update frontend auth flow - Login/Register pages (client/src/pages/Login.tsx)
+- [x] Update SDK to skip Manus OAuth user sync (server/_core/sdk.ts)
+- [x] Update env.ts for standalone environment variables
+- [x] Create Dockerfile with multi-stage build
+- [x] Create startup script with auto-migration (start.sh)
+- [x] Fix upsertUser to save passwordHash field (server/db.ts)
+- [x] Create Northflank project with MySQL addon (europe-west region)
+- [x] Build and push Docker image to ttl.sh registry
+- [x] Create deployment service with environment variables
+- [x] Verify: Homepage loads (200 OK, correct title)
+- [x] Verify: Registration works (creates user with password hash)
+- [x] Verify: Login works (returns JWT session cookie)
+- [x] Verify: Stock data loads (170 stocks from TradingView)
+- [x] Live URL: https://http--uae-app--t6ps5rgzd768.code.run
