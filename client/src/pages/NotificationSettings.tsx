@@ -11,9 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Bell, BellOff, BellRing, Check, CheckCircle2,
-  Clock, Info, Loader2, Mail, MailCheck, MailX,
-  Monitor, Moon, Play, Save, Shield, Smartphone,
-  Speaker, Volume2, VolumeX, X, Zap
+  Clock, Info, Loader2,
+  Monitor, Moon, Play, Save, Shield,
+  Volume2, VolumeX, Zap
 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAlertNotifications } from "@/hooks/useAlertNotifications";
@@ -52,25 +52,11 @@ export default function NotificationSettings() {
     onError: (err) => toast.error(`Failed to save: ${err.message}`),
   });
 
-  const testEmailMutation = trpc.notifications.testEmail.useMutation({
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success("Test email sent! Check your notifications.");
-      } else {
-        toast.error("Failed to send test email. Please try again.");
-      }
-    },
-    onError: (err) => toast.error(`Email test failed: ${err.message}`),
-  });
-
   // Local form state (initialized from server prefs)
-  const [emailEnabled, setEmailEnabled] = useState(false);
   const [browserEnabled, setBrowserEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [inAppEnabled, setInAppEnabled] = useState(true);
-  const [emailSeverities, setEmailSeverities] = useState<string[]>(["high", "critical"]);
   const [browserSeverities, setBrowserSeverities] = useState<string[]>(["medium", "high", "critical"]);
-  const [notificationEmail, setNotificationEmail] = useState("");
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
   const [quietHoursEnd, setQuietHoursEnd] = useState("07:00");
@@ -80,13 +66,10 @@ export default function NotificationSettings() {
   // Sync from server prefs when loaded
   useEffect(() => {
     if (serverPrefs) {
-      setEmailEnabled(serverPrefs.emailEnabled);
       setBrowserEnabled(serverPrefs.browserEnabled);
       setSoundEnabled(serverPrefs.soundEnabled);
       setInAppEnabled(serverPrefs.inAppEnabled);
-      setEmailSeverities(serverPrefs.emailSeverities.split(",").filter(Boolean));
       setBrowserSeverities(serverPrefs.browserSeverities.split(",").filter(Boolean));
-      setNotificationEmail(serverPrefs.notificationEmail);
       setQuietHoursEnabled(serverPrefs.quietHoursEnabled);
       setQuietHoursStart(serverPrefs.quietHoursStart);
       setQuietHoursEnd(serverPrefs.quietHoursEnd);
@@ -99,31 +82,28 @@ export default function NotificationSettings() {
   const hasChanges = useMemo(() => {
     if (!serverPrefs) return false;
     return (
-      emailEnabled !== serverPrefs.emailEnabled ||
       browserEnabled !== serverPrefs.browserEnabled ||
       soundEnabled !== serverPrefs.soundEnabled ||
       inAppEnabled !== serverPrefs.inAppEnabled ||
-      emailSeverities.join(",") !== serverPrefs.emailSeverities ||
       browserSeverities.join(",") !== serverPrefs.browserSeverities ||
-      notificationEmail !== serverPrefs.notificationEmail ||
       quietHoursEnabled !== serverPrefs.quietHoursEnabled ||
       quietHoursStart !== serverPrefs.quietHoursStart ||
       quietHoursEnd !== serverPrefs.quietHoursEnd ||
       soundVolume !== serverPrefs.soundVolume ||
       minInterval !== serverPrefs.minIntervalMinutes
     );
-  }, [serverPrefs, emailEnabled, browserEnabled, soundEnabled, inAppEnabled, emailSeverities, browserSeverities, notificationEmail, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval]);
+  }, [serverPrefs, browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval]);
 
   const handleSave = useCallback(() => {
-    // Save to server
+    // Save to server — email fields sent as disabled defaults
     updateMutation.mutate({
-      emailEnabled,
+      emailEnabled: false,
       browserEnabled,
       soundEnabled,
       inAppEnabled,
-      emailSeverities: emailSeverities.join(","),
+      emailSeverities: "",
       browserSeverities: browserSeverities.join(","),
-      notificationEmail,
+      notificationEmail: "",
       quietHoursEnabled,
       quietHoursStart,
       quietHoursEnd,
@@ -135,7 +115,7 @@ export default function NotificationSettings() {
     toggleLocalBrowser(browserEnabled);
     toggleLocalSound(soundEnabled);
     setLocalVolume(soundVolume);
-  }, [emailEnabled, browserEnabled, soundEnabled, inAppEnabled, emailSeverities, browserSeverities, notificationEmail, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval, updateMutation, toggleLocalBrowser, toggleLocalSound, setLocalVolume]);
+  }, [browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval, updateMutation, toggleLocalBrowser, toggleLocalSound, setLocalVolume]);
 
   const toggleSeverity = (list: string[], setList: (v: string[]) => void, severity: string) => {
     if (list.includes(severity)) {
@@ -216,83 +196,6 @@ export default function NotificationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Email Notifications */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${emailEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <Mail className="h-5 w-5" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Email Notifications</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Receive alerts via email when volume spikes are detected
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={emailEnabled}
-                onCheckedChange={setEmailEnabled}
-              />
-            </div>
-            {emailEnabled && (
-              <div className="ml-12 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Email Address</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="email"
-                      value={notificationEmail}
-                      onChange={(e) => setNotificationEmail(e.target.value)}
-                      placeholder={user?.email || "your@email.com"}
-                      className="max-w-sm bg-background/50"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => testEmailMutation.mutate()}
-                      disabled={testEmailMutation.isPending}
-                      className="gap-1.5 shrink-0"
-                    >
-                      {testEmailMutation.isPending ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <MailCheck className="h-3.5 w-3.5" />
-                      )}
-                      Test
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Email alert severity levels</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {SEVERITIES.map(sev => {
-                      const cfg = severityConfig[sev];
-                      const active = emailSeverities.includes(sev);
-                      return (
-                        <button
-                          key={sev}
-                          onClick={() => toggleSeverity(emailSeverities, setEmailSeverities, sev)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            active ? cfg.color : "bg-muted/30 text-muted-foreground border-border/50 opacity-50"
-                          }`}
-                        >
-                          {active && <Check className="h-3 w-3" />}
-                          {cfg.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Only spikes matching selected severity levels will trigger an email
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Separator className="bg-border/30" />
-
           {/* Browser Push Notifications */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -525,7 +428,7 @@ export default function NotificationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button
               variant="outline"
               onClick={testNotification}
@@ -534,19 +437,6 @@ export default function NotificationSettings() {
             >
               <Monitor className="h-5 w-5 text-primary" />
               <span className="text-xs">Test Browser + Sound</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => testEmailMutation.mutate()}
-              disabled={testEmailMutation.isPending || !emailEnabled}
-              className="gap-2 h-auto py-3 flex-col"
-            >
-              {testEmailMutation.isPending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Mail className="h-5 w-5 text-primary" />
-              )}
-              <span className="text-xs">Test Email</span>
             </Button>
             <Button
               variant="outline"

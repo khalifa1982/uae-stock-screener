@@ -593,3 +593,14 @@
 - [x] Added getOwnerNotificationPreferences() to db.ts to look up owner's preferences via OWNER_OPEN_ID
 - [x] In-app notifications now respect per-user inAppEnabled preference (createInAppNotificationsRespectingPreferences)
 - [x] 17 new tests for notification bypass fix (207 total, 16 files, all passing)
+
+## Phase 19 - Completely Disable Email Notifications System-Wide
+
+- [x] Remove notifyOwner() call from volumeMonitor.ts entirely
+- [x] Remove sendEmailNotifications() function from volumeMonitor.ts
+- [x] Remove getOwnerNotificationPreferences() usage from volumeMonitor.ts
+- [x] Remove getUsersWithEmailNotifications() usage from volumeMonitor.ts
+- [x] Remove email notification UI (toggle, email input, severity filters) from NotificationSettings page
+- [x] Remove testEmail tRPC procedure from routers.ts
+- [x] All 207 tests passing — no regressions
+- [x] In-app, browser, and sound notifications still work

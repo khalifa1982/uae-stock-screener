@@ -1267,15 +1267,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return { success: true, preferences: result };
       }),
 
-    testEmail: protectedProcedure
-      .mutation(async ({ ctx }) => {
-        const { notifyOwner } = await import("./_core/notification");
-        const sent = await notifyOwner({
-          title: "Test Email Notification",
-          content: `This is a test notification from uae.market.\n\nUser: ${ctx.user.name || "Unknown"}\nTime: ${new Date().toISOString()}\n\nIf you received this, your email notifications are working correctly.`,
-        });
-        return { success: sent };
-      }),
+    // testEmail procedure removed — email notifications are completely disabled system-wide (Phase 19).
   }),
 
   // Screener Presets

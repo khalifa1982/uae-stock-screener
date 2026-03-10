@@ -2,22 +2,23 @@
  * Volume Spike Monitor Engine
  * 
  * Polls DFM stocks during UAE trading hours (Mon-Fri 10:00-15:00 GST/UTC+4)
- * Detects unusual volume spikes and sends notifications to the owner.
+ * Detects unusual volume spikes and creates in-app notifications.
  * 
  * Architecture:
  * - Runs a setInterval loop every 60 seconds
  * - Only active during trading hours
  * - Compares current volume to average volume
  * - Triggers alerts when volume exceeds threshold (default 2x)
- * - Sends notifications via notifyOwner
+ * - Creates in-app notifications for users who have them enabled
  * - Stores alerts in database for history
+ * 
+ * NOTE: Email notifications are completely disabled system-wide.
  */
 
 import { DFM_STOCKS, ALL_STOCKS, StockInfo } from "../shared/stockData";
 import { fetchBatchQuotes } from "./stockService";
-import { notifyOwner } from "./_core/notification";
-import { getDb, createNotificationsForAllUsers, getUsersWithEmailNotifications, getUserEmail, getOwnerNotificationPreferences, getNotificationPreferences } from "./db";
-import { users, volumeAlerts, monitorSettings, notificationPreferences, notifications as notificationsTable, InsertNotification } from "../drizzle/schema";
+import { getDb, getNotificationPreferences } from "./db";
+import { users, volumeAlerts, monitorSettings, notifications as notificationsTable, InsertNotification } from "../drizzle/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 import { isHoliday } from "../shared/uaeHolidays";
 
@@ -172,12 +173,8 @@ async function pollForVolumeSpikes(threshold = 2.0, minVolume = 100000): Promise
       lastAlerts = alerts;
       // Save alerts to database
       await saveAlerts(alerts);
-      // Send notification for high/critical alerts
-      const criticalAlerts = alerts.filter(a => a.severity === "high" || a.severity === "critical");
-      if (criticalAlerts.length > 0) {
-        await sendVolumeNotification(criticalAlerts);
-      }
-      // Create in-app notifications only for users who have inAppEnabled (or no preferences yet = default on)
+      // Email notifications are completely disabled system-wide.
+      // Only in-app notifications are created for users who have them enabled.
       for (const alert of alerts) {
         const sevMap: Record<string, "info" | "warning" | "critical"> = {
           low: "info", medium: "info", high: "warning", critical: "critical",
@@ -258,184 +255,8 @@ async function saveAlerts(alerts: VolumeAlertData[]): Promise<void> {
   }
 }
 
-/**
- * Send notification to owner about volume spikes.
- * Also sends email notifications to users who have enabled them for the matching severity.
- */
-async function sendVolumeNotification(alerts: VolumeAlertData[]): Promise<void> {
-  try {
-    const now = new Date();
-    const uaeTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-    const timeStr = uaeTime.toISOString().replace("T", " ").slice(0, 19) + " GST";
-    
-    let content = `Volume Spike Alert - ${timeStr}\n\n`;
-    
-    for (const alert of alerts) {
-      const changeStr = alert.changePercent != null 
-        ? `${alert.changePercent >= 0 ? "+" : ""}${alert.changePercent.toFixed(2)}%`
-        : "N/A";
-      const priceStr = alert.price != null ? `${alert.price.toFixed(2)} AED` : "N/A";
-      
-      content += `${alert.severity === "critical" ? "🔴" : "🟡"} ${alert.stockName} (${alert.symbol})\n`;
-      content += `   Volume: ${formatVolume(alert.currentVolume)} (${alert.volumeMultiplier}x avg)\n`;
-      content += `   Price: ${priceStr} | Change: ${changeStr}\n`;
-      content += `   Sector: ${alert.sector}\n\n`;
-    }
-    
-    content += `Total alerts: ${alerts.length} stocks with unusual volume`;
-    
-    const title = alerts.length === 1
-      ? `Volume Spike: ${alerts[0].stockName} (${alerts[0].volumeMultiplier}x)`
-      : `${alerts.length} Volume Spikes Detected`;
-    
-    // 1. Check if the owner has explicitly enabled email notifications before sending
-    const ownerPrefs = await getOwnerNotificationPreferences();
-    const ownerEmailEnabled = ownerPrefs?.emailEnabled === 1;
-    
-    // Get the highest severity among the alerts
-    const severityOrder = ["low", "medium", "high", "critical"];
-    let maxSeverity = "low";
-    for (const alert of alerts) {
-      if (severityOrder.indexOf(alert.severity) > severityOrder.indexOf(maxSeverity)) {
-        maxSeverity = alert.severity;
-      }
-    }
-    
-    // Check if the owner's email severities include this alert level
-    const ownerSeverities = (ownerPrefs?.emailSeverities || "").split(",").map(s => s.trim());
-    const ownerWantsThisSeverity = ownerSeverities.includes(maxSeverity);
-    
-    // Also check quiet hours for the owner
-    let ownerInQuietHours = false;
-    if (ownerPrefs?.quietHoursEnabled) {
-      const uaeHour = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCHours();
-      const uaeMinute = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCMinutes();
-      const currentTimeMinutes = uaeHour * 60 + uaeMinute;
-      const [startH, startM] = (ownerPrefs.quietHoursStart || "22:00").split(":").map(Number);
-      const [endH, endM] = (ownerPrefs.quietHoursEnd || "07:00").split(":").map(Number);
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-      if (startMinutes <= endMinutes) {
-        ownerInQuietHours = currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes;
-      } else {
-        ownerInQuietHours = currentTimeMinutes >= startMinutes || currentTimeMinutes < endMinutes;
-      }
-    }
-    
-    if (ownerEmailEnabled && ownerWantsThisSeverity && !ownerInQuietHours) {
-      // Owner has explicitly opted in — send the platform notification
-      const sent = await notifyOwner({ title, content });
-      if (sent) {
-        const db = await getDb();
-        if (db) {
-          for (const alert of alerts) {
-            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-            await db.update(volumeAlerts)
-              .set({ notified: 1 })
-              .where(and(
-                eq(volumeAlerts.symbol, alert.symbol),
-                gte(volumeAlerts.detectedAt, thirtyMinAgo)
-              ));
-          }
-        }
-        console.log(`[VolumeMonitor] Platform notification sent for ${alerts.length} alerts (owner opted in)`);
-      }
-    } else {
-      // Owner has NOT enabled email notifications — skip notifyOwner
-      const reason = !ownerPrefs
-        ? "no preferences saved"
-        : !ownerEmailEnabled
-          ? "email notifications disabled"
-          : ownerInQuietHours
-            ? "quiet hours active"
-            : `severity '${maxSeverity}' not in owner's filter`;
-      console.log(`[VolumeMonitor] Skipping platform notification: ${reason}`);
-    }
-
-    // 2. Send email notifications to other users based on their preferences
-    await sendEmailNotifications(alerts, title, content, timeStr);
-
-  } catch (e) {
-    console.error("[VolumeMonitor] Failed to send notification:", e);
-  }
-}
-
-/**
- * Send email notifications to users who have opted in for the matching severity levels.
- * Uses the platform's notifyOwner as the email delivery mechanism.
- */
-async function sendEmailNotifications(
-  alerts: VolumeAlertData[],
-  title: string,
-  content: string,
-  timeStr: string
-): Promise<void> {
-  try {
-    // Get the highest severity among the alerts
-    const severityOrder = ["low", "medium", "high", "critical"];
-    let maxSeverity = "low";
-    for (const alert of alerts) {
-      if (severityOrder.indexOf(alert.severity) > severityOrder.indexOf(maxSeverity)) {
-        maxSeverity = alert.severity;
-      }
-    }
-
-    // Find all users who want email notifications for this severity
-    const emailUsers = await getUsersWithEmailNotifications(maxSeverity);
-    if (emailUsers.length === 0) {
-      console.log(`[VolumeMonitor] No users opted in for email notifications at severity: ${maxSeverity}`);
-      return;
-    }
-
-    // Check quiet hours for each user
-    const uaeHour = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCHours();
-    const uaeMinute = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCMinutes();
-    const currentTimeMinutes = uaeHour * 60 + uaeMinute;
-
-    let emailsSent = 0;
-    for (const userPref of emailUsers) {
-      // Check quiet hours
-      if (userPref.quietHoursEnabled) {
-        const [startH, startM] = (userPref.quietHoursStart || "22:00").split(":").map(Number);
-        const [endH, endM] = (userPref.quietHoursEnd || "07:00").split(":").map(Number);
-        const startMinutes = startH * 60 + startM;
-        const endMinutes = endH * 60 + endM;
-
-        let inQuietHours = false;
-        if (startMinutes <= endMinutes) {
-          // Same day range (e.g., 09:00 - 17:00)
-          inQuietHours = currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes;
-        } else {
-          // Overnight range (e.g., 22:00 - 07:00)
-          inQuietHours = currentTimeMinutes >= startMinutes || currentTimeMinutes < endMinutes;
-        }
-
-        if (inQuietHours) {
-          console.log(`[VolumeMonitor] Skipping email for user ${userPref.userId} (quiet hours)`);
-          continue;
-        }
-      }
-
-      // Get user's email
-      const email = userPref.notificationEmail || await getUserEmail(userPref.userId);
-      if (!email) continue;
-
-      // Send via notifyOwner (platform email delivery)
-      // The notifyOwner function sends to the project owner - for per-user email,
-      // we create in-app notifications that reference the alert
-      emailsSent++;
-    }
-
-    // For now, the platform notifyOwner already sends to the owner.
-    // Per-user email delivery would require a dedicated email service.
-    // We log the intent and create in-app notifications for all opted-in users.
-    if (emailsSent > 0) {
-      console.log(`[VolumeMonitor] ${emailsSent} users eligible for email notification at severity: ${maxSeverity}`);
-    }
-  } catch (e) {
-    console.error("[VolumeMonitor] Failed to process email notifications:", e);
-  }
-}
+// NOTE: sendVolumeNotification and sendEmailNotifications have been removed.
+// Email notifications are completely disabled system-wide (Phase 19).
 
 /**
  * Create in-app notifications only for users who have in-app notifications enabled.
