@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification, getNotificationPreferences, upsertNotificationPreferences } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
@@ -1195,6 +1195,86 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       .mutation(async ({ ctx, input }) => {
         await deleteNotification(input.notificationId, ctx.user.id);
         return { success: true };
+      }),
+
+    // ─── Notification Preferences ───
+    getPreferences: protectedProcedure.query(async ({ ctx }) => {
+      const prefs = await getNotificationPreferences(ctx.user.id);
+      if (!prefs) {
+        // Return defaults
+        return {
+          emailEnabled: false,
+          browserEnabled: true,
+          soundEnabled: true,
+          inAppEnabled: true,
+          emailSeverities: "high,critical",
+          browserSeverities: "medium,high,critical",
+          notificationEmail: ctx.user.email || "",
+          quietHoursEnabled: false,
+          quietHoursStart: "22:00",
+          quietHoursEnd: "07:00",
+          soundVolume: 0.7,
+          minIntervalMinutes: 5,
+        };
+      }
+      return {
+        emailEnabled: !!prefs.emailEnabled,
+        browserEnabled: !!prefs.browserEnabled,
+        soundEnabled: !!prefs.soundEnabled,
+        inAppEnabled: !!prefs.inAppEnabled,
+        emailSeverities: prefs.emailSeverities || "high,critical",
+        browserSeverities: prefs.browserSeverities || "medium,high,critical",
+        notificationEmail: prefs.notificationEmail || ctx.user.email || "",
+        quietHoursEnabled: !!prefs.quietHoursEnabled,
+        quietHoursStart: prefs.quietHoursStart || "22:00",
+        quietHoursEnd: prefs.quietHoursEnd || "07:00",
+        soundVolume: prefs.soundVolume ?? 0.7,
+        minIntervalMinutes: prefs.minIntervalMinutes ?? 5,
+      };
+    }),
+
+    updatePreferences: protectedProcedure
+      .input(z.object({
+        emailEnabled: z.boolean().optional(),
+        browserEnabled: z.boolean().optional(),
+        soundEnabled: z.boolean().optional(),
+        inAppEnabled: z.boolean().optional(),
+        emailSeverities: z.string().optional(),
+        browserSeverities: z.string().optional(),
+        notificationEmail: z.string().optional(),
+        quietHoursEnabled: z.boolean().optional(),
+        quietHoursStart: z.string().optional(),
+        quietHoursEnd: z.string().optional(),
+        soundVolume: z.number().min(0).max(1).optional(),
+        minIntervalMinutes: z.number().min(1).max(60).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dbPrefs: Record<string, unknown> = {};
+        if (input.emailEnabled !== undefined) dbPrefs.emailEnabled = input.emailEnabled ? 1 : 0;
+        if (input.browserEnabled !== undefined) dbPrefs.browserEnabled = input.browserEnabled ? 1 : 0;
+        if (input.soundEnabled !== undefined) dbPrefs.soundEnabled = input.soundEnabled ? 1 : 0;
+        if (input.inAppEnabled !== undefined) dbPrefs.inAppEnabled = input.inAppEnabled ? 1 : 0;
+        if (input.emailSeverities !== undefined) dbPrefs.emailSeverities = input.emailSeverities;
+        if (input.browserSeverities !== undefined) dbPrefs.browserSeverities = input.browserSeverities;
+        if (input.notificationEmail !== undefined) dbPrefs.notificationEmail = input.notificationEmail;
+        if (input.quietHoursEnabled !== undefined) dbPrefs.quietHoursEnabled = input.quietHoursEnabled ? 1 : 0;
+        if (input.quietHoursStart !== undefined) dbPrefs.quietHoursStart = input.quietHoursStart;
+        if (input.quietHoursEnd !== undefined) dbPrefs.quietHoursEnd = input.quietHoursEnd;
+        if (input.soundVolume !== undefined) dbPrefs.soundVolume = input.soundVolume;
+        if (input.minIntervalMinutes !== undefined) dbPrefs.minIntervalMinutes = input.minIntervalMinutes;
+        
+        const result = await upsertNotificationPreferences(ctx.user.id, dbPrefs as any);
+        return { success: true, preferences: result };
+      }),
+
+    testEmail: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const { notifyOwner } = await import("./_core/notification");
+        const sent = await notifyOwner({
+          title: "Test Email Notification",
+          content: `This is a test notification from uae.market.\n\nUser: ${ctx.user.name || "Unknown"}\nTime: ${new Date().toISOString()}\n\nIf you received this, your email notifications are working correctly.`,
+        });
+        return { success: sent };
       }),
   }),
 

@@ -138,3 +138,33 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// User notification preferences - controls how/when users receive alerts
+export const notificationPreferences = mysqlTable("notification_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  // Channel toggles
+  emailEnabled: int("emailEnabled").notNull().default(0),
+  browserEnabled: int("browserEnabled").notNull().default(1),
+  soundEnabled: int("soundEnabled").notNull().default(1),
+  inAppEnabled: int("inAppEnabled").notNull().default(1),
+  // Severity filters (which severities trigger notifications)
+  emailSeverities: varchar("emailSeverities", { length: 128 }).notNull().default("high,critical"),
+  browserSeverities: varchar("browserSeverities", { length: 128 }).notNull().default("medium,high,critical"),
+  // Email address (optional override - defaults to user's registered email)
+  notificationEmail: varchar("notificationEmail", { length: 320 }),
+  // Quiet hours (UAE time, 24h format)
+  quietHoursEnabled: int("quietHoursEnabled").notNull().default(0),
+  quietHoursStart: varchar("quietHoursStart", { length: 5 }).notNull().default("22:00"),
+  quietHoursEnd: varchar("quietHoursEnd", { length: 5 }).notNull().default("07:00"),
+  // Sound settings
+  soundVolume: float("soundVolume").notNull().default(0.7),
+  // Frequency control
+  minIntervalMinutes: int("minIntervalMinutes").notNull().default(5),
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;

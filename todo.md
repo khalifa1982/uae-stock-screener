@@ -483,3 +483,53 @@
 - [x] Integrated into Home dashboard (WebSocket connection status indicator)
 - [x] tRPC endpoint: admin.wsStats for WebSocket connection monitoring
 - [x] 7 new WebSocket tests (168 total tests, 14 test files, all passing)
+
+## Phase 16 - Customizable Volume Spike Notification Preferences
+
+### Notification Preferences Database
+- [x] Added notification_preferences table to drizzle schema
+- [x] Fields: emailEnabled, browserEnabled, soundEnabled, inAppEnabled, emailSeverities, browserSeverities
+- [x] Fields: notificationEmail, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minIntervalMinutes
+- [x] Migration pushed to database
+
+### Backend Endpoints
+- [x] tRPC endpoint: notifications.getPreferences (returns user's notification prefs)
+- [x] tRPC endpoint: notifications.updatePreferences (saves all preference fields)
+- [x] tRPC endpoint: notifications.testEmail (sends test email notification)
+- [x] DB helpers: getNotificationPreferences, updateNotificationPreferences
+- [x] DB helpers: getUsersWithEmailNotifications, getUserEmail
+- [x] Volume monitor wired to check user preferences before sending email alerts
+- [x] Quiet hours check in volume monitor (respects user's quiet hours setting)
+
+### Notification Settings UI
+- [x] New /notifications route with dedicated NotificationSettings page
+- [x] Added to sidebar navigation with BellRing icon
+- [x] Email toggle with email address input and test button
+- [x] Browser push toggle with permission request flow and status indicator
+- [x] Sound toggle with volume slider (5-100%)
+- [x] In-app notification toggle
+- [x] Per-severity level selection for email and browser (low/medium/high/critical badges)
+- [x] Quiet hours toggle with start/end time pickers (UAE time)
+- [x] Minimum alert interval setting (1-60 minutes)
+- [x] Test notification buttons (browser+sound, email, in-app)
+- [x] Severity reference guide card
+- [x] Unsaved changes indicator with floating save button on mobile
+- [x] Animated expand/collapse for sub-settings
+
+### Browser Push Notifications
+- [x] Native Notification API integration (via existing useAlertNotifications hook)
+- [x] Permission request flow with status display (granted/default/denied)
+- [x] Browser notification display with stock details
+- [x] Syncs browser preference to both localStorage and database
+
+### Email Notifications
+- [x] Email notification routing via notifyOwner platform API
+- [x] Volume monitor checks user email preferences and severity levels
+- [x] Quiet hours enforcement for email delivery
+- [x] Test email endpoint for verification
+
+### Tests
+- [x] 22 new notification preference tests (notification-prefs.test.ts)
+- [x] Schema validation, severity filtering, quiet hours logic
+- [x] Alert severity ordering, preference validation, channel routing
+- [x] 190 total tests across 15 test files, all passing

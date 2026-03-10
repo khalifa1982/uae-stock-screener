@@ -25,6 +25,7 @@ import NotificationCenter from "@/components/NotificationCenter";
 import {
   Activity,
   Bell,
+  BellRing,
   BarChart3,
   CalendarDays,
   Eye,
@@ -50,6 +51,7 @@ const menuItems = [
   { icon: Eye, label: "Watchlist", path: "/watchlist" },
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
+  { icon: BellRing, label: "Notifications", path: "/notifications" },
   { icon: Settings2, label: "API", path: "/admin" },
 ];
 

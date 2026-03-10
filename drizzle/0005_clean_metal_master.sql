@@ -1,0 +1,20 @@
+CREATE TABLE `notification_preferences` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`emailEnabled` int NOT NULL DEFAULT 0,
+	`browserEnabled` int NOT NULL DEFAULT 1,
+	`soundEnabled` int NOT NULL DEFAULT 1,
+	`inAppEnabled` int NOT NULL DEFAULT 1,
+	`emailSeverities` varchar(128) NOT NULL DEFAULT 'high,critical',
+	`browserSeverities` varchar(128) NOT NULL DEFAULT 'medium,high,critical',
+	`notificationEmail` varchar(320),
+	`quietHoursEnabled` int NOT NULL DEFAULT 0,
+	`quietHoursStart` varchar(5) NOT NULL DEFAULT '22:00',
+	`quietHoursEnd` varchar(5) NOT NULL DEFAULT '07:00',
+	`soundVolume` float NOT NULL DEFAULT 0.7,
+	`minIntervalMinutes` int NOT NULL DEFAULT 5,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `notification_preferences_id` PRIMARY KEY(`id`),
+	CONSTRAINT `notification_preferences_userId_unique` UNIQUE(`userId`)
+);

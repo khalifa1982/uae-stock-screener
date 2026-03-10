@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets, notifications, InsertNotification } from "../drizzle/schema";
+import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets, notifications, InsertNotification, notificationPreferences, InsertNotificationPreference } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -258,4 +258,80 @@ export async function deleteNotification(notificationId: number, userId: number)
   if (!db) return;
   await db.delete(notifications)
     .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+}
+
+// Notification preferences operations
+export async function getNotificationPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function upsertNotificationPreferences(userId: number, prefs: Partial<Omit<InsertNotificationPreference, "id" | "userId" | "createdAt" | "updatedAt">>) {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const existing = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+    if (existing.length > 0) {
+      const updateSet: Record<string, unknown> = {};
+      if (prefs.emailEnabled !== undefined) updateSet.emailEnabled = prefs.emailEnabled;
+      if (prefs.browserEnabled !== undefined) updateSet.browserEnabled = prefs.browserEnabled;
+      if (prefs.soundEnabled !== undefined) updateSet.soundEnabled = prefs.soundEnabled;
+      if (prefs.inAppEnabled !== undefined) updateSet.inAppEnabled = prefs.inAppEnabled;
+      if (prefs.emailSeverities !== undefined) updateSet.emailSeverities = prefs.emailSeverities;
+      if (prefs.browserSeverities !== undefined) updateSet.browserSeverities = prefs.browserSeverities;
+      if (prefs.notificationEmail !== undefined) updateSet.notificationEmail = prefs.notificationEmail;
+      if (prefs.quietHoursEnabled !== undefined) updateSet.quietHoursEnabled = prefs.quietHoursEnabled;
+      if (prefs.quietHoursStart !== undefined) updateSet.quietHoursStart = prefs.quietHoursStart;
+      if (prefs.quietHoursEnd !== undefined) updateSet.quietHoursEnd = prefs.quietHoursEnd;
+      if (prefs.soundVolume !== undefined) updateSet.soundVolume = prefs.soundVolume;
+      if (prefs.minIntervalMinutes !== undefined) updateSet.minIntervalMinutes = prefs.minIntervalMinutes;
+      if (Object.keys(updateSet).length > 0) {
+        await db.update(notificationPreferences).set(updateSet).where(eq(notificationPreferences.userId, userId));
+      }
+      const updated = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+      return updated[0] || null;
+    } else {
+      await db.insert(notificationPreferences).values({ userId, ...prefs } as InsertNotificationPreference);
+      const inserted = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+      return inserted[0] || null;
+    }
+  } catch (e) {
+    console.warn("[Database] Failed to upsert notification preferences:", e);
+    return null;
+  }
+}
+
+// Get all users who want email notifications for a given severity
+export async function getUsersWithEmailNotifications(severity: string) {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const allPrefs = await db.select({
+      userId: notificationPreferences.userId,
+      emailSeverities: notificationPreferences.emailSeverities,
+      notificationEmail: notificationPreferences.notificationEmail,
+      quietHoursEnabled: notificationPreferences.quietHoursEnabled,
+      quietHoursStart: notificationPreferences.quietHoursStart,
+      quietHoursEnd: notificationPreferences.quietHoursEnd,
+    }).from(notificationPreferences).where(eq(notificationPreferences.emailEnabled, 1));
+    
+    // Filter by severity
+    return allPrefs.filter(p => {
+      const severities = (p.emailSeverities || "").split(",").map(s => s.trim());
+      return severities.includes(severity);
+    });
+  } catch (e) {
+    console.warn("[Database] Failed to get users with email notifications:", e);
+    return [];
+  }
+}
+
+// Get user email by userId
+export async function getUserEmail(userId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  return result[0]?.email || null;
 }

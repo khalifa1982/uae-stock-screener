@@ -36,6 +36,13 @@
       "when": 1772932593254,
       "tag": "0004_brave_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1773126405068,
+      "tag": "0005_clean_metal_master",
+      "breakpoints": true
     }
   ]
 }
