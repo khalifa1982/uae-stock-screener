@@ -18,6 +18,7 @@ import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
 import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
+import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -344,6 +345,46 @@ export const appRouter = router({
         // FALLBACK: Yahoo Finance
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
+      }),
+
+    orderBook: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol && s.exchange === input.exchange);
+        if (!stock) throw new Error("Stock not found");
+
+        // Get TradingView data for technical levels
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        const tvData = tvStocks.length > 0 ? tvStocks[0] : null;
+
+        if (!tvData || !tvData.close) {
+          throw new Error("No price data available");
+        }
+
+        const orderBook = await buildOrderBook(input.symbol, input.exchange, {
+          close: tvData.close,
+          open: tvData.open,
+          high: tvData.high,
+          low: tvData.low,
+          volume: tvData.volume,
+          changeAbs: tvData.changeAbs,
+          change: tvData.change,
+          bbLower: tvData.bbLower,
+          bbUpper: tvData.bbUpper,
+          pivotS1: tvData.pivotS1,
+          pivotS2: tvData.pivotS2,
+          pivotS3: tvData.pivotS3,
+          pivotR1: tvData.pivotR1,
+          pivotR2: tvData.pivotR2,
+          pivotR3: tvData.pivotR3,
+          pivotMiddle: tvData.pivotMiddle,
+          sma20: tvData.sma20,
+          sma50: tvData.sma50,
+          atr: tvData.atr,
+        });
+
+        return orderBook;
       }),
 
     screen: publicProcedure

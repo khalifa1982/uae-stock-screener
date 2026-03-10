@@ -22,7 +22,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
-import { Activity, Bell, BarChart3, Eye, Filter, Grid3X3, LayoutDashboard, LogOut, PanelLeft, Settings2, TrendingUp } from "lucide-react";
+import { Activity, Bell, BarChart3, Eye, Filter, Grid3X3, LayoutDashboard, LogOut, PanelLeft, Settings2, TrendingUp, Menu } from "lucide-react";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -32,10 +32,10 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Filter, label: "Screener", path: "/screener" },
-  { icon: Bell, label: "Volume Alerts", path: "/alerts" },
+  { icon: Bell, label: "Alerts", path: "/alerts" },
   { icon: Eye, label: "Watchlist", path: "/watchlist" },
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
-  { icon: Settings2, label: "API Sources", path: "/admin" },
+  { icon: Settings2, label: "API", path: "/admin" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -144,11 +144,11 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                  <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0 glow-cyan">
                     <TrendingUp className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <span className="font-bold tracking-tight truncate text-sm block leading-tight">
+                    <span className="font-bold tracking-tight truncate text-sm block leading-tight neon-text">
                       uae.market
                     </span>
                     <span className="text-[9px] text-muted-foreground/70 uppercase tracking-widest leading-none">
@@ -170,7 +170,7 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                      className={`h-10 transition-all font-normal ${isActive ? 'glow-primary' : ''}`}
                     >
                       <item.icon
                         className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
@@ -238,19 +238,19 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {/* Top bar with notification bell */}
+        {/* Top bar */}
         <div className="flex border-b border-border/50 h-14 items-center justify-between bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
           <div className="flex items-center gap-2">
             {isMobile && (
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
+              <SidebarTrigger className="h-9 w-9 rounded-lg bg-secondary/50 border border-border/50 glow-primary" />
             )}
             <div className="flex items-center gap-3">
               {isMobile && (
-                <div className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center glow-cyan">
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
                 </div>
               )}
-              <span className="tracking-tight text-foreground font-medium text-sm">
+              <span className="tracking-tight text-foreground font-medium text-sm hidden sm:inline">
                 {activeMenuItem?.label ?? "uae.market"}
               </span>
             </div>
@@ -260,7 +260,40 @@ function DashboardLayoutContent({
             <NotificationCenter />
           </div>
         </div>
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+
+        <main className="flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
+
+        {/* ═══════════════ MOBILE BOTTOM NAVIGATION ═══════════════ */}
+        {isMobile && (
+          <nav className="mobile-bottom-nav">
+            <div className="flex items-center justify-around px-1">
+              {menuItems.map(item => {
+                const isActive = location === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => setLocation(item.path)}
+                    className={`flex flex-col items-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-w-[3rem] ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <div className={`relative ${isActive ? 'glow-cyan' : ''} rounded-lg p-1`}>
+                      <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : ''}`} />
+                      {isActive && (
+                        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary neon-pulse-live" />
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-medium leading-none ${isActive ? 'text-primary neon-text' : ''}`}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        )}
       </SidebarInset>
     </>
   );

@@ -235,7 +235,7 @@ export default function Home() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight">Market Dashboard</h1>
+            <h1 className="text-2xl font-bold tracking-tight neon-text">Market Dashboard</h1>
             <MarketStatusBadge />
           </div>
           <p className="text-muted-foreground text-sm mt-1">
@@ -275,54 +275,54 @@ export default function Home() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/40">
+          <Card className="bg-card/50 border-border/40 neon-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 glow-cyan">
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Stocks</p>
-                  <p className="text-xl font-bold font-mono">{stats.total}</p>
+                  <p className="text-xl font-bold font-mono neon-text">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-card/50 border-border/40">
+          <Card className="bg-card/50 border-border/40 neon-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[oklch(0.72_0.17_155/10%)] flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-[oklch(0.72_0.17_155/10%)] flex items-center justify-center shrink-0 glow-gain">
                   <TrendingUp className="h-5 w-5 text-gain" />
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Gainers</p>
-                  <p className="text-xl font-bold font-mono text-gain">{stats.gainers}</p>
+                  <p className="text-xl font-bold font-mono text-gain neon-text-gain">{stats.gainers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-card/50 border-border/40">
+          <Card className="bg-card/50 border-border/40 neon-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[oklch(0.65_0.22_25/10%)] flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-[oklch(0.65_0.22_25/10%)] flex items-center justify-center shrink-0 glow-loss">
                   <TrendingDown className="h-5 w-5 text-loss" />
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Losers</p>
-                  <p className="text-xl font-bold font-mono text-loss">{stats.losers}</p>
+                  <p className="text-xl font-bold font-mono text-loss neon-text-loss">{stats.losers}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-card/50 border-border/40">
+          <Card className="bg-card/50 border-border/40 neon-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 glow-purple">
                   <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Total Volume</p>
-                  <p className="text-xl font-bold font-mono">{formatLargeNumber(stats.totalVolume)}</p>
+                  <p className="text-xl font-bold font-mono neon-text">{formatLargeNumber(stats.totalVolume)}</p>
                 </div>
               </div>
             </CardContent>
@@ -334,7 +334,7 @@ export default function Home() {
       {topMovers && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Top Gainers */}
-          <Card className="border-border/40 bg-card/50">
+          <Card className="border-border/40 bg-card/50 neon-card">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <div className="h-6 w-6 rounded-md bg-[oklch(0.72_0.17_155/15%)] flex items-center justify-center">
@@ -357,7 +357,7 @@ export default function Home() {
           </Card>
 
           {/* Top Losers */}
-          <Card className="border-border/40 bg-card/50">
+          <Card className="border-border/40 bg-card/50 neon-card">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <div className="h-6 w-6 rounded-md bg-[oklch(0.65_0.22_25/15%)] flex items-center justify-center">
@@ -380,7 +380,7 @@ export default function Home() {
           </Card>
 
           {/* Most Active */}
-          <Card className="border-border/40 bg-card/50">
+          <Card className="border-border/40 bg-card/50 neon-card">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <div className="h-6 w-6 rounded-md bg-[oklch(0.75_0.15_60/15%)] flex items-center justify-center">

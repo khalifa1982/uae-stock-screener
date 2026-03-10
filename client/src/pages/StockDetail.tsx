@@ -9,6 +9,7 @@ import { StockSeasonalsTab } from "@/components/StockSeasonalsTab";
 import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { OrderBook, PriceBook } from "@/components/OrderBook";
+import { AdvancedChart } from "@/components/AdvancedChart";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +60,7 @@ function formatRawPercent(num: number | null | undefined): string {
 // ─── Reusable Components ───────────────────────────────────────────
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color?: string }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 neon-card">
       <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${color || "bg-primary/10"}`}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
@@ -326,7 +327,7 @@ export default function StockDetail() {
             )}
             <div>
               <div className="flex items-center gap-3 mb-1 flex-wrap">
-                <h1 className="text-2xl font-bold tracking-tight font-mono">{symbol}</h1>
+                <h1 className="text-2xl font-bold tracking-tight font-mono neon-text">{symbol}</h1>
                 <Badge variant="outline" className={`text-xs font-mono ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
                   {stockInfo.exchange}
                 </Badge>
@@ -344,10 +345,10 @@ export default function StockDetail() {
           </div>
           {detail && (
             <div className="flex items-end gap-3">
-              <span className="text-3xl font-bold font-mono">{detail.price != null ? formatNumber(detail.price) : "—"}</span>
+              <span className="text-3xl font-bold font-mono neon-text">{detail.price != null ? formatNumber(detail.price) : "—"}</span>
               <span className="text-sm text-muted-foreground mb-1">AED</span>
               {priceChange != null && (
-                <span className={`flex items-center gap-1 text-lg font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain" : priceChange < 0 ? "text-loss" : "text-muted-foreground"}`}>
+                <span className={`flex items-center gap-1 text-lg font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
                   {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
                   {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
                 </span>
@@ -373,56 +374,15 @@ export default function StockDetail() {
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* Price Chart */}
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" /> Price Chart
-                </CardTitle>
-                <div className="flex gap-1">
-                  {chartRanges.map(r => (
-                    <Button key={r.value} variant={chartRange === r.value ? "default" : "ghost"} size="sm" className="h-7 px-2.5 text-xs" onClick={() => setChartRange(r.value as any)}>
-                      {r.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {chartLoading ? (
-                <Skeleton className="h-[300px] w-full rounded-lg" />
-              ) : chartPoints.length > 0 ? (
-                <div className="space-y-4">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={chartPoints} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="oklch(0.65 0.19 250)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="oklch(0.65 0.19 250)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.22 0.01 260)" />
-                      <XAxis dataKey="date" tick={{ fill: "oklch(0.6 0.015 260)", fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis tick={{ fill: "oklch(0.6 0.015 260)", fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} tickFormatter={(v) => v.toFixed(2)} />
-                      <Tooltip contentStyle={{ backgroundColor: "oklch(0.155 0.01 260)", border: "1px solid oklch(0.22 0.01 260)", borderRadius: "8px", fontSize: "12px", color: "oklch(0.93 0.005 260)" }} formatter={(value: number) => [value?.toFixed(3) + " AED", "Close"]} />
-                      <Area type="monotone" dataKey="close" stroke="oklch(0.65 0.19 250)" strokeWidth={2} fill="url(#priceGradient)" dot={false} activeDot={{ r: 4, fill: "oklch(0.65 0.19 250)" }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                  <ResponsiveContainer width="100%" height={80}>
-                    <BarChart data={chartPoints} margin={{ top: 0, right: 5, left: 5, bottom: 0 }}>
-                      <XAxis dataKey="date" hide />
-                      <YAxis hide />
-                      <Tooltip contentStyle={{ backgroundColor: "oklch(0.155 0.01 260)", border: "1px solid oklch(0.22 0.01 260)", borderRadius: "8px", fontSize: "12px", color: "oklch(0.93 0.005 260)" }} formatter={(value: number) => [formatLargeNumber(value), "Volume"]} />
-                      <Bar dataKey="volume" fill="oklch(0.65 0.19 250 / 30%)" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">No chart data available</div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Advanced Price Chart with Technical Overlays */}
+          <AdvancedChart
+            symbol={symbol}
+            exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
+            chartData={chartPoints}
+            chartRange={chartRange}
+            onRangeChange={(r) => setChartRange(r as any)}
+            chartLoading={chartLoading}
+          />
 
           {/* Key Metrics + Quick Technical */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -847,6 +807,8 @@ export default function StockDetail() {
           {detail && (
             <>
               <PriceBook
+                symbol={symbol}
+                exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
                 price={detail.price}
                 change={detail.changePercent}
                 volume={detail.volume}
@@ -854,13 +816,11 @@ export default function StockDetail() {
                 low={detail.dayLow}
               />
               <OrderBook
+                symbol={symbol}
+                exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
                 price={detail.price}
-                open={detail.open}
-                high={detail.dayHigh}
-                low={detail.dayLow}
-                volume={detail.volume}
-                avgVolume={detail.avgVolume}
                 change={detail.changePercent}
+                volume={detail.volume}
               />
             </>
           )}
@@ -1122,7 +1082,7 @@ export default function StockDetail() {
                           { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
                           { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
                         ].map(({ cat, icon, desc }) => (
-                          <div key={cat.name} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                          <div key={cat.name} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 neon-card">
                             <span className="text-xl">{icon}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">

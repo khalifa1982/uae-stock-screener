@@ -410,3 +410,35 @@
 - [x] Domain www.uae.market configured
 - [x] Update meta tags, OG tags for uae.market domain (description, keywords, og:title, og:description, og:url, twitter cards, canonical)
 - [x] Footer brand updated to "uae.market" with link to www.uae.market
+
+## Phase 14 - Order Book Real Data, Mobile Redesign, Chart Indicators
+
+### Order Book Fix (Real Data)
+- [x] Integrated DFM API (api2.dfm.ae/mw/v1/stocks) for real bid/ask data (68 equities)
+- [x] New dfmDataService.ts with 30s cache, error handling, and stats
+- [x] New tRPC endpoint: stocks.orderBook with real DFM data + TradingView fallback
+- [x] Order Book component rewritten with real data, sortable by price/orders/quantity
+- [x] Bid/Ask depth levels from pivot points, Bollinger Bands, SMA/EMA support/resistance
+- [x] Live data badge for DFM stocks, Delayed badge for ADX stocks
+- [x] Spread calculation, VWAP, total trades, total value from real API
+
+### Mobile UI Redesign (Neon Stock Market Aesthetic)
+- [x] Mobile bottom navigation bar with 5 key sections (Dashboard, Screener, Alerts, Watchlist, More)
+- [x] Neon active indicator on bottom nav items
+- [x] Sidebar Sheet preserved for full navigation on mobile
+- [x] Neon glow effects on cards, text, icons throughout the UI
+- [x] CSS custom properties for neon colors (cyan, green, red, purple, gold)
+- [x] Grid background effect on dark theme
+- [x] Custom scrollbar styling
+- [x] Responsive chart sizing for mobile
+
+### Chart Enhancement (Technical Indicators)
+- [x] New AdvancedChart component with multi-panel layout
+- [x] Bollinger Bands overlay (upper/middle/lower bands with shaded area)
+- [x] SMA 20 and SMA 50 moving average overlays
+- [x] MACD sub-chart (MACD line, signal line, histogram bars)
+- [x] RSI sub-chart with overbought/oversold zones (70/30 reference lines)
+- [x] Volume bars with price chart overlay
+- [x] Toggle controls for each indicator overlay
+- [x] Neon color scheme for all chart elements
+- [x] 11 new DFM/Order Book tests (161 total tests, 13 test files, all passing)
