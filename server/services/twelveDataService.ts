@@ -71,8 +71,8 @@ export async function checkTwelveDataHealth(): Promise<TwelveDataStatus> {
 
   try {
     totalRequests++;
-    // Test with a real data endpoint to verify the key actually works
-    const resp = await fetch(`${TWELVE_DATA_BASE}/quote?symbol=AAPL&apikey=${apiKey}`, {
+    // Test with a UAE stock to verify the key works (restricted to UAE market only)
+    const resp = await fetch(`${TWELVE_DATA_BASE}/quote?symbol=EMAAR:DFM&apikey=${apiKey}`, {
       signal: AbortSignal.timeout(10000),
     });
 
@@ -156,9 +156,15 @@ export async function fetchTwelveDataQuote(symbol: string, exchange: string): Pr
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
+  // Restrict to UAE market only (ADX and DFM exchanges)
+  if (exchange !== 'ADX' && exchange !== 'DFM') {
+    console.warn(`[TwelveData] Rejected non-UAE exchange: ${exchange}. Only ADX and DFM are allowed.`);
+    return null;
+  }
+
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange === 'ADX' ? 'ADX' : 'DFM'}`;
+    const tvSymbol = `${symbol}:${exchange}`;
     const resp = await fetch(
       `${TWELVE_DATA_BASE}/quote?symbol=${encodeURIComponent(tvSymbol)}&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(10000) }
@@ -209,9 +215,15 @@ export async function fetchTwelveDataIndicator(
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
+  // Restrict to UAE market only (ADX and DFM exchanges)
+  if (exchange !== 'ADX' && exchange !== 'DFM') {
+    console.warn(`[TwelveData] Rejected non-UAE exchange: ${exchange}. Only ADX and DFM are allowed.`);
+    return null;
+  }
+
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange === 'ADX' ? 'ADX' : 'DFM'}`;
+    const tvSymbol = `${symbol}:${exchange}`;
     const queryParams = new URLSearchParams({
       symbol: tvSymbol,
       interval: '1day',
@@ -254,9 +266,15 @@ export async function fetchTwelveDataFundamentals(
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
+  // Restrict to UAE market only (ADX and DFM exchanges)
+  if (exchange !== 'ADX' && exchange !== 'DFM') {
+    console.warn(`[TwelveData] Rejected non-UAE exchange: ${exchange}. Only ADX and DFM are allowed.`);
+    return null;
+  }
+
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange === 'ADX' ? 'ADX' : 'DFM'}`;
+    const tvSymbol = `${symbol}:${exchange}`;
     const resp = await fetch(
       `${TWELVE_DATA_BASE}/${type}?symbol=${encodeURIComponent(tvSymbol)}&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(15000) }

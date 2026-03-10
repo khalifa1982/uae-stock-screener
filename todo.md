@@ -326,3 +326,10 @@
 - [x] Tested: PRESIGHT, ALDAR, IHC, ADNOCDIST, ADNOCGAS, FERTIGLB all return 92 data points
 - [x] EMAAR still uses Yahoo Finance (51 points) - existing path preserved
 - [x] All 116 tests passing
+
+## TwelveData API Key Update & UAE-Only Restriction
+
+- [x] Update TwelveData API key to new key (7cac...cceb2)
+- [x] Restrict TwelveData usage to UAE market only (ADX/DFM exchanges) - added exchange guards to all 3 functions
+- [x] Health check now uses EMAAR:DFM instead of AAPL
+- [x] Test new key works for UAE stocks - 3 key validation tests + 119 total tests passing
