@@ -442,3 +442,44 @@
 - [x] Toggle controls for each indicator overlay
 - [x] Neon color scheme for all chart elements
 - [x] 11 new DFM/Order Book tests (161 total tests, 13 test files, all passing)
+
+## Phase 15 - Professional UI Redesign, Favicon, Market Calendar, WebSocket
+
+### Professional UI Redesign
+- [x] Generated design mockup with Gemini for premium fintech aesthetic inspiration
+- [x] Redesigned sidebar with glass-morphism effects, gradient borders, elegant Lucide icons
+- [x] Premium dashboard with gradient-border stat cards, frosted-glass tables, hover animations
+- [x] Polished buttons with gradient hover states, premium badges, refined interactive elements
+- [x] Inter + JetBrains Mono typography, refined spacing system, professional color palette
+- [x] Micro-interactions: card hover lifts, gradient border animations, smooth transitions
+- [x] Mobile bottom navigation bar with 5 key sections and neon active indicators
+
+### Branded Favicon & OG Image
+- [x] Generated "UM" monogram favicon with candlestick chart elements (Gemini)
+- [x] Generated professional OG image for social sharing (1200x630)
+- [x] Converted to ICO + apple-touch-icon, uploaded to CDN
+- [x] Configured in index.html with all meta tags (og:image, twitter:image, apple-touch-icon)
+- [x] Sidebar logo updated to use branded favicon image
+
+### Market Calendar Page
+- [x] New /calendar route with full UAE market holiday calendar
+- [x] Visual month grid calendar with holiday markers (red dots)
+- [x] Upcoming holidays list with countdown (days until)
+- [x] Trading day statistics (total trading days, holidays, weekends)
+- [x] Year selector (2025-2027)
+- [x] Holiday details with English + Arabic names
+- [x] Added to sidebar navigation with Calendar icon
+
+### TwelveData WebSocket (Real-Time Streaming)
+- [x] Server-side WebSocket service (tdWebSocketService.ts) connecting to TwelveData TDDWS
+- [x] Persistent connection with auto-reconnect, exponential backoff, heartbeat
+- [x] Browser client WebSocket server on /ws/prices path
+- [x] Client subscription management (subscribe/unsubscribe per symbol)
+- [x] Symbol mapping (TradingView → TwelveData) for UAE stocks
+- [x] Frontend useRealtimePrices hook with auto-reconnect and price caching
+- [x] useRealtimePrice hook for single stock real-time updates
+- [x] RealtimeIndicator component showing live/offline status with pulsing dot
+- [x] Integrated into StockDetail page (real-time price display + live indicator)
+- [x] Integrated into Home dashboard (WebSocket connection status indicator)
+- [x] tRPC endpoint: admin.wsStats for WebSocket connection monitoring
+- [x] 7 new WebSocket tests (168 total tests, 14 test files, all passing)

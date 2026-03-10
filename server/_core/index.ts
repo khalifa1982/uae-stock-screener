@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { startVolumeMonitor } from "../volumeMonitor";
+import { initWebSocketServer } from "../services/tdWebSocketService";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -57,6 +58,9 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Initialize WebSocket server for real-time price streaming
+  initWebSocketServer(server);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

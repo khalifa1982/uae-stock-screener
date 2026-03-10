@@ -12,6 +12,8 @@ import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
+import { useRealtimePrice } from "@/hooks/useRealtimePrices";
+import { RealtimeIndicator } from "@/components/RealtimeIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,6 +256,8 @@ export default function StockDetail() {
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
   const autoRefreshInterval = useAutoRefreshInterval();
+  const exchange = stockInfo?.exchange || "DFM";
+  const { price: realtimePrice, isConnected: wsConnected } = useRealtimePrice(symbol, exchange);
 
   const { data: detail, isLoading: detailLoading } = trpc.stocks.detail.useQuery(
     { symbol },
@@ -294,7 +298,9 @@ export default function StockDetail() {
     : detail?.changePercent;
 
   const profile = profileData?.profile;
-  const price = detail?.price ?? null;
+  // Use real-time WebSocket price if available, otherwise fall back to API data
+  const price = realtimePrice?.price ?? detail?.price ?? null;
+  const liveVolume = realtimePrice?.dayVolume ?? detail?.volume ?? null;
 
   if (!stockInfo) {
     return (
@@ -334,6 +340,7 @@ export default function StockDetail() {
                 <Badge variant="secondary" className="text-xs">{stockInfo.sector}</Badge>
                 {profile?.industry && <Badge variant="outline" className="text-xs text-muted-foreground">{profile.industry}</Badge>}
                 <MarketStatusBadge />
+                <RealtimeIndicator isConnected={wsConnected} />
               </div>
               <p className="text-muted-foreground text-sm">{stockInfo.name}</p>
               {profile?.website && (
@@ -345,7 +352,7 @@ export default function StockDetail() {
           </div>
           {detail && (
             <div className="flex items-end gap-3">
-              <span className="text-3xl font-bold font-mono neon-text">{detail.price != null ? formatNumber(detail.price) : "—"}</span>
+              <span className="text-3xl font-bold font-mono neon-text">{price != null ? formatNumber(price) : "—"}</span>
               <span className="text-sm text-muted-foreground mb-1">AED</span>
               {priceChange != null && (
                 <span className={`flex items-center gap-1 text-lg font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>

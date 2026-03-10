@@ -19,6 +19,7 @@ import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, compute
 import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
+import { getWSStats } from "./services/tdWebSocketService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -1226,6 +1227,11 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
     // Quick snapshot (no API calls, uses cached status)
     apiStatus: publicProcedure.query(() => {
       return getApiStatusSnapshot();
+    }),
+
+    // WebSocket real-time streaming stats
+    wsStats: publicProcedure.query(() => {
+      return getWSStats();
     }),
 
     // TradingView data fetch

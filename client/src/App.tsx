@@ -11,6 +11,7 @@ import Alerts from "./pages/Alerts";
 import Watchlist from "./pages/Watchlist";
 import Heatmap from "./pages/Heatmap";
 import Admin from "./pages/Admin";
+import Calendar from "./pages/Calendar";
 import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
         <Route path={"/alerts"} component={Alerts} />
         <Route path={"/watchlist"} component={Watchlist} />
         <Route path={"/heatmap"} component={Heatmap} />
+        <Route path={"/calendar"} component={Calendar} />
         <Route path={"/admin"} component={Admin} />
         <Route path={"/stock/:symbol"} component={StockDetail} />
         <Route path={"/404"} component={NotFound} />
