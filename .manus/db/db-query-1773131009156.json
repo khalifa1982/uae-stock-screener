@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, name, email, role FROM users WHERE email LIKE '%khalifa%' OR name LIKE '%khalifa%' OR id = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute SELECT id, name, email, role FROM users WHERE email LIKE '%khalifa%' OR name LIKE '%khalifa%' OR id = 1;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Mr K",
+      "email": "khalifa@uae.net",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n1\tMr K\tkhalifa@uae.net\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 1520
+}

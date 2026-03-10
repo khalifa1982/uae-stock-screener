@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -277,7 +279,27 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
 // ─── Main Admin Page ─────────────────────────────────────────────────
 
 export default function Admin() {
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   const [isChecking, setIsChecking] = useState(false);
+
+  // Only admin users can access this page
+  if (!isAuthenticated || user?.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center space-y-4">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto" />
+            <h2 className="text-xl font-semibold">Access Denied</h2>
+            <p className="text-sm text-muted-foreground">
+              This page is restricted to administrators only.
+            </p>
+            <Button onClick={() => setLocation("/")} variant="outline">Go to Dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const healthQuery = trpc.admin.apiHealthCheck.useQuery(undefined, {
     refetchOnWindowFocus: false,

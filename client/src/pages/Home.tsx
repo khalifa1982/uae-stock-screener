@@ -605,16 +605,6 @@ export default function Home() {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-semibold text-[11px] uppercase tracking-[0.12em] text-muted-foreground/50">Data Sources</h4>
-              <div className="space-y-1.5 text-[13px] text-muted-foreground/50">
-                <p>TradingView Scanner API</p>
-                <p>TwelveData — 104 Technical Indicators</p>
-                <p>DFM Real-Time Market Data</p>
-                <p>AI Analysis Engine</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
               <h4 className="font-semibold text-[11px] uppercase tracking-[0.12em] text-muted-foreground/50">Markets Covered</h4>
               <div className="space-y-1.5 text-[13px] text-muted-foreground/50">
                 <p>Abu Dhabi Securities Exchange (ADX)</p>

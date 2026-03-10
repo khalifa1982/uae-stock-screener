@@ -47,7 +47,7 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
-const menuItems = [
+const baseMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Filter, label: "Screener", path: "/screener" },
   { icon: Bell, label: "Alerts", path: "/alerts" },
@@ -55,6 +55,9 @@ const menuItems = [
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
+];
+
+const adminMenuItems = [
   { icon: Settings2, label: "API", path: "/admin" },
 ];
 
@@ -120,6 +123,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const menuItems = user?.role === "admin" ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
   const activeMenuItem = menuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
@@ -199,7 +203,7 @@ function DashboardLayoutContent({
               </span>
             </div>
             <SidebarMenu className="space-y-0.5">
-              {menuItems.map((item) => {
+              {menuItems.map((item: typeof baseMenuItems[number]) => {
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>

@@ -604,3 +604,10 @@
 - [x] Remove testEmail tRPC procedure from routers.ts
 - [x] All 207 tests passing — no regressions
 - [x] In-app, browser, and sound notifications still work
+
+## Phase 20 - Remove Data Sources from Footer & Restrict API Page to Admin
+
+- [x] Remove "Data Sources" section from footer (TradingView, TwelveData, DFM, AI Analysis)
+- [x] Restrict API/data sources page visibility to admin user only (role guard + access denied page)
+- [x] Hide API nav link in sidebar for non-admin users
+- [x] Set owner user (id=1) to admin role in database
