@@ -632,3 +632,12 @@
 - [x] Verify: Login works (returns JWT session cookie)
 - [x] Verify: Stock data loads (170 stocks from TradingView)
 - [x] Live URL: https://http--uae-app--t6ps5rgzd768.code.run
+
+## Phase 22 - Permanent Hosting, CI/CD, Custom Domain & Admin Setup
+
+- [ ] Get Northflank DNS details for custom domain (uae.market, www.uae.market)
+- [ ] Push Docker image to Docker Hub for permanent hosting
+- [ ] Export project to GitHub repository
+- [ ] Connect GitHub repo to Northflank for CI/CD builds
+- [ ] Register admin account (khalifa@uae.net) on Northflank deployment
+- [ ] Promote admin account to admin role in Northflank database
