@@ -335,3 +335,26 @@ export async function getUserEmail(userId: number): Promise<string | null> {
   const result = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
   return result[0]?.email || null;
 }
+
+/**
+ * Get the owner's notification preferences by looking up their user record via OWNER_OPEN_ID.
+ * Returns null if the owner has no preferences saved (meaning they haven't opted in to anything).
+ */
+export async function getOwnerNotificationPreferences() {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const ownerOpenId = ENV.ownerOpenId;
+    if (!ownerOpenId) return null;
+    // Find the owner's user record
+    const ownerUser = await db.select({ id: users.id }).from(users).where(eq(users.openId, ownerOpenId)).limit(1);
+    if (ownerUser.length === 0) return null;
+    const ownerId = ownerUser[0].id;
+    // Get their notification preferences
+    const prefs = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, ownerId)).limit(1);
+    return prefs.length > 0 ? prefs[0] : null;
+  } catch (e) {
+    console.warn("[Database] Failed to get owner notification preferences:", e);
+    return null;
+  }
+}

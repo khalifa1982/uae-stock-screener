@@ -16,8 +16,8 @@
 import { DFM_STOCKS, ALL_STOCKS, StockInfo } from "../shared/stockData";
 import { fetchBatchQuotes } from "./stockService";
 import { notifyOwner } from "./_core/notification";
-import { getDb, createNotificationsForAllUsers, getUsersWithEmailNotifications, getUserEmail } from "./db";
-import { volumeAlerts, monitorSettings } from "../drizzle/schema";
+import { getDb, createNotificationsForAllUsers, getUsersWithEmailNotifications, getUserEmail, getOwnerNotificationPreferences, getNotificationPreferences } from "./db";
+import { users, volumeAlerts, monitorSettings, notificationPreferences, notifications as notificationsTable, InsertNotification } from "../drizzle/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 import { isHoliday } from "../shared/uaeHolidays";
 
@@ -177,12 +177,12 @@ async function pollForVolumeSpikes(threshold = 2.0, minVolume = 100000): Promise
       if (criticalAlerts.length > 0) {
         await sendVolumeNotification(criticalAlerts);
       }
-      // Create in-app notifications for ALL alerts (not just critical)
+      // Create in-app notifications only for users who have inAppEnabled (or no preferences yet = default on)
       for (const alert of alerts) {
         const sevMap: Record<string, "info" | "warning" | "critical"> = {
           low: "info", medium: "info", high: "warning", critical: "critical",
         };
-        await createNotificationsForAllUsers({
+        await createInAppNotificationsRespectingPreferences({
           type: "volume_spike",
           title: `Volume Spike: ${alert.stockName} (${alert.volumeMultiplier}x)`,
           message: `${alert.stockName} (${alert.symbol}) volume is ${alert.volumeMultiplier}x the average at ${formatVolume(alert.currentVolume)}. Price: ${alert.price?.toFixed(2) ?? "N/A"} AED (${alert.changePercent != null ? (alert.changePercent >= 0 ? "+" : "") + alert.changePercent.toFixed(2) + "%" : "N/A"}).`,
@@ -288,27 +288,71 @@ async function sendVolumeNotification(alerts: VolumeAlertData[]): Promise<void> 
       ? `Volume Spike: ${alerts[0].stockName} (${alerts[0].volumeMultiplier}x)`
       : `${alerts.length} Volume Spikes Detected`;
     
-    // 1. Send platform notification to owner
-    const sent = await notifyOwner({ title, content });
+    // 1. Check if the owner has explicitly enabled email notifications before sending
+    const ownerPrefs = await getOwnerNotificationPreferences();
+    const ownerEmailEnabled = ownerPrefs?.emailEnabled === 1;
     
-    if (sent) {
-      // Mark alerts as notified in DB
-      const db = await getDb();
-      if (db) {
-        for (const alert of alerts) {
-          const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-          await db.update(volumeAlerts)
-            .set({ notified: 1 })
-            .where(and(
-              eq(volumeAlerts.symbol, alert.symbol),
-              gte(volumeAlerts.detectedAt, thirtyMinAgo)
-            ));
-        }
+    // Get the highest severity among the alerts
+    const severityOrder = ["low", "medium", "high", "critical"];
+    let maxSeverity = "low";
+    for (const alert of alerts) {
+      if (severityOrder.indexOf(alert.severity) > severityOrder.indexOf(maxSeverity)) {
+        maxSeverity = alert.severity;
       }
-      console.log(`[VolumeMonitor] Platform notification sent for ${alerts.length} alerts`);
+    }
+    
+    // Check if the owner's email severities include this alert level
+    const ownerSeverities = (ownerPrefs?.emailSeverities || "").split(",").map(s => s.trim());
+    const ownerWantsThisSeverity = ownerSeverities.includes(maxSeverity);
+    
+    // Also check quiet hours for the owner
+    let ownerInQuietHours = false;
+    if (ownerPrefs?.quietHoursEnabled) {
+      const uaeHour = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCHours();
+      const uaeMinute = new Date(Date.now() + 4 * 60 * 60 * 1000).getUTCMinutes();
+      const currentTimeMinutes = uaeHour * 60 + uaeMinute;
+      const [startH, startM] = (ownerPrefs.quietHoursStart || "22:00").split(":").map(Number);
+      const [endH, endM] = (ownerPrefs.quietHoursEnd || "07:00").split(":").map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      if (startMinutes <= endMinutes) {
+        ownerInQuietHours = currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes;
+      } else {
+        ownerInQuietHours = currentTimeMinutes >= startMinutes || currentTimeMinutes < endMinutes;
+      }
+    }
+    
+    if (ownerEmailEnabled && ownerWantsThisSeverity && !ownerInQuietHours) {
+      // Owner has explicitly opted in — send the platform notification
+      const sent = await notifyOwner({ title, content });
+      if (sent) {
+        const db = await getDb();
+        if (db) {
+          for (const alert of alerts) {
+            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+            await db.update(volumeAlerts)
+              .set({ notified: 1 })
+              .where(and(
+                eq(volumeAlerts.symbol, alert.symbol),
+                gte(volumeAlerts.detectedAt, thirtyMinAgo)
+              ));
+          }
+        }
+        console.log(`[VolumeMonitor] Platform notification sent for ${alerts.length} alerts (owner opted in)`);
+      }
+    } else {
+      // Owner has NOT enabled email notifications — skip notifyOwner
+      const reason = !ownerPrefs
+        ? "no preferences saved"
+        : !ownerEmailEnabled
+          ? "email notifications disabled"
+          : ownerInQuietHours
+            ? "quiet hours active"
+            : `severity '${maxSeverity}' not in owner's filter`;
+      console.log(`[VolumeMonitor] Skipping platform notification: ${reason}`);
     }
 
-    // 2. Send email notifications to users based on their preferences
+    // 2. Send email notifications to other users based on their preferences
     await sendEmailNotifications(alerts, title, content, timeStr);
 
   } catch (e) {
@@ -390,6 +434,44 @@ async function sendEmailNotifications(
     }
   } catch (e) {
     console.error("[VolumeMonitor] Failed to process email notifications:", e);
+  }
+}
+
+/**
+ * Create in-app notifications only for users who have in-app notifications enabled.
+ * If a user has no notification preferences saved, in-app defaults to enabled (schema default).
+ */
+type InAppNotificationData = Omit<InsertNotification, "userId">;
+
+async function createInAppNotificationsRespectingPreferences(data: InAppNotificationData): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    // Get all users
+    const allUsers = await db.select({ id: users.id }).from(users);
+    if (allUsers.length === 0) return;
+
+    // For each user, check their inAppEnabled preference
+    const eligibleUserIds: number[] = [];
+    for (const user of allUsers) {
+      const prefs = await getNotificationPreferences(user.id);
+      // If no preferences saved, default is inAppEnabled=1 (per schema default)
+      // If preferences exist, respect the inAppEnabled flag
+      if (!prefs || prefs.inAppEnabled === 1) {
+        eligibleUserIds.push(user.id);
+      }
+    }
+
+    if (eligibleUserIds.length === 0) {
+      console.log(`[VolumeMonitor] No users with in-app notifications enabled`);
+      return;
+    }
+
+    const values = eligibleUserIds.map(userId => ({ ...data, userId }));
+    await db.insert(notificationsTable).values(values);
+    console.log(`[VolumeMonitor] In-app notifications created for ${eligibleUserIds.length}/${allUsers.length} users`);
+  } catch (e) {
+    console.warn("[VolumeMonitor] Failed to create in-app notifications:", e);
   }
 }
 

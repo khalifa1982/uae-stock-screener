@@ -584,3 +584,12 @@
 - [x] Sort by price, size, accumulated in order book MBP tab
 - [x] Screener page has full sorting on all columns
 - [x] All 190 tests passing across 15 test files
+
+## Phase 18 - Fix Notification Preferences Bug
+
+### Bug: Notifications sent without checking user preferences
+- [x] Volume monitor sends notifyOwner even when email is not enabled
+- [x] Fix: Only call notifyOwner when owner has explicitly enabled email notifications + severity matches + not in quiet hours
+- [x] Added getOwnerNotificationPreferences() to db.ts to look up owner's preferences via OWNER_OPEN_ID
+- [x] In-app notifications now respect per-user inAppEnabled preference (createInAppNotificationsRespectingPreferences)
+- [x] 17 new tests for notification bypass fix (207 total, 16 files, all passing)
