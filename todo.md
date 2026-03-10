@@ -533,3 +533,54 @@
 - [x] Schema validation, severity filtering, quiet hours logic
 - [x] Alert severity ordering, preference validation, channel routing
 - [x] 190 total tests across 15 test files, all passing
+
+## Phase 17 - Exchange-Style Trading UI Overhaul
+
+### Order Book Redesign (Mashreq-style)
+- [x] Summary tab with key stats (price, trades, best bid/offer, volume, turnover, high/low, 52w, VWAP)
+- [x] Price Spectrum tab (horizontal bar chart with bid green left, ask red right, price center)
+- [x] MBP (Market by Price) tab with Splits, Accumulated, Size, Bid, Offer, Size, Accumulated, Splits
+- [x] Time & Sales tab with Time, Quantity, Price, Direction (up/down arrows)
+- [x] Total Bids / Total Offers summary row with counts
+- [x] 5-second auto-refresh on order book data (refetchInterval: 5000)
+- [x] Live data badge for DFM stocks
+
+### 3-Decimal Pricing
+- [x] Home page stock table: formatNumber returns xx.xxx
+- [x] Home page stats cards: ChangeDisplay uses 3 decimals
+- [x] Stock detail page: formatNumber default 3 decimals, price change 3 decimals
+- [x] Order book: all prices use 3 decimals
+- [x] Alerts page: price and changePercent use 3 decimals
+- [x] Watchlist page: price, avgChange, changePercent use 3 decimals
+- [x] Heatmap page: price, avgChange, sector avg use 3 decimals
+- [x] Screener page: formatNumber default 3 decimals, changePercent 3 decimals
+- [x] FairValueGauge: current price and fair value use 3 decimals
+- [x] AdvancedChart: Y-axis tick formatter uses 3 decimals
+
+### 5-Second Auto-Refresh
+- [x] Order book data refreshes every 5 seconds (refetchInterval: 5000)
+- [x] Main dashboard stock list refreshes every 5 seconds (refetchInterval: 5000)
+- [x] Stock detail queries refresh every 5 seconds
+- [x] Backend DFM data cache reduced to 5 seconds (CACHE_TTL = 5000)
+
+### Real Trading Flash Effects
+- [x] usePriceFlash hook tracks price changes and returns flash direction (up/down/null)
+- [x] usePriceFlashes hook for batch tracking (entire stock table)
+- [x] CSS flash-up animation: green flash on price increase
+- [x] CSS flash-down animation: red flash on price decrease
+- [x] Flash effect on stock table rows in Home page
+- [x] Smooth 800ms animation with background color flash
+
+### Light/Dark Theme Toggle
+- [x] Theme toggle button added to sidebar header (Sun/Moon icons)
+- [x] Complete light mode CSS variables (white backgrounds, dark text, proper contrast)
+- [x] All components work in both themes (cards, tables, badges, charts)
+- [x] Professional white mode with subtle shadows and borders
+- [x] ThemeProvider defaultTheme changed to "system" for auto-detection
+
+### Sortable Columns
+- [x] Sort by name, price, change, volume, market cap in main dashboard table (already existed)
+- [x] Enhanced sort indicators with active state styling and group hover
+- [x] Sort by price, size, accumulated in order book MBP tab
+- [x] Screener page has full sorting on all columns
+- [x] All 190 tests passing across 15 test files

@@ -32,7 +32,7 @@ import { SECTORS } from "../../../shared/stockData";
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "rsi";
 type SortDir = "asc" | "desc";
 
-function formatNumber(num: number | null | undefined, decimals = 2): string {
+function formatNumber(num: number | null | undefined, decimals = 3): string {
   if (num == null || isNaN(num)) return "—";
   return num.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
@@ -470,7 +470,7 @@ export default function Screener() {
                         <td className="p-3 text-right">
                           {stock.changePercent != null ? (
                             <span className={`font-mono text-sm font-medium ${stock.changePercent > 0 ? "text-gain" : stock.changePercent < 0 ? "text-loss" : "text-muted-foreground"}`}>
-                              {stock.changePercent > 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
+                              {stock.changePercent > 0 ? "+" : ""}{stock.changePercent.toFixed(3)}%
                             </span>
                           ) : "—"}
                         </td>

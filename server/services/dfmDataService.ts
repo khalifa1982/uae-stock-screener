@@ -8,7 +8,7 @@
  */
 
 const DFM_API_URL = 'https://api2.dfm.ae/mw/v1/stocks';
-const CACHE_TTL = 30_000; // 30 seconds (matches auto-refresh)
+const CACHE_TTL = 5_000; // 5 seconds (exchange-speed refresh)
 
 export interface DFMStockData {
   id: string; // DFM symbol (e.g., "EMAAR")
@@ -280,7 +280,10 @@ export async function buildOrderBook(
     if (Math.abs(level - bidPrice) < 0.001) continue; // Skip if same as real bid
     // Estimate volume based on distance from price (closer = more volume)
     const distancePct = Math.abs(price - level) / price;
-    const estimatedVol = Math.round(totalVolume * (0.05 + Math.random() * 0.1) * (1 - distancePct));
+    // Deterministic volume estimation based on distance from price
+    const levelIdx = sortedSupports.indexOf(level);
+    const baseFraction = 0.08 - (levelIdx * 0.01);
+    const estimatedVol = Math.round(totalVolume * Math.max(0.02, baseFraction) * (1 - distancePct));
     const orders = Math.max(1, Math.ceil(estimatedVol / 5000));
     cumBidVol += estimatedVol;
     bids.push({
@@ -314,7 +317,9 @@ export async function buildOrderBook(
   for (const level of sortedResistances) {
     if (Math.abs(level - askPrice) < 0.001) continue;
     const distancePct = Math.abs(level - price) / price;
-    const estimatedVol = Math.round(totalVolume * (0.05 + Math.random() * 0.1) * (1 - distancePct));
+    const levelIdx = sortedResistances.indexOf(level);
+    const baseFraction = 0.08 - (levelIdx * 0.01);
+    const estimatedVol = Math.round(totalVolume * Math.max(0.02, baseFraction) * (1 - distancePct));
     const orders = Math.max(1, Math.ceil(estimatedVol / 5000));
     cumAskVol += estimatedVol;
     asks.push({

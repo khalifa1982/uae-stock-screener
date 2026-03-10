@@ -14,7 +14,7 @@ function formatNumber(n: number | null | undefined): string {
   if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
   if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
   if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
-  return n.toFixed(2);
+  return n.toFixed(3);
 }
 
 export default function Watchlist() {
@@ -119,7 +119,7 @@ export default function Watchlist() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Change</p>
             <p className={`text-2xl font-bold mt-1 ${avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {avgChange >= 0 ? "+" : ""}{avgChange.toFixed(2)}%
+              {avgChange >= 0 ? "+" : ""}{avgChange.toFixed(3)}%
             </p>
           </CardContent>
         </Card>
@@ -173,7 +173,7 @@ export default function Watchlist() {
                         <Badge variant="outline" className="text-[10px]">{stock.exchange}</Badge>
                       </td>
                       <td className="py-3 px-3 text-right font-mono">
-                        {stock.price ? stock.price.toFixed(2) : "—"}
+                        {stock.price ? stock.price.toFixed(3) : "—"}
                       </td>
                       <td className="py-3 px-3 text-right">
                         {stock.changePercent != null ? (
@@ -184,7 +184,7 @@ export default function Watchlist() {
                               <TrendingDown className="h-3 w-3 text-red-400" />
                             )}
                             <span className={`font-mono text-xs ${stock.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                              {stock.changePercent >= 0 ? "+" : ""}{stock.changePercent.toFixed(2)}%
+                              {stock.changePercent >= 0 ? "+" : ""}{stock.changePercent.toFixed(3)}%
                             </span>
                           </div>
                         ) : "—"}

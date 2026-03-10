@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { usePriceFlashes, getFlashClass, getPriceFlashClass } from "@/hooks/usePriceFlash";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { RealtimeIndicator } from "@/components/RealtimeIndicator";
@@ -31,7 +32,7 @@ import { toast } from "sonner";
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name";
 type SortDir = "asc" | "desc";
 
-function formatNumber(num: number | null | undefined, decimals = 2): string {
+function formatNumber(num: number | null | undefined, decimals = 3): string {
   if (num == null || isNaN(num)) return "—";
   return num.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
@@ -52,7 +53,7 @@ function ChangeDisplay({ value }: { value: number | null | undefined }) {
   return (
     <span className={`flex items-center gap-0.5 font-mono text-sm font-semibold ${isPositive ? "text-gain neon-text-gain" : isZero ? "text-muted-foreground" : "text-loss neon-text-loss"}`}>
       {isPositive ? <ArrowUp className="h-3 w-3" /> : !isZero ? <ArrowDown className="h-3 w-3" /> : null}
-      {isPositive ? "+" : ""}{value.toFixed(2)}%
+      {isPositive ? "+" : ""}{value.toFixed(3)}%
     </span>
   );
 }
@@ -123,11 +124,14 @@ export default function Home() {
   const wsExchanges = useMemo(() => ["DFM", "ADX", "ADX"], []);
   const { isConnected: wsConnected } = useRealtimePrices(wsSymbols, wsExchanges);
 
+  // 5-second refresh during market hours for exchange-like experience
+  const fastRefresh = autoRefreshInterval ? 5_000 : undefined;
+
   const { data: stocks, isLoading, refetch, isFetching } = trpc.stocks.fetchAll.useQuery(
     { exchange },
     { 
-      staleTime: autoRefreshInterval ? 20 * 1000 : 5 * 60 * 1000,
-      refetchInterval: autoRefreshInterval,
+      staleTime: fastRefresh ? 3_000 : 5 * 60 * 1000,
+      refetchInterval: fastRefresh,
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       gcTime: 30 * 60 * 1000,
@@ -137,12 +141,15 @@ export default function Home() {
   const { data: topMovers } = trpc.stocks.topMovers.useQuery(
     { exchange, limit: 5 },
     {
-      staleTime: autoRefreshInterval ? 20 * 1000 : 5 * 60 * 1000,
-      refetchInterval: autoRefreshInterval,
+      staleTime: fastRefresh ? 3_000 : 5 * 60 * 1000,
+      refetchInterval: fastRefresh,
       refetchOnWindowFocus: false,
       gcTime: 30 * 60 * 1000,
     }
   );
+
+  // Track price changes for flash effects (exchange-style)
+  const priceFlashes = usePriceFlashes(stocks as any);
 
   const { data: csvData, refetch: fetchCSV, isFetching: csvFetching } = trpc.stocks.exportCSV.useQuery(
     { exchange },
@@ -208,8 +215,10 @@ export default function Home() {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-20" />;
-    return sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />;
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 opacity-30 group-hover:opacity-60 transition-opacity" />;
+    return sortDir === "asc" 
+      ? <ArrowUp className="h-3.5 w-3.5 text-primary drop-shadow-[0_0_4px_var(--primary)]" /> 
+      : <ArrowDown className="h-3.5 w-3.5 text-primary drop-shadow-[0_0_4px_var(--primary)]" />;
   };
 
   const stats = useMemo(() => {
@@ -459,42 +468,42 @@ export default function Home() {
                 <thead>
                   <tr>
                     <th className="text-left">
-                      <button onClick={() => handleSort("symbol")} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                      <button onClick={() => handleSort("symbol")} className="group flex items-center gap-1.5 hover:text-foreground transition-colors">
                         Symbol <SortIcon field="symbol" />
                       </button>
                     </th>
                     <th className="text-left hidden lg:table-cell">
-                      <button onClick={() => handleSort("name")} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                      <button onClick={() => handleSort("name")} className="group flex items-center gap-1.5 hover:text-foreground transition-colors">
                         Company <SortIcon field="name" />
                       </button>
                     </th>
                     <th className="text-right">
-                      <button onClick={() => handleSort("price")} className="flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
-                        Price <SortIcon field="price" />
+                      <button onClick={() => handleSort("price")} className="group flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
+                        Price (AED) <SortIcon field="price" />
                       </button>
                     </th>
                     <th className="text-right">
-                      <button onClick={() => handleSort("changePercent")} className="flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
-                        Change <SortIcon field="changePercent" />
+                      <button onClick={() => handleSort("changePercent")} className="group flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
+                        Chg% <SortIcon field="changePercent" />
                       </button>
                     </th>
                     <th className="text-right hidden md:table-cell">
-                      <button onClick={() => handleSort("pe")} className="flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
+                      <button onClick={() => handleSort("pe")} className="group flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
                         P/E <SortIcon field="pe" />
                       </button>
                     </th>
                     <th className="text-right hidden md:table-cell">
-                      <button onClick={() => handleSort("volume")} className="flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
+                      <button onClick={() => handleSort("volume")} className="group flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
                         Volume <SortIcon field="volume" />
                       </button>
                     </th>
                     <th className="text-right hidden lg:table-cell">
-                      <button onClick={() => handleSort("marketCap")} className="flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
-                        Market Cap <SortIcon field="marketCap" />
+                      <button onClick={() => handleSort("marketCap")} className="group flex items-center gap-1.5 justify-end hover:text-foreground transition-colors">
+                        Mkt Cap <SortIcon field="marketCap" />
                       </button>
                     </th>
                     <th className="text-center hidden sm:table-cell">
-                      Exchange
+                      Exch
                     </th>
                   </tr>
                 </thead>
@@ -511,7 +520,7 @@ export default function Home() {
                       return (
                         <tr
                           key={`${stock.exchange}-${stock.symbol}`}
-                          className={`cursor-pointer ${hasData ? "" : "opacity-50"}`}
+                          className={`cursor-pointer transition-colors ${hasData ? "" : "opacity-50"} ${getFlashClass(priceFlashes, stock.exchange, stock.symbol)}`}
                           onClick={() => setLocation(`/stock/${stock.symbol}`)}
                         >
                           <td>
@@ -532,7 +541,7 @@ export default function Home() {
                           <td className="text-right">
                             {hasData ? (
                               <>
-                                <span className="font-mono font-medium text-[13px]">{formatNumber(stock.price)}</span>
+                                <span className={`font-mono font-medium text-[13px] ${getPriceFlashClass(priceFlashes, stock.exchange, stock.symbol)}`}>{formatNumber(stock.price)}</span>
                                 <span className="text-[10px] text-muted-foreground/40 ml-1">AED</span>
                               </>
                             ) : (

@@ -444,9 +444,9 @@ export default function Alerts() {
                     </div>
                     {alert.price && (
                       <div>
-                        <p className="text-sm font-mono">{alert.price.toFixed(2)}</p>
+                        <p className="text-sm font-mono">{alert.price.toFixed(3)}</p>
                         <p className={`text-[10px] font-mono ${(alert.changePercent || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {(alert.changePercent || 0) >= 0 ? "+" : ""}{(alert.changePercent || 0).toFixed(2)}%
+                          {(alert.changePercent || 0) >= 0 ? "+" : ""}{(alert.changePercent || 0).toFixed(3)}%
                         </p>
                       </div>
                     )}
@@ -507,7 +507,7 @@ export default function Alerts() {
                     </div>
                     {alert.price && (
                       <div className="text-right">
-                        <p className="text-sm font-mono">{alert.price.toFixed(2)}</p>
+                        <p className="text-sm font-mono">{alert.price.toFixed(3)}</p>
                         <div className="flex items-center gap-0.5 justify-end">
                           {(alert.changePercent || 0) >= 0 ? (
                             <TrendingUp className="h-3 w-3 text-emerald-400" />
@@ -515,7 +515,7 @@ export default function Alerts() {
                             <TrendingDown className="h-3 w-3 text-red-400" />
                           )}
                           <span className={`text-[10px] font-mono ${(alert.changePercent || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {(alert.changePercent || 0) >= 0 ? "+" : ""}{(alert.changePercent || 0).toFixed(2)}%
+                            {(alert.changePercent || 0) >= 0 ? "+" : ""}{(alert.changePercent || 0).toFixed(3)}%
                           </span>
                         </div>
                       </div>
@@ -584,10 +584,10 @@ export default function Alerts() {
                         {alert.volumeMultiplier}x
                       </td>
                       <td className="py-2 px-3 text-right font-mono text-xs">
-                        {alert.price ? alert.price.toFixed(2) : "\u2014"}
+                        {alert.price ? alert.price.toFixed(3) : "—"}
                       </td>
                       <td className={`py-2 px-3 text-right font-mono text-xs ${(alert.changePercent || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {alert.changePercent != null ? `${alert.changePercent >= 0 ? "+" : ""}${alert.changePercent.toFixed(2)}%` : "\u2014"}
+                        {alert.changePercent != null ? `${alert.changePercent >= 0 ? "+" : ""}${alert.changePercent.toFixed(3)}%` : "—"}
                       </td>
                     </tr>
                   ))}

@@ -259,7 +259,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                   tickLine={false}
                   axisLine={false}
                   domain={priceDomain as [number, number]}
-                  tickFormatter={(v) => v.toFixed(2)}
+                  tickFormatter={(v) => v.toFixed(3)}
                   width={55}
                 />
                 <Tooltip

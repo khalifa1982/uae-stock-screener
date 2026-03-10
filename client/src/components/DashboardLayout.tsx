@@ -33,12 +33,15 @@ import {
   Grid3X3,
   LayoutDashboard,
   LogOut,
+  Moon,
   PanelLeft,
   Settings2,
+  Sun,
   TrendingUp,
   Zap,
 } from "lucide-react";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
+import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -119,6 +122,7 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (isCollapsed) {
@@ -306,6 +310,16 @@ function DashboardLayoutContent({
             <MarketStatusBadge />
           </div>
           <div className="flex items-center gap-2">
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="theme-toggle"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            )}
             <NotificationCenter />
           </div>
         </div>

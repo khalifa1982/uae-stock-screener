@@ -49,7 +49,7 @@ export function FairValueGauge({ currentPrice, fairValue, discount, method }: Fa
           style={{ left: `${currentPos}%`, transform: 'translateX(-50%)' }}
         >
           <span className="text-xs font-bold text-foreground whitespace-nowrap">
-            AED {currentPrice.toFixed(2)}
+            AED {currentPrice.toFixed(3)}
           </span>
           <span className="text-[10px] text-muted-foreground">Current</span>
           <div className="w-0.5 h-3 bg-foreground/60 mt-0.5" />
@@ -63,7 +63,7 @@ export function FairValueGauge({ currentPrice, fairValue, discount, method }: Fa
           <div className="w-0.5 h-3 mt-[42px]" style={{ background: isUndervalued ? 'oklch(0.72 0.17 155)' : 'oklch(0.65 0.22 25)' }} />
           <span className="text-[10px] text-muted-foreground mt-0.5">Fair Value</span>
           <span className="text-xs font-bold whitespace-nowrap" style={{ color: isUndervalued ? 'oklch(0.72 0.17 155)' : 'oklch(0.65 0.22 25)' }}>
-            AED {fairValue.toFixed(2)}
+            AED {fairValue.toFixed(3)}
           </span>
         </div>
       </div>

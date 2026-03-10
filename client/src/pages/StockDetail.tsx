@@ -35,7 +35,7 @@ import {
 import { ALL_STOCKS } from "../../../shared/stockData";
 
 // ─── Formatters ────────────────────────────────────────────────────
-function formatNumber(num: number | null | undefined, decimals = 2): string {
+function formatNumber(num: number | null | undefined, decimals = 3): string {
   if (num == null || isNaN(num)) return "—";
   return num.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
@@ -51,12 +51,12 @@ function formatLargeNumber(num: number | null | undefined): string {
 
 function formatPercent(num: number | null | undefined): string {
   if (num == null || isNaN(num)) return "—";
-  return (num * 100).toFixed(2) + "%";
+  return (num * 100).toFixed(3) + "%";
 }
 
 function formatRawPercent(num: number | null | undefined): string {
   if (num == null || isNaN(num)) return "—";
-  return (num > 0 ? "+" : "") + num.toFixed(2) + "%";
+  return (num > 0 ? "+" : "") + num.toFixed(3) + "%";
 }
 
 // ─── Reusable Components ───────────────────────────────────────────
@@ -261,7 +261,7 @@ export default function StockDetail() {
 
   const { data: detail, isLoading: detailLoading } = trpc.stocks.detail.useQuery(
     { symbol },
-    { enabled: !!symbol, staleTime: autoRefreshInterval ? 20_000 : 300_000, refetchInterval: autoRefreshInterval, gcTime: 1800_000, refetchOnWindowFocus: false }
+    { enabled: !!symbol, staleTime: autoRefreshInterval ? 3_000 : 300_000, refetchInterval: autoRefreshInterval ? 5_000 : undefined, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
@@ -357,7 +357,7 @@ export default function StockDetail() {
               {priceChange != null && (
                 <span className={`flex items-center gap-1 text-lg font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
                   {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
-                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
+                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(3)}%
                 </span>
               )}
             </div>
@@ -828,6 +828,10 @@ export default function StockDetail() {
                 price={detail.price}
                 change={detail.changePercent}
                 volume={detail.volume}
+                high={detail.dayHigh}
+                low={detail.dayLow}
+                open={detail.open}
+                previousClose={detail.previousClose}
               />
             </>
           )}

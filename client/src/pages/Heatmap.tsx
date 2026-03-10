@@ -145,7 +145,7 @@ export default function Heatmap() {
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Avg Change</p>
             <p className={`text-lg font-bold ${marketSummary.avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {marketSummary.avgChange >= 0 ? "+" : ""}{marketSummary.avgChange.toFixed(2)}%
+              {marketSummary.avgChange >= 0 ? "+" : ""}{marketSummary.avgChange.toFixed(3)}%
             </p>
           </CardContent>
         </Card>
@@ -219,7 +219,7 @@ export default function Heatmap() {
                 }`}>
                   {(() => {
                     const avg = stocks.reduce((s, st) => s + (st.changePercent || 0), 0) / stocks.length;
-                    return `${avg >= 0 ? "+" : ""}${avg.toFixed(2)}%`;
+                    return `${avg >= 0 ? "+" : ""}${avg.toFixed(3)}%`;
                   })()}
                 </span>
               </div>
@@ -237,7 +237,7 @@ export default function Heatmap() {
                       </div>
                       <div className="mt-2 flex items-end justify-between">
                         <p className="text-sm font-mono font-bold">
-                          {stock.price?.toFixed(2) || "—"}
+                          {stock.price?.toFixed(3) || "—"}
                         </p>
                         <div className="flex items-center gap-0.5">
                           {(stock.changePercent || 0) >= 0 ? (
@@ -247,7 +247,7 @@ export default function Heatmap() {
                           )}
                           <span className="text-xs font-mono font-bold">
                             {stock.changePercent != null
-                              ? `${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`
+                              ? `${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(3)}%`
                               : "—"}
                           </span>
                         </div>
