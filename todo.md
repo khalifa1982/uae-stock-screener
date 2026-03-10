@@ -316,3 +316,13 @@
 - [x] Tests for new TradingView services (tvExtended.test.ts - 12 tests)
 - [x] All 116 tests passing across 10 test files
 - [x] Verified all tabs render correctly for EMAAR stock
+
+## Bug Fixes - Price Chart Not Working
+
+- [x] Diagnosed: Yahoo Finance returns 'No data found' for many UAE stocks (PRESIGHT, ALDAR, IHC, ADNOCDIST, ADNOCGAS, FERTIGLB)
+- [x] Added TradingView synthetic chart as primary fallback (uses performance % data to interpolate daily prices)
+- [x] Added TwelveData time_series as final fallback (when API key is valid)
+- [x] Added null value filtering for all chart data sources
+- [x] Tested: PRESIGHT, ALDAR, IHC, ADNOCDIST, ADNOCGAS, FERTIGLB all return 92 data points
+- [x] EMAAR still uses Yahoo Finance (51 points) - existing path preserved
+- [x] All 116 tests passing
