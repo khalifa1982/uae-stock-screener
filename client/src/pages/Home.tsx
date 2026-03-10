@@ -595,6 +595,80 @@ export default function Home() {
           )}
         </CardContent>
       </Card>
+
+      {/* Footer - Developed by Aboood.AI */}
+      <footer className="mt-16 border-t border-border/30 bg-card/30 backdrop-blur-sm rounded-lg">
+        <div className="py-10 px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Brand */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
+                </div>
+                <span className="font-bold text-lg tracking-tight">UAE Stock Screener</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Real-time market intelligence for Abu Dhabi Securities Exchange (ADX) and Dubai Financial Market (DFM). 
+                Powered by TradingView data, TwelveData analytics, and AI-driven insights.
+              </p>
+            </div>
+
+            {/* Data Sources */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Data Sources</h4>
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <p>TradingView Scanner API</p>
+                <p>TwelveData &mdash; 104 Technical Indicators</p>
+                <p>AI Analysis Engine</p>
+                <p>Simply Wall St Snowflake Model</p>
+              </div>
+            </div>
+
+            {/* Markets */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Markets Covered</h4>
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <p>Abu Dhabi Securities Exchange (ADX)</p>
+                <p>Dubai Financial Market (DFM)</p>
+                <p>124 Listed Securities</p>
+                <p>All Sectors &amp; Industries</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border/20 mt-8 pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  Fully developed and designed by
+                </span>
+                <a 
+                  href="https://www.aboood.ai" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-chart-2/10 border border-primary/20 hover:border-primary/40 transition-all group"
+                >
+                  <span className="font-bold text-sm bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">
+                    Aboood.AI
+                  </span>
+                  <svg className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60 text-center md:text-right leading-relaxed max-w-md">
+                Brain AI &mdash; The first independent Arab AI system. Born in the UAE with 16 parallel neural engines, 
+                self-evolving architecture, and institutional-grade financial analysis.
+              </p>
+            </div>
+            <p className="text-[10px] text-muted-foreground/40 text-center mt-4">
+              Disclaimer: This platform is for informational purposes only. Not financial advice. Always do your own research before investing.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

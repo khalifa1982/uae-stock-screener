@@ -7,6 +7,7 @@ import { StockNewsTab } from "@/components/StockNewsTab";
 import { StockForecastsTab } from "@/components/StockForecastsTab";
 import { StockSeasonalsTab } from "@/components/StockSeasonalsTab";
 import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
+import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -625,181 +626,48 @@ export default function StockDetail() {
 
         {/* ═══════════════ TECHNICALS TAB ═══════════════ */}
         <TabsContent value="technicals" className="space-y-6 mt-4">
-          {profileLoading ? (
-            <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}</div>
-          ) : profile ? (
-            <>
-              {/* Recommendation Gauges */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-primary" /> Technical Rating
-                    <Badge variant="outline" className="text-[10px] ml-2">TradingView</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <RecommendationGauge value={profile.tvRecommendation} label="Overall" />
-                    <RecommendationGauge value={profile.tvRecommendMA} label="Moving Averages" />
-                    <RecommendationGauge value={profile.tvRecommendOscillators} label="Oscillators" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* TwelveData Real Technical Analysis */}
+          <TechnicalAnalysisTab
+            symbol={symbol}
+            exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
+            currentPrice={price ?? 0}
+          />
 
-              {/* Oscillators Table */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" /> Oscillators
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                    <div className="space-y-0.5">
-                      <OscillatorRow label="RSI (14)" value={profile.tvRSI != null ? formatNumber(profile.tvRSI, 2) : "—"} signal={getOscSignal("RSI", profile.tvRSI)} />
-                      <OscillatorRow label="Stochastic %K" value={profile.tvStochK != null ? formatNumber(profile.tvStochK, 2) : "—"} signal={getOscSignal("Stoch %K", profile.tvStochK)} />
-                      <OscillatorRow label="Stochastic %D" value={profile.tvStochD != null ? formatNumber(profile.tvStochD, 2) : "—"} />
-                      <OscillatorRow label="CCI (20)" value={profile.tvCCI20 != null ? formatNumber(profile.tvCCI20, 2) : "—"} signal={getOscSignal("CCI", profile.tvCCI20)} />
-                      <OscillatorRow label="ADX (14)" value={profile.tvADX != null ? formatNumber(profile.tvADX, 2) : "—"} signal={getOscSignal("ADX", profile.tvADX)} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <OscillatorRow label="Awesome Oscillator" value={profile.tvAO != null ? formatNumber(profile.tvAO, 4) : "—"} signal={getOscSignal("AO", profile.tvAO)} />
-                      <OscillatorRow label="Momentum (10)" value={profile.tvMomentum != null ? formatNumber(profile.tvMomentum, 4) : "—"} signal={getOscSignal("Momentum", profile.tvMomentum)} />
-                      <OscillatorRow label="MACD Level" value={profile.tvMACD != null ? formatNumber(profile.tvMACD, 4) : "—"} signal={getOscSignal("MACD", profile.tvMACD, { signal: profile.tvMACDSignal })} />
-                      <OscillatorRow label="MACD Signal" value={profile.tvMACDSignal != null ? formatNumber(profile.tvMACDSignal, 4) : "—"} />
-                      <OscillatorRow label="RSI (prev)" value={profile.tvRSIPrev != null ? formatNumber(profile.tvRSIPrev, 2) : "—"} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Moving Averages Table */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <ArrowUpDown className="h-4 w-4 text-primary" /> Moving Averages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Simple (SMA)</h4>
-                      <div className="space-y-0.5">
-                        <MARow label="SMA 5" value={profile.tvSMA5} price={price} />
-                        <MARow label="SMA 10" value={profile.tvSMA10} price={price} />
-                        <MARow label="SMA 20" value={profile.tvSMA20} price={price} />
-                        <MARow label="SMA 30" value={profile.tvSMA30} price={price} />
-                        <MARow label="SMA 50" value={profile.tvSMA50} price={price} />
-                        <MARow label="SMA 100" value={profile.tvSMA100} price={price} />
-                        <MARow label="SMA 200" value={profile.tvSMA200} price={price} />
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Exponential (EMA)</h4>
-                      <div className="space-y-0.5">
-                        <MARow label="EMA 5" value={profile.tvEMA5} price={price} />
-                        <MARow label="EMA 10" value={profile.tvEMA10} price={price} />
-                        <MARow label="EMA 20" value={profile.tvEMA20} price={price} />
-                        <MARow label="EMA 30" value={profile.tvEMA30} price={price} />
-                        <MARow label="EMA 50" value={profile.tvEMA50} price={price} />
-                        <MARow label="EMA 100" value={profile.tvEMA100} price={price} />
-                        <MARow label="EMA 200" value={profile.tvEMA200} price={price} />
-                      </div>
-                    </div>
-                  </div>
-                  <Separator className="my-4" />
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Other</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8">
-                    <MARow label="Ichimoku Base" value={profile.tvIchimoku} price={price} />
-                    <MARow label="VWMA" value={profile.tvVWMA} price={price} />
-                    <MARow label="Hull MA (9)" value={profile.tvHullMA9} price={price} />
-                  </div>
-                  <Separator className="my-4" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Bollinger Bands</h4>
-                      <DataRow label="Upper Band" value={profile.tvBBUpper != null ? formatNumber(profile.tvBBUpper, 3) : "—"} />
-                      <DataRow label="Lower Band" value={profile.tvBBLower != null ? formatNumber(profile.tvBBLower, 3) : "—"} />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">ATR</h4>
-                      <DataRow label="ATR (14)" value={profile.tvATR != null ? formatNumber(profile.tvATR, 4) : "—"} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Pivot Points */}
-              {profile.tvPivotMiddle != null && (
-                <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <CircleDot className="h-4 w-4 text-primary" /> Pivot Points (Classic)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-7 gap-2 text-center">
-                      {[
-                        { label: "S3", val: profile.tvPivotS3, color: "text-loss" },
-                        { label: "S2", val: profile.tvPivotS2, color: "text-loss/80" },
-                        { label: "S1", val: profile.tvPivotS1, color: "text-loss/60" },
-                        { label: "Pivot", val: profile.tvPivotMiddle, color: "text-primary" },
-                        { label: "R1", val: profile.tvPivotR1, color: "text-gain/60" },
-                        { label: "R2", val: profile.tvPivotR2, color: "text-gain/80" },
-                        { label: "R3", val: profile.tvPivotR3, color: "text-gain" },
-                      ].map(({ label, val, color }) => (
-                        <div key={label} className="p-3 rounded-lg bg-secondary/30">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-                          <p className={`text-sm font-bold font-mono ${color}`}>{val != null ? formatNumber(val, 3) : "—"}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Volume Analysis */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" /> Volume Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Current</p>
-                      <p className="text-sm font-bold font-mono">{formatLargeNumber(detail?.volume)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 10d</p>
-                      <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume10d)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 30d</p>
-                      <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume30d)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 90d</p>
-                      <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume90d)}</p>
-                    </div>
-                  </div>
-                  {detail?.volume != null && profile.tvAvgVolume30d != null && profile.tvAvgVolume30d > 0 && (
-                    <div className={`mt-3 p-2.5 rounded-lg border ${detail.volume > profile.tvAvgVolume30d * 1.5 ? "border-primary/30 bg-primary/5" : "border-border/30 bg-secondary/10"}`}>
-                      <p className="text-xs text-muted-foreground">
-                        Volume is <span className="font-mono font-semibold text-foreground">{(detail.volume / profile.tvAvgVolume30d).toFixed(2)}x</span> the 30-day average
-                        {detail.volume > profile.tvAvgVolume30d * 2 && <span className="text-primary ml-1">(Unusual activity)</span>}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          ) : (
+          {/* Volume Analysis from TradingView */}
+          {profile && (
             <Card className="border-border/50">
-              <CardContent className="py-12 text-center">
-                <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Technical data is not available for this stock.</p>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Volume Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Current</p>
+                    <p className="text-sm font-bold font-mono">{formatLargeNumber(detail?.volume)}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 10d</p>
+                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume10d)}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 30d</p>
+                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume30d)}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 90d</p>
+                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume90d)}</p>
+                  </div>
+                </div>
+                {detail?.volume != null && profile.tvAvgVolume30d != null && profile.tvAvgVolume30d > 0 && (
+                  <div className={`mt-3 p-2.5 rounded-lg border ${detail.volume > profile.tvAvgVolume30d * 1.5 ? "border-primary/30 bg-primary/5" : "border-border/30 bg-secondary/10"}`}>
+                    <p className="text-xs text-muted-foreground">
+                      Volume is <span className="font-mono font-semibold text-foreground">{(detail.volume / profile.tvAvgVolume30d).toFixed(2)}x</span> the 30-day average
+                      {detail.volume > profile.tvAvgVolume30d * 2 && <span className="text-primary ml-1">(Unusual activity)</span>}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

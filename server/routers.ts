@@ -16,6 +16,8 @@ import { getYahooStats } from "./services/yahooFinanceService";
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
+import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
+import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -1201,6 +1203,102 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       .query(async ({ input }) => {
         const stocks = await fetchTVStocksByTickers(input.tickers);
         return { count: stocks.length, stocks };
+      }),
+  }),
+
+  // ─── TwelveData endpoints (UAE only) ──────────────────────────────
+  td: router({
+    // Real OHLCV chart data from TwelveData
+    chart: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        interval: z.enum(["1day", "1week", "1month"]).default("1day"),
+        outputsize: z.number().min(10).max(5000).default(90),
+      }))
+      .query(async ({ input }) => {
+        const candles = await fetchChartData(input.symbol, input.exchange, input.interval, input.outputsize);
+        return { candles: candles || [] };
+      }),
+
+    // Real-time quote from TwelveData
+    quote: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        const quote = await fetchQuote(input.symbol, input.exchange);
+        return quote;
+      }),
+
+    // Comprehensive technical analysis with all indicators
+    technicals: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        currentPrice: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const analysis = await fetchTechnicalAnalysis(input.symbol, input.exchange, input.currentPrice);
+        return analysis;
+      }),
+
+    // Bollinger Bands history for chart overlay
+    bbands: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        outputsize: z.number().default(90),
+      }))
+      .query(async ({ input }) => {
+        const bands = await fetchBBandsHistory(input.symbol, input.exchange, input.outputsize);
+        return { bands: bands || [] };
+      }),
+
+    // MACD history for chart
+    macd: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        outputsize: z.number().default(90),
+      }))
+      .query(async ({ input }) => {
+        const data = await fetchMACDHistory(input.symbol, input.exchange, input.outputsize);
+        return { data: data || [] };
+      }),
+
+    // RSI history for chart
+    rsi: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        outputsize: z.number().default(90),
+      }))
+      .query(async ({ input }) => {
+        const data = await fetchRSIHistory(input.symbol, input.exchange, input.outputsize);
+        return { data: data || [] };
+      }),
+
+    // Market state (open/closed) for DFM and ADX
+    marketState: publicProcedure
+      .input(z.object({ exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        const state = await fetchMarketState(input.exchange);
+        return state;
+      }),
+
+    // Statistics (52-week range, volume averages, beta, MAs)
+    statistics: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        const stats = await fetchStatistics(input.symbol, input.exchange);
+        return stats;
+      }),
+
+    // Symbol mapping info
+    symbolInfo: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(({ input }) => {
+        const info = toTwelveDataSymbol(input.symbol, input.exchange);
+        return info;
       }),
   }),
 });
