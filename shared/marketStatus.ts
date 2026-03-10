@@ -2,18 +2,21 @@
  * UAE Stock Market Status Utility
  * 
  * Market Hours (UAE/GST = UTC+4):
- * - Trading Days: Monday to Friday
+ * - Trading Days: Monday to Friday (excluding public holidays)
  * - Pre-Open:    9:00 AM - 9:30 AM
  * - Open:        9:30 AM - 2:50 PM
  * - Pre-Close:   2:50 PM - 3:00 PM
  * - Closed:      3:00 PM - 9:00 AM (next day)
  * - Weekend:     Saturday & Sunday (fully closed)
+ * - Holidays:    UAE public holidays (Eid Al Fitr, Eid Al Adha, National Day, etc.)
  * 
  * Both ADX (Abu Dhabi Securities Exchange) and DFM (Dubai Financial Market)
  * follow the same schedule.
  */
 
-export type MarketPhase = "pre-open" | "open" | "pre-close" | "closed";
+import { getHoliday, isTradingDay, getNextTradingDay, type UAEHoliday } from "./uaeHolidays";
+
+export type MarketPhase = "pre-open" | "open" | "pre-close" | "closed" | "holiday";
 
 export interface MarketStatus {
   phase: MarketPhase;
@@ -25,6 +28,7 @@ export interface MarketStatus {
   nextPhaseLabel: string;
   uaeTimeStr: string;       // e.g. "10:35 AM"
   uaeDayStr: string;        // e.g. "Monday"
+  holiday?: UAEHoliday;     // Present if today is a holiday
 }
 
 /**
@@ -58,7 +62,7 @@ function formatUAETime(uae: Date): string {
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /**
- * Get the current market status with full details
+ * Get the current market status with full details, including holiday awareness
  */
 export function getMarketStatus(now?: Date): MarketStatus {
   const { hour, minute, day, uae, utcNow } = getUAETime(now);
@@ -66,24 +70,41 @@ export function getMarketStatus(now?: Date): MarketStatus {
   const uaeTimeStr = formatUAETime(uae);
   const uaeDayStr = DAY_NAMES[day];
 
+  // Check for holiday first (takes priority over weekday checks)
+  const holiday = getHoliday(utcNow);
+
   // Weekend: Saturday (6) and Sunday (0)
   if (day === 0 || day === 6) {
-    const nextMonday = new Date(uae);
-    const daysUntilMonday = day === 6 ? 2 : 1;
-    nextMonday.setUTCDate(nextMonday.getUTCDate() + daysUntilMonday);
-    nextMonday.setUTCHours(9, 0, 0, 0);
-    const nextPhaseUTC = new Date(nextMonday.getTime() - (4 * 60 * 60 * 1000));
+    const nextTrading = getNextTradingDay(utcNow);
     
     return {
       phase: "closed",
       label: "Market Closed",
-      description: "Weekend - Markets reopen Monday at 9:00 AM",
+      description: "Weekend — Markets reopen on the next trading day",
       isTrading: false,
       nextPhase: "pre-open",
-      nextPhaseTime: nextPhaseUTC.toISOString(),
-      nextPhaseLabel: "Pre-Open Monday 9:00 AM",
+      nextPhaseTime: nextTrading.toISOString(),
+      nextPhaseLabel: `Pre-Open ${formatNextDayLabel(nextTrading)}`,
       uaeTimeStr,
       uaeDayStr,
+    };
+  }
+
+  // Holiday on a weekday
+  if (holiday) {
+    const nextTrading = getNextTradingDay(utcNow);
+    
+    return {
+      phase: "holiday",
+      label: `Holiday — ${holiday.name}`,
+      description: `Market closed for ${holiday.name}${holiday.nameAr ? ` (${holiday.nameAr})` : ""}`,
+      isTrading: false,
+      nextPhase: "pre-open",
+      nextPhaseTime: nextTrading.toISOString(),
+      nextPhaseLabel: `Pre-Open ${formatNextDayLabel(nextTrading)}`,
+      uaeTimeStr,
+      uaeDayStr,
+      holiday,
     };
   }
 
@@ -96,7 +117,7 @@ export function getMarketStatus(now?: Date): MarketStatus {
     return {
       phase: "pre-open",
       label: "Pre-Open",
-      description: "Pre-opening auction session - Market opens at 9:30 AM",
+      description: "Pre-opening auction session — Market opens at 9:30 AM",
       isTrading: false,
       nextPhase: "open",
       nextPhaseTime: nextPhaseUTC.toISOString(),
@@ -134,7 +155,7 @@ export function getMarketStatus(now?: Date): MarketStatus {
     return {
       phase: "pre-close",
       label: "Pre-Close",
-      description: "Closing auction session - Market closes at 3:00 PM",
+      description: "Closing auction session — Market closes at 3:00 PM",
       isTrading: true,
       nextPhase: "closed",
       nextPhaseTime: nextPhaseUTC.toISOString(),
@@ -145,25 +166,22 @@ export function getMarketStatus(now?: Date): MarketStatus {
   }
 
   // Closed: Before 9:00 AM or after 3:00 PM on weekdays
-  const nextDay = new Date(uae);
-  if (timeInMinutes >= 900) {
-    // After 3 PM - next trading day
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-    // Skip weekend
-    while (nextDay.getUTCDay() === 0 || nextDay.getUTCDay() === 6) {
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-    }
-  }
-  nextDay.setUTCHours(9, 0, 0, 0);
-  const nextPhaseUTC = new Date(nextDay.getTime() - (4 * 60 * 60 * 1000));
+  const nextTrading = timeInMinutes >= 900
+    ? getNextTradingDay(utcNow)
+    : (() => {
+        // Before 9 AM today - check if today is a trading day
+        const todayOpen = new Date(uae);
+        todayOpen.setUTCHours(9, 0, 0, 0);
+        return new Date(todayOpen.getTime() - (4 * 60 * 60 * 1000));
+      })();
 
   const isFriday = day === 5;
   const isAfterClose = timeInMinutes >= 900;
   let desc = "Market is closed";
   if (isFriday && isAfterClose) {
-    desc = "Weekend - Markets reopen Monday at 9:00 AM";
+    desc = "Weekend — Markets reopen on the next trading day";
   } else if (isAfterClose) {
-    desc = "Market closed for the day - Reopens tomorrow at 9:00 AM";
+    desc = "Market closed for the day — Reopens on the next trading day";
   } else {
     desc = "Market opens today at 9:00 AM";
   }
@@ -174,11 +192,21 @@ export function getMarketStatus(now?: Date): MarketStatus {
     description: desc,
     isTrading: false,
     nextPhase: "pre-open",
-    nextPhaseTime: nextPhaseUTC.toISOString(),
-    nextPhaseLabel: `Pre-Open ${formatUAETime(nextDay)}`,
+    nextPhaseTime: nextTrading.toISOString(),
+    nextPhaseLabel: isAfterClose ? `Pre-Open ${formatNextDayLabel(nextTrading)}` : "Pre-Open 9:00 AM",
     uaeTimeStr,
     uaeDayStr,
   };
+}
+
+/**
+ * Format a next-day label showing the day name
+ */
+function formatNextDayLabel(utcDate: Date): string {
+  const uaeMs = utcDate.getTime() + (4 * 60 * 60 * 1000);
+  const uae = new Date(uaeMs);
+  const dayName = DAY_NAMES[uae.getUTCDay()];
+  return `${dayName} 9:00 AM`;
 }
 
 /**

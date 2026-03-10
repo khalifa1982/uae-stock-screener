@@ -239,7 +239,7 @@ export default function Home() {
             <MarketStatusBadge />
           </div>
           <p className="text-muted-foreground text-sm mt-1">
-            UAE Stock Market — ADX & DFM Exchanges
+            uae.market — ADX & DFM Exchanges
             {autoRefreshInterval && (
               <span className="ml-2 text-xs text-primary/70">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse mr-1 align-middle" />
@@ -604,13 +604,13 @@ export default function Home() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">A</span>
+                  <span className="text-white font-bold text-sm">M</span>
                 </div>
-                <span className="font-bold text-lg tracking-tight">UAE Stock Screener</span>
+                <span className="font-bold text-lg tracking-tight">uae.market</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Real-time market intelligence for Abu Dhabi Securities Exchange (ADX) and Dubai Financial Market (DFM). 
-                Powered by TradingView data, TwelveData analytics, and AI-driven insights.
+                Powered by TradingView data, TwelveData analytics, and AI-driven insights. Visit us at <a href="https://www.uae.market" className="text-primary hover:underline">www.uae.market</a>
               </p>
             </div>
 

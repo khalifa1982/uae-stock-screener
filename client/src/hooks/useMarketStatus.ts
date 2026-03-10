@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { getMarketStatus, type MarketStatus } from "../../../shared/marketStatus";
 
 /**
  * Hook that provides live market status, updating every second.
  * Also provides a countdown to the next market phase.
+ * Holiday-aware: detects UAE public holidays and shows appropriate status.
  */
 export function useMarketStatus() {
   const [status, setStatus] = useState<MarketStatus>(() => getMarketStatus());
@@ -44,7 +45,10 @@ export function useMarketStatus() {
  * Hook that returns the appropriate refetch interval based on market status.
  * - During market hours (open/pre-close): 30 seconds
  * - During pre-open: 60 seconds
- * - When closed: disabled (false)
+ * - When closed or holiday: disabled (false)
+ * 
+ * This ensures no unnecessary API calls outside of trading hours,
+ * including weekends and UAE public holidays.
  */
 export function useAutoRefreshInterval(): number | false {
   const [interval, setInterval_] = useState<number | false>(false);
@@ -57,7 +61,8 @@ export function useAutoRefreshInterval(): number | false {
       } else if (s.phase === "pre-open") {
         setInterval_(60 * 1000); // 60 seconds during pre-open
       } else {
-        setInterval_(false); // No auto-refresh when closed
+        // Closed, holiday, or weekend - no auto-refresh
+        setInterval_(false);
       }
     };
 

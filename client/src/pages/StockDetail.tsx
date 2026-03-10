@@ -8,6 +8,7 @@ import { StockForecastsTab } from "@/components/StockForecastsTab";
 import { StockSeasonalsTab } from "@/components/StockSeasonalsTab";
 import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
+import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,7 @@ import {
   Activity, BarChart3, Brain, Loader2, DollarSign, Target,
   Gauge, Building2, Users, Globe, FileText, PieChart,
   Calendar, Briefcase, BookOpen, ExternalLink, Layers,
-  Shield, Zap, ArrowUpDown, Hash, CircleDot, Newspaper,
+  Shield, Zap, ArrowUpDown, Hash, CircleDot, Newspaper, BookOpenCheck,
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import {
@@ -360,6 +361,7 @@ export default function StockDetail() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-secondary/50 flex-wrap">
           <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="orderbook" className="text-xs gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
           <TabsTrigger value="technicals" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
           <TabsTrigger value="financials" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
           <TabsTrigger value="news" className="text-xs gap-1.5"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
@@ -837,6 +839,30 @@ export default function StockDetail() {
                 <p className="text-muted-foreground">Financial data is not available for this stock.</p>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* ═══════════════ ORDER BOOK TAB ═══════════════ */}
+        <TabsContent value="orderbook" className="space-y-6 mt-4">
+          {detail && (
+            <>
+              <PriceBook
+                price={detail.price}
+                change={detail.changePercent}
+                volume={detail.volume}
+                high={detail.dayHigh}
+                low={detail.dayLow}
+              />
+              <OrderBook
+                price={detail.price}
+                open={detail.open}
+                high={detail.dayHigh}
+                low={detail.dayLow}
+                volume={detail.volume}
+                avgVolume={detail.avgVolume}
+                change={detail.changePercent}
+              />
+            </>
           )}
         </TabsContent>
 

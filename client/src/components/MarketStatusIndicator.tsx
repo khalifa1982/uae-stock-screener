@@ -6,9 +6,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Clock } from "lucide-react";
+import { Clock, CalendarOff } from "lucide-react";
+import type { MarketPhase } from "../../../shared/marketStatus";
 
-const phaseConfig = {
+const phaseConfig: Record<MarketPhase, { color: string; dotColor: string; pulseColor: string }> = {
   "pre-open": {
     color: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     dotColor: "bg-amber-400",
@@ -28,6 +29,11 @@ const phaseConfig = {
     color: "bg-red-500/10 text-red-400/70 border-red-500/20",
     dotColor: "bg-red-400/70",
     pulseColor: "bg-red-400/30",
+  },
+  "holiday": {
+    color: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+    dotColor: "bg-purple-400",
+    pulseColor: "bg-purple-400/40",
   },
 };
 
@@ -53,7 +59,14 @@ export function MarketStatusBadge() {
               )}
               <span className={`relative inline-flex rounded-full h-2 w-2 ${config.dotColor}`} />
             </span>
-            {status.label}
+            {status.phase === "holiday" ? (
+              <span className="flex items-center gap-1">
+                <CalendarOff className="h-3 w-3" />
+                Holiday
+              </span>
+            ) : (
+              status.label
+            )}
             {status.countdown && (
               <span className="text-[10px] opacity-70 font-mono ml-0.5">({status.countdown})</span>
             )}
@@ -63,6 +76,12 @@ export function MarketStatusBadge() {
           <div className="space-y-1.5">
             <p className="font-medium text-sm">{status.label}</p>
             <p className="text-xs text-muted-foreground">{status.description}</p>
+            {status.holiday && (
+              <div className="flex items-center gap-2 text-xs text-purple-400 pt-1 border-t border-border/50">
+                <CalendarOff className="h-3 w-3" />
+                <span>{status.holiday.name}{status.holiday.nameAr ? ` — ${status.holiday.nameAr}` : ""}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
               <Clock className="h-3 w-3" />
               <span>{status.uaeDayStr}, {status.uaeTimeStr} UAE</span>
@@ -98,6 +117,9 @@ export function MarketStatusCard() {
         </span>
         <span className="font-semibold text-sm">{status.label}</span>
       </div>
+      {status.holiday && (
+        <span className="text-xs opacity-80">{status.holiday.nameAr}</span>
+      )}
       <span className="text-xs opacity-70">{status.uaeDayStr} {status.uaeTimeStr}</span>
       {status.countdown && (
         <span className="text-xs font-mono ml-auto opacity-80">

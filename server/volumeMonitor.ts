@@ -19,6 +19,7 @@ import { notifyOwner } from "./_core/notification";
 import { getDb, createNotificationsForAllUsers } from "./db";
 import { volumeAlerts, monitorSettings } from "../drizzle/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { isHoliday } from "../shared/uaeHolidays";
 
 // In-memory state
 let monitorInterval: ReturnType<typeof setInterval> | null = null;
@@ -62,6 +63,8 @@ export function isUAETradingHours(): boolean {
   // UAE markets: Mon-Fri, 9:30 - 15:00
   // Weekend: Saturday (6) & Sunday (0)
   if (uaeDay === 0 || uaeDay === 6) return false; // Weekend: Sat & Sun
+  // Check for UAE public holidays
+  if (isHoliday(now)) return false;
   const timeInMinutes = uaeHour * 60 + uaeMinute;
   // Active from 9:30 (570) to 15:00 (900)
   if (timeInMinutes < 570 || timeInMinutes >= 900) return false;

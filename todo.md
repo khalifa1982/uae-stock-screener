@@ -373,3 +373,40 @@
 
 ### Feature Ideas Update
 - [x] Updated FEATURE_IDEAS.md with TwelveData-enabled ideas (103 total ideas across 10 categories)
+
+## Phase 13 - Smart Auto-Refresh, UAE Holidays, Order Book, uae.market Branding
+
+### Smart Auto-Refresh System
+- [x] 30-second auto-refresh during market hours (Mon-Fri 9:30am-3pm UAE time)
+- [x] Market phases: Pre-Open (9:00-9:30), Open (9:30-2:50), Pre-Close (2:50-3:00), Closed
+- [x] Auto-refresh pauses when market is closed
+- [x] No refresh activation until next working day after market closes
+- [x] Check UAE public holidays and skip refresh on holidays
+- [x] useAutoRefreshInterval hook: 30s during open/pre-close, 60s during pre-open, disabled when closed/holiday
+
+### UAE Public Holiday Calendar
+- [x] Research and implement UAE public holidays for 2025-2027 (uaeHolidays.ts)
+- [x] 45+ holidays across 3 years (Eid Al Fitr, Eid Al Adha, National Day, Isra Mi'raj, etc.)
+- [x] Holiday-aware market status (shared/marketStatus.ts)
+- [x] Market status shows "Holiday" on public holidays with purple badge
+- [x] Holiday name displayed in market status indicator (English + Arabic)
+- [x] Volume monitor skips polling on holidays
+- [x] getNextTradingDay skips weekends AND holidays
+- [x] getUpcomingHolidays utility function
+
+### Order Book & Price Book (Live Data)
+- [x] Order Book component with simulated depth based on real-time market data
+- [x] Bid/Ask depth visualization with volume bars
+- [x] Buy/Sell pressure indicator bar
+- [x] Price Book compact display (best bid, best ask, last price, day range)
+- [x] Spread calculation and display
+- [x] New "Order Book" tab in stock detail page
+- [x] Note: Simulated depth (no Level 2 data available for UAE stocks from free APIs)
+
+### www.uae.market Branding
+- [x] Update app title to "UAE Market — www.uae.market"
+- [x] Update sidebar branding to "uae.market" with "ADX & DFM" subtitle
+- [x] Update dashboard subtitle to "uae.market — ADX & DFM Exchanges"
+- [x] Domain www.uae.market configured
+- [x] Update meta tags, OG tags for uae.market domain (description, keywords, og:title, og:description, og:url, twitter cards, canonical)
+- [x] Footer brand updated to "uae.market" with link to www.uae.market

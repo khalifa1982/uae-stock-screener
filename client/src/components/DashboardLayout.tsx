@@ -144,10 +144,17 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-                  <span className="font-semibold tracking-tight truncate text-sm">
-                    UAE Screener
-                  </span>
+                  <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-bold tracking-tight truncate text-sm block leading-tight">
+                      uae.market
+                    </span>
+                    <span className="text-[9px] text-muted-foreground/70 uppercase tracking-widest leading-none">
+                      ADX & DFM
+                    </span>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -238,9 +245,13 @@ function DashboardLayoutContent({
               <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
             )}
             <div className="flex items-center gap-3">
-              {isMobile && <TrendingUp className="h-5 w-5 text-primary" />}
+              {isMobile && (
+                <div className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                </div>
+              )}
               <span className="tracking-tight text-foreground font-medium text-sm">
-                {activeMenuItem?.label ?? "UAE Screener"}
+                {activeMenuItem?.label ?? "uae.market"}
               </span>
             </div>
             <MarketStatusBadge />
