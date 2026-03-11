@@ -47,6 +47,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { APP_VERSION } from "../../../shared/const";
 
 const baseMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -332,6 +333,13 @@ function DashboardLayoutContent({
 
         {/* ─── Main Content ─── */}
         <main className="flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
+
+        {/* ─── Footer ─── */}
+        <footer className="border-t border-border/20 px-4 py-3 text-center">
+          <p className="text-[11px] text-muted-foreground/50 tracking-wide">
+            UAE Market &mdash; www.uae.market &middot; {APP_VERSION}
+          </p>
+        </footer>
 
         {/* ─── Mobile Bottom Navigation ─── */}
         {isMobile && (

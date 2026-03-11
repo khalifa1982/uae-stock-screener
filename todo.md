@@ -672,3 +672,9 @@
 - [x] Push to DockerHub (khalifa1982/uae-market:v9)
 - [x] Deploy to Northflank via API
 - [x] Verify all features working on live site
+
+## Phase 23 - Version Footer
+
+- [x] Add version number to website footer (visible on all pages)
+- [x] Update version on every deployment
+- [x] Build and deploy v9.1 with version footer
