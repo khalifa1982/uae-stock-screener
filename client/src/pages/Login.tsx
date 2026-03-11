@@ -118,6 +118,16 @@ export default function Login() {
                 {isLogin ? "Sign up" : "Sign in"}
               </button>
             </p>
+            {isLogin && (
+              <p className="text-sm text-muted-foreground text-center">
+                <a
+                  href="/forgot-password"
+                  className="text-primary/70 hover:text-primary underline hover:no-underline transition-colors"
+                >
+                  Forgot your password?
+                </a>
+              </p>
+            )}
           </CardFooter>
         </form>
       </Card>

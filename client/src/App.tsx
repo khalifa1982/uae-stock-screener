@@ -13,14 +13,19 @@ import Heatmap from "./pages/Heatmap";
 import Admin from "./pages/Admin";
 import Calendar from "./pages/Calendar";
 import NotificationSettings from "./pages/NotificationSettings";
+import MarketNews from "./pages/MarketNews";
 import DashboardLayout from "./components/DashboardLayout";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function Router() {
   return (
     <Switch>
-      {/* Login page outside dashboard layout */}
+      {/* Auth pages outside dashboard layout */}
       <Route path={"/login"} component={Login} />
+      <Route path={"/forgot-password"} component={ForgotPassword} />
+      <Route path={"/reset-password"} component={ResetPassword} />
       
       {/* All other routes inside dashboard layout */}
       <Route>
@@ -32,6 +37,7 @@ function Router() {
             <Route path={"/watchlist"} component={Watchlist} />
             <Route path={"/heatmap"} component={Heatmap} />
             <Route path={"/calendar"} component={Calendar} />
+            <Route path={"/news"} component={MarketNews} />
             <Route path={"/notifications"} component={NotificationSettings} />
             <Route path={"/admin"} component={Admin} />
             <Route path={"/stock/:symbol"} component={StockDetail} />

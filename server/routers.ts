@@ -1087,6 +1087,66 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         })).filter((p: any) => p.close > 0);
         return computeSeasonality(chartData);
       }),
+    // Corporate events calendar (earnings & dividends from TradingView)
+    corporateEvents: publicProcedure
+      .query(async () => {
+        const cacheKey = "corporateEvents";
+        const cached = getFromMemoryCache(cacheKey);
+        if (cached && Array.isArray(cached) && cached[0]) return cached[0] as any;
+
+        try {
+          const resp = await fetch("https://scanner.tradingview.com/uae/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              columns: [
+                "name", "description", "exchange",
+                "earnings_release_next_date", "earnings_release_date",
+                "dividend_ex_date_upcoming",
+                "close", "change", "sector"
+              ],
+              filter: [{ left: "exchange", operation: "in_range", right: ["DFM", "ADX"] }],
+              sort: { sortBy: "earnings_release_next_date", sortOrder: "asc" },
+              range: [0, 200],
+            }),
+          });
+
+          const json = await resp.json() as any;
+          const events: Array<{
+            symbol: string;
+            name: string;
+            exchange: string;
+            earningsNext: number | null;
+            earningsLast: number | null;
+            dividendExDate: number | null;
+            price: number | null;
+            change: number | null;
+            sector: string | null;
+          }> = [];
+
+          for (const row of json.data || []) {
+            const d = row.d;
+            events.push({
+              symbol: row.s?.split(":")[1] || d[0],
+              name: d[1],
+              exchange: d[2] || row.s?.split(":")[0] || "DFM",
+              earningsNext: d[3] ? d[3] * 1000 : null,
+              earningsLast: d[4] ? d[4] * 1000 : null,
+              dividendExDate: d[5] ? d[5] * 1000 : null,
+              price: d[6],
+              change: d[7],
+              sector: d[8],
+            });
+          }
+
+          const result = { events, fetchedAt: Date.now() };
+          setMemoryCache(cacheKey, [result] as any);
+          return result;
+        } catch (err) {
+          console.error("[CorporateEvents] Failed to fetch:", err);
+          return { events: [], fetchedAt: Date.now() };
+        }
+      }),
   }),
 
   watchlist: router({
@@ -1419,6 +1479,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         const info = toTwelveDataSymbol(input.symbol, input.exchange);
         return info;
       }),
+
   }),
 });
 

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Grid3X3, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import { usePriceFlashes, getFlashClass } from "@/hooks/usePriceFlash";
 
 function getHeatColor(change: number | null): string {
   if (change == null) return "bg-zinc-800/50";
@@ -52,12 +53,24 @@ export default function Heatmap() {
   const { data: allStocks, isLoading, refetch } = trpc.stocks.fetchAll.useQuery(
     { exchange },
     { 
-      staleTime: 5 * 60 * 1000,
+      staleTime: 5_000,
       gcTime: 30 * 60 * 1000,
-      refetchInterval: 10 * 60 * 1000,
+      refetchInterval: 10_000, // 10s refresh for live blinking
       refetchOnWindowFocus: false,
     }
   );
+
+  // Track price changes for flash animations
+  const flashableStocks = useMemo(() => {
+    if (!allStocks) return undefined;
+    return (allStocks as StockData[]).map(s => ({
+      symbol: s.symbol,
+      exchange: s.exchange,
+      price: s.price ?? null,
+      changePercent: s.changePercent ?? null,
+    }));
+  }, [allStocks]);
+  const flashes = usePriceFlashes(flashableStocks);
 
   const stocksWithData = useMemo(() => {
     if (!allStocks) return [];
@@ -104,10 +117,13 @@ export default function Heatmap() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Market Heatmap</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visual overview of stock performance by sector
+            Visual overview of stock performance by sector &mdash; <span className="text-primary">live blinking</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary animate-pulse">
+            LIVE
+          </Badge>
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
@@ -224,42 +240,46 @@ export default function Heatmap() {
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {stocks.map(stock => (
-                  <Link key={stock.symbol} href={`/stock/${stock.symbol}`}>
-                    <div
-                      className={`${getHeatColor(stock.changePercent ?? null)} ${getTextColor(stock.changePercent ?? null)} rounded-lg p-3 cursor-pointer hover:ring-1 hover:ring-white/20 transition-all group relative overflow-hidden`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold truncate">{stock.symbol}</p>
-                          <p className="text-[10px] opacity-70 truncate">{stock.name}</p>
+                {stocks.map(stock => {
+                  const flashClass = getFlashClass(flashes, stock.exchange, stock.symbol);
+                  return (
+                    <Link key={stock.symbol} href={`/stock/${stock.symbol}`}>
+                      <div
+                        className={`${getHeatColor(stock.changePercent ?? null)} ${getTextColor(stock.changePercent ?? null)} rounded-lg p-3 cursor-pointer hover:ring-1 hover:ring-white/20 transition-all group relative overflow-hidden ${flashClass}`}
+                      >
+                        {/* Flash overlay for visual emphasis */}
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold truncate">{stock.symbol}</p>
+                            <p className="text-[10px] opacity-70 truncate">{stock.name}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-2 flex items-end justify-between">
-                        <p className="text-sm font-mono font-bold">
-                          {stock.price?.toFixed(3) || "—"}
-                        </p>
-                        <div className="flex items-center gap-0.5">
-                          {(stock.changePercent || 0) >= 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          <span className="text-xs font-mono font-bold">
-                            {stock.changePercent != null
-                              ? `${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(3)}%`
-                              : "—"}
-                          </span>
+                        <div className="mt-2 flex items-end justify-between">
+                          <p className="text-sm font-mono font-bold">
+                            {stock.price?.toFixed(3) || "—"}
+                          </p>
+                          <div className="flex items-center gap-0.5">
+                            {(stock.changePercent || 0) >= 0 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
+                            <span className="text-xs font-mono font-bold">
+                              {stock.changePercent != null
+                                ? `${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(3)}%`
+                                : "—"}
+                            </span>
+                          </div>
                         </div>
+                          {stock.marketCap ? (
+                          <p className="text-[9px] opacity-50 mt-1">
+                            MCap: {formatMarketCap(stock.marketCap ?? null)}
+                          </p>
+                        ) : null}
                       </div>
-                        {stock.marketCap ? (
-                        <p className="text-[9px] opacity-50 mt-1">
-                          MCap: {formatMarketCap(stock.marketCap ?? null)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ))}

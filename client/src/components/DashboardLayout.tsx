@@ -38,6 +38,7 @@ import {
   Settings2,
   Sun,
   TrendingUp,
+  Newspaper,
   Zap,
 } from "lucide-react";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
@@ -54,6 +55,7 @@ const baseMenuItems = [
   { icon: Eye, label: "Watchlist", path: "/watchlist" },
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
+  { icon: Newspaper, label: "News", path: "/news" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
 ];
 

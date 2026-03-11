@@ -632,3 +632,43 @@
 - [x] Verify: Login works (returns JWT session cookie)
 - [x] Verify: Stock data loads (170 stocks from TradingView)
 - [x] Live URL: https://http--uae-app--t6ps5rgzd768.code.run
+
+## Phase 22 - v9 Feature Additions
+
+### Forgot Password / Password Reset
+- [x] Add password reset token fields to users table (resetToken, resetTokenExpiry)
+- [x] Backend: generateResetToken procedure (creates token, stores in DB)
+- [x] Backend: resetPassword procedure (validates token, updates password)
+- [x] Frontend: ForgotPassword page with email input
+- [x] Frontend: ResetPassword page with new password form
+- [x] Token-based reset flow (no email sending - display token/link directly)
+
+### Heatmap Live Blinking Animation
+- [x] Add price flash tracking to Heatmap tiles
+- [x] CSS pulse/blink animation on price change (green flash up, red flash down)
+- [x] Integrate usePriceFlash hook with heatmap data
+
+### Dedicated Market News Page
+- [x] New /news route with MarketNews page
+- [x] Fetch news for all UAE companies (batch TradingView news)
+- [x] Filter by exchange (DFM/ADX/All)
+- [x] Search/filter by company name
+- [x] Infinite scroll or pagination
+- [x] Add to sidebar navigation
+
+### Calendar Corporate Events
+- [x] Fetch earnings calendar data from TradingView scanner
+- [x] Display upcoming earnings dates, dividend ex-dates, AGM dates
+- [x] Integrate with existing Calendar page
+- [x] Color-coded event types
+
+### Time & Sales Enhancement
+- [x] Real-time trade ticker from DFM API
+- [x] Direction indicators (uptick/downtick)
+- [x] Volume-weighted display
+
+### Build & Deploy
+- [x] Build Docker image v9
+- [x] Push to DockerHub (khalifa1982/uae-market:v9)
+- [x] Deploy to Northflank via API
+- [x] Verify all features working on live site
