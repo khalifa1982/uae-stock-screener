@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { startVolumeMonitor } from "../volumeMonitor";
+import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { initWebSocketServer } from "../services/tdWebSocketService";
 import { createServer } from "http";
 import net from "net";
@@ -66,6 +67,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start the volume spike monitor
     startVolumeMonitor();
+    // Start the market summary scheduler
+    startMarketSummaryScheduler();
   });
 }
 

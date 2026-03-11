@@ -678,3 +678,29 @@
 - [x] Add version number to website footer (visible on all pages)
 - [x] Update version on every deployment
 - [x] Build and deploy v9.1 with version footer
+
+## Phase 24 - Automated Daily Market Summary (EN/AR)
+
+### Backend
+- [x] Database table for market_summaries (date, exchange, language, content, stats JSON)
+- [x] Scheduled job: runs after market close (3:15 PM UAE time Mon-Fri)
+- [x] Collect market stats: top gainers, top losers, most active, index changes, total volume/value
+- [x] Generate English summary via LLM (professional financial report style)
+- [x] Generate Arabic summary via LLM (professional Arabic financial report style)
+- [x] Store summaries in database for historical access
+- [x] tRPC procedure to fetch latest and historical summaries
+- [x] Manual trigger endpoint for admin to regenerate summary
+
+### Frontend
+- [x] Market Summary page (/summary route)
+- [x] English/Arabic language toggle
+- [x] ADX and DFM tabs or combined view
+- [x] Display key stats: index, volume, value, gainers/losers counts
+- [x] Top movers table (gainers, losers, most active)
+- [x] AI-generated narrative summary with markdown rendering
+- [x] Historical summaries with date picker
+- [x] Add to sidebar navigation
+
+### Build & Deploy
+- [x] Update APP_VERSION to v9.2
+- [x] Build and deploy Docker v9.2 to Northflank

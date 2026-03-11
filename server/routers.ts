@@ -20,6 +20,7 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
+import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -1480,6 +1481,31 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return info;
       }),
 
+  }),
+
+  // Market Summary - daily automated summaries in EN/AR
+  summary: router({
+    latest: publicProcedure
+      .input(z.object({ language: z.enum(["en", "ar"]), limit: z.number().min(1).max(30).default(10) }))
+      .query(async ({ input }) => {
+        return getLatestSummaries(input.language, input.limit);
+      }),
+
+    byDate: publicProcedure
+      .input(z.object({ date: z.string(), language: z.enum(["en", "ar"]) }))
+      .query(async ({ input }) => {
+        return getSummaryByDate(input.date, input.language);
+      }),
+
+    generate: protectedProcedure
+      .mutation(async () => {
+        return generateDailySummary();
+      }),
+
+    status: publicProcedure
+      .query(() => {
+        return getMarketSummaryStatus();
+      }),
   }),
 });
 

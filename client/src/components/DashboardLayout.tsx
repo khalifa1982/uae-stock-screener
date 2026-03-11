@@ -29,6 +29,7 @@ import {
   BarChart3,
   CalendarDays,
   Eye,
+  FileText,
   Filter,
   Grid3X3,
   LayoutDashboard,
@@ -57,6 +58,7 @@ const baseMenuItems = [
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
   { icon: Newspaper, label: "News", path: "/news" },
+  { icon: FileText, label: "Summary", path: "/summary" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
 ];
 

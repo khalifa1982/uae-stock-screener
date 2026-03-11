@@ -14,6 +14,7 @@ import Admin from "./pages/Admin";
 import Calendar from "./pages/Calendar";
 import NotificationSettings from "./pages/NotificationSettings";
 import MarketNews from "./pages/MarketNews";
+import MarketSummary from "./pages/MarketSummary";
 import DashboardLayout from "./components/DashboardLayout";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -38,6 +39,7 @@ function Router() {
             <Route path={"/heatmap"} component={Heatmap} />
             <Route path={"/calendar"} component={Calendar} />
             <Route path={"/news"} component={MarketNews} />
+            <Route path={"/summary"} component={MarketSummary} />
             <Route path={"/notifications"} component={NotificationSettings} />
             <Route path={"/admin"} component={Admin} />
             <Route path={"/stock/:symbol"} component={StockDetail} />

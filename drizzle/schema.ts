@@ -171,3 +171,37 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
 
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+// Daily market summaries (EN/AR)
+export const marketSummaries = mysqlTable("market_summaries", {
+  id: int("id").autoincrement().primaryKey(),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD
+  exchange: varchar("exchange", { length: 8 }).notNull(), // DFM, ADX, or ALL
+  language: varchar("language", { length: 2 }).notNull(), // en or ar
+  // Key stats
+  indexValue: float("indexValue"),
+  indexChange: float("indexChange"),
+  indexChangePercent: float("indexChangePercent"),
+  totalVolume: bigint("totalVolume", { mode: "number" }),
+  totalValue: bigint("totalValue", { mode: "number" }),
+  totalTrades: int("totalTrades"),
+  advancers: int("advancers"),
+  decliners: int("decliners"),
+  unchanged: int("unchanged"),
+  // JSON data
+  topGainers: text("topGainers"), // JSON array
+  topLosers: text("topLosers"), // JSON array
+  mostActive: text("mostActive"), // JSON array
+  sectorPerformance: text("sectorPerformance"), // JSON object
+  // AI-generated narrative
+  narrative: text("narrative"),
+  // Metadata
+  generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("date_exchange_lang_idx").on(table.date, table.exchange, table.language),
+  index("date_idx").on(table.date),
+]);
+
+export type MarketSummary = typeof marketSummaries.$inferSelect;
+export type InsertMarketSummary = typeof marketSummaries.$inferInsert;
