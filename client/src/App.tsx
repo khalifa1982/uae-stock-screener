@@ -16,6 +16,7 @@ import NotificationSettings from "./pages/NotificationSettings";
 import MarketNews from "./pages/MarketNews";
 import MarketSummary from "./pages/MarketSummary";
 import DashboardLayout from "./components/DashboardLayout";
+import { LiveChat } from "./components/LiveChat";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -59,6 +60,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <LiveChat />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -713,3 +713,30 @@
 - [x] Fix: Single market status indicator in header with phase-specific colors
 - [x] Fix: Ensure all times follow UAE timezone (GMT+4)
 - [x] Build and deploy v9.3
+
+## Phase 26 - Live Chat System
+
+### Backend
+- [x] Database table: chat_messages (id, userId, userName, userAvatar, content, imageUrl, type, createdAt)
+- [x] WebSocket server for real-time messaging (millisecond latency)
+- [x] Online presence tracking (heartbeat-based, users appear/disappear in real-time)
+- [x] Daily chat reset: messages only persist for current day (UAE timezone), fresh start each day
+- [x] Image upload support via S3 storage
+- [x] Chat message broadcasting to all connected clients
+- [x] User join/leave notifications
+
+### Frontend
+- [x] Chat panel integrated into sidebar (visible on all pages)
+- [x] Online users list with random avatar icons and names
+- [x] Real-time message display with instant delivery
+- [x] Emoji picker support
+- [x] Image upload button with preview
+- [x] Full Arabic character support with RTL detection
+- [x] Professional, lightweight design
+- [x] Auto-scroll to latest messages
+- [x] User typing indicators
+- [x] Only show online users (offline users hidden completely)
+
+### Build & Deploy
+- [x] Update APP_VERSION to v9.4
+- [x] Build and deploy Docker v9.4 to Northflank

@@ -205,3 +205,22 @@ export const marketSummaries = mysqlTable("market_summaries", {
 
 export type MarketSummary = typeof marketSummaries.$inferSelect;
 export type InsertMarketSummary = typeof marketSummaries.$inferInsert;
+
+// Live chat messages - daily reset (only today's messages kept)
+export const chatMessages = mysqlTable("chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 128 }).notNull(),
+  userColor: varchar("userColor", { length: 7 }).notNull(), // hex color for avatar
+  messageType: mysqlEnum("messageType", ["text", "image", "system"]).notNull().default("text"),
+  content: text("content"), // text content or system message
+  imageUrl: varchar("imageUrl", { length: 512 }), // S3 URL for image messages
+  chatDate: varchar("chatDate", { length: 10 }).notNull(), // YYYY-MM-DD (UAE timezone)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("chat_date_idx").on(table.chatDate),
+  index("chat_user_idx").on(table.userId),
+]);
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;

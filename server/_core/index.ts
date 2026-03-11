@@ -3,6 +3,7 @@ import express from "express";
 import { startVolumeMonitor } from "../volumeMonitor";
 import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { initWebSocketServer } from "../services/tdWebSocketService";
+import { initChatWebSocket } from "../services/chatService";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -62,6 +63,8 @@ async function startServer() {
 
   // Initialize WebSocket server for real-time price streaming
   initWebSocketServer(server);
+  // Initialize chat WebSocket server
+  initChatWebSocket(server);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
