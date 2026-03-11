@@ -1,4 +1,4 @@
-import { useMarketStatus } from "@/hooks/useMarketStatus";
+import { useMarketStatus, useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -6,71 +6,118 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Clock, CalendarOff } from "lucide-react";
+import { Clock, CalendarOff, Wifi } from "lucide-react";
 import type { MarketPhase } from "../../../shared/marketStatus";
 
-const phaseConfig: Record<MarketPhase, { color: string; dotColor: string; pulseColor: string }> = {
+/**
+ * Color config for each market phase.
+ * Each phase gets a distinct, easily distinguishable color:
+ * - Pre-Open:  Amber/Yellow  (warming up)
+ * - Open:      Emerald/Green (active trading)
+ * - Pre-Close: Orange        (winding down)
+ * - Closed:    Red           (market shut)
+ * - Holiday:   Purple        (special closure)
+ */
+const phaseConfig: Record<MarketPhase, {
+  color: string;
+  dotColor: string;
+  pulseColor: string;
+  liveColor: string;
+}> = {
   "pre-open": {
     color: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     dotColor: "bg-amber-400",
     pulseColor: "bg-amber-400/40",
+    liveColor: "text-amber-400",
   },
   "open": {
     color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     dotColor: "bg-emerald-400",
     pulseColor: "bg-emerald-400/40",
+    liveColor: "text-emerald-400",
   },
   "pre-close": {
     color: "bg-orange-500/15 text-orange-400 border-orange-500/30",
     dotColor: "bg-orange-400",
     pulseColor: "bg-orange-400/40",
+    liveColor: "text-orange-400",
   },
   "closed": {
     color: "bg-red-500/10 text-red-400/70 border-red-500/20",
     dotColor: "bg-red-400/70",
     pulseColor: "bg-red-400/30",
+    liveColor: "text-red-400/70",
   },
   "holiday": {
     color: "bg-purple-500/15 text-purple-400 border-purple-500/30",
     dotColor: "bg-purple-400",
     pulseColor: "bg-purple-400/40",
+    liveColor: "text-purple-400",
   },
 };
 
 /**
- * Compact market status indicator for the dashboard header.
- * Shows a colored dot + label + countdown.
+ * Enhanced market status badge for the dashboard header.
+ * Shows:
+ * - Color-coded dot (pulsing when active) + phase label + countdown
+ * - LIVE indicator with green signal when auto-refresh is active
+ * - UAE time display
+ * 
+ * This is the ONLY market status indicator — shown in the global header bar.
  */
 export function MarketStatusBadge() {
   const status = useMarketStatus();
+  const autoRefresh = useAutoRefreshInterval();
   const config = phaseConfig[status.phase];
+  const isActive = status.phase === "open" || status.phase === "pre-open" || status.phase === "pre-close";
+  const isLive = autoRefresh !== false;
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge
-            variant="outline"
-            className={`gap-1.5 px-2.5 py-1 text-[11px] font-medium cursor-default select-none ${config.color}`}
-          >
-            <span className="relative flex h-2 w-2">
-              {(status.phase === "open" || status.phase === "pre-open" || status.phase === "pre-close") && (
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${config.pulseColor}`} />
-              )}
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${config.dotColor}`} />
-            </span>
-            {status.phase === "holiday" ? (
-              <span className="flex items-center gap-1">
-                <CalendarOff className="h-3 w-3" />
-                Holiday
+          <div className="flex items-center gap-2">
+            {/* Phase Badge */}
+            <Badge
+              variant="outline"
+              className={`gap-1.5 px-2.5 py-1 text-[11px] font-medium cursor-default select-none ${config.color}`}
+            >
+              <span className="relative flex h-2 w-2">
+                {isActive && (
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${config.pulseColor}`} />
+                )}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${config.dotColor}`} />
               </span>
-            ) : (
-              status.label
+              {status.phase === "holiday" ? (
+                <span className="flex items-center gap-1">
+                  <CalendarOff className="h-3 w-3" />
+                  Holiday
+                </span>
+              ) : (
+                status.label
+              )}
+              {status.countdown && (
+                <span className="text-[10px] opacity-70 font-mono ml-0.5">({status.countdown})</span>
+              )}
+            </Badge>
+
+            {/* LIVE Signal - shown when auto-refresh is active */}
+            {isLive && (
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                </span>
+                <Wifi className="h-3 w-3 text-emerald-400" />
+                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Live</span>
+              </div>
             )}
-            {status.countdown && (
-              <span className="text-[10px] opacity-70 font-mono ml-0.5">({status.countdown})</span>
-            )}
-          </Badge>
+
+            {/* UAE Time */}
+            <span className="text-[10px] text-muted-foreground/50 font-mono hidden sm:inline">
+              {status.uaeTimeStr}
+            </span>
+          </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-1.5">
@@ -84,13 +131,22 @@ export function MarketStatusBadge() {
             )}
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
               <Clock className="h-3 w-3" />
-              <span>{status.uaeDayStr}, {status.uaeTimeStr} UAE</span>
+              <span>{status.uaeDayStr}, {status.uaeTimeStr} UAE (GMT+4)</span>
             </div>
+            {isLive && (
+              <div className="flex items-center gap-2 text-xs text-emerald-400 pt-1 border-t border-border/50">
+                <Wifi className="h-3 w-3" />
+                <span>Auto-refreshing every {autoRefresh === 30000 ? "30s" : "60s"}</span>
+              </div>
+            )}
             {status.countdown && (
               <p className="text-xs">
                 Next: <span className="font-medium text-foreground">{status.nextPhaseLabel}</span>
               </p>
             )}
+            <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border/50">
+              <p>Mon-Fri: Pre-Open 9:00 · Open 9:30 · Pre-Close 2:50 · Close 3:00</p>
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>

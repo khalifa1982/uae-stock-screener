@@ -704,3 +704,12 @@
 ### Build & Deploy
 - [x] Update APP_VERSION to v9.2
 - [x] Build and deploy Docker v9.2 to Northflank
+
+## Phase 25 - Market Status Fixes & UI Cleanup
+
+- [x] Fix: Remove duplicate "Market Closed" badge (showing in header AND page title)
+- [x] Fix: Remove Refresh button (data auto-refreshes during market hours)
+- [x] Fix: Color-coded market phases (Pre-Open=yellow, Open=green, Pre-Close=orange, Closed=red)
+- [x] Fix: Single market status indicator in header with phase-specific colors
+- [x] Fix: Ensure all times follow UAE timezone (GMT+4)
+- [x] Build and deploy v9.3

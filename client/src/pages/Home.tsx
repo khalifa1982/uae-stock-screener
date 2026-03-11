@@ -2,9 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { usePriceFlashes, getFlashClass, getPriceFlashClass } from "@/hooks/usePriceFlash";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
-import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
-import { RealtimeIndicator } from "@/components/RealtimeIndicator";
-import { useRealtimePrices } from "@/hooks/useRealtimePrices";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +14,6 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
-  RefreshCw,
   TrendingUp,
   TrendingDown,
   BarChart3,
@@ -119,15 +116,10 @@ export default function Home() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const autoRefreshInterval = useAutoRefreshInterval();
-  // WebSocket connection for real-time indicator (subscribe to a few key stocks)
-  const wsSymbols = useMemo(() => ["EMAAR", "ETISALAT", "FAB"], []);
-  const wsExchanges = useMemo(() => ["DFM", "ADX", "ADX"], []);
-  const { isConnected: wsConnected } = useRealtimePrices(wsSymbols, wsExchanges);
-
   // 5-second refresh during market hours for exchange-like experience
   const fastRefresh = autoRefreshInterval ? 5_000 : undefined;
 
-  const { data: stocks, isLoading, refetch, isFetching } = trpc.stocks.fetchAll.useQuery(
+  const { data: stocks, isLoading } = trpc.stocks.fetchAll.useQuery(
     { exchange },
     { 
       staleTime: fastRefresh ? 3_000 : 5 * 60 * 1000,
@@ -151,7 +143,7 @@ export default function Home() {
   // Track price changes for flash effects (exchange-style)
   const priceFlashes = usePriceFlashes(stocks as any);
 
-  const { data: csvData, refetch: fetchCSV, isFetching: csvFetching } = trpc.stocks.exportCSV.useQuery(
+  const { refetch: fetchCSV, isFetching: csvFetching } = trpc.stocks.exportCSV.useQuery(
     { exchange },
     { enabled: false }
   );
@@ -249,8 +241,6 @@ export default function Home() {
         <div>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight">Market Dashboard</h1>
-            <MarketStatusBadge />
-            <RealtimeIndicator isConnected={wsConnected} />
           </div>
           <p className="text-muted-foreground/70 text-sm mt-1.5">
             uae.market — ADX & DFM Exchanges
@@ -270,14 +260,6 @@ export default function Home() {
           >
             <Download className={`h-3.5 w-3.5 ${csvFetching ? "animate-pulse" : ""}`} />
             <span className="text-xs">Export CSV</span>
-          </button>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="btn-premium btn-premium-primary gap-2"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            <span className="text-xs">{isFetching ? "Loading..." : "Refresh"}</span>
           </button>
         </div>
       </div>
