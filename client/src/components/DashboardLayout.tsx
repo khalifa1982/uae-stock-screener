@@ -191,7 +191,7 @@ function DashboardLayoutContent({
                     <span className="font-bold tracking-tight text-sm block leading-tight text-foreground">
                       uae.market
                     </span>
-                    <span className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.15em] leading-none font-medium">
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-[0.15em] leading-none font-medium">
                       ADX & DFM
                     </span>
                   </div>
@@ -203,7 +203,7 @@ function DashboardLayoutContent({
           {/* ─── Navigation ─── */}
           <SidebarContent className="gap-0 px-3 pt-2">
             <div className="mb-3">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-3 group-data-[collapsible=icon]:hidden">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/80 px-3 group-data-[collapsible=icon]:hidden">
                 Navigation
               </span>
             </div>
@@ -255,7 +255,7 @@ function DashboardLayoutContent({
                       <p className="text-sm font-medium truncate leading-none text-foreground/90">
                         {user?.name || "-"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground/60 truncate mt-1">
+                      <p className="text-[11px] text-muted-foreground truncate mt-1">
                         {user?.email || "-"}
                       </p>
                     </div>
@@ -337,8 +337,8 @@ function DashboardLayoutContent({
         <main className="flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
 
         {/* ─── Footer ─── */}
-        <footer className="border-t border-border/20 px-4 py-3 text-center">
-          <p className="text-[11px] text-muted-foreground/50 tracking-wide">
+        <footer className="border-t border-border/30 px-4 py-3 text-center">
+          <p className="text-[11px] text-muted-foreground tracking-wide">
             UAE Market &mdash; www.uae.market &middot; {APP_VERSION}
           </p>
         </footer>

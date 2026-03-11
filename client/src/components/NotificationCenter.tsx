@@ -191,7 +191,7 @@ export default function NotificationCenter() {
         <ScrollArea className="max-h-[420px]">
           {!notificationList || notificationList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <Bell className="h-8 w-8 text-muted-foreground/30 mb-3" />
+              <Bell className="h-8 w-8 text-muted-foreground/60 mb-3" />
               <p className="text-sm text-muted-foreground">No notifications yet</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
                 Volume spike alerts will appear here during trading hours

@@ -215,7 +215,7 @@ export default function Heatmap() {
       ) : stocksWithData.length === 0 ? (
         <Card className="bg-card/50 border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Grid3X3 className="h-12 w-12 text-muted-foreground/30 mb-4" />
+            <Grid3X3 className="h-12 w-12 text-muted-foreground/60 mb-4" />
             <p className="text-muted-foreground">No stock data available for this exchange</p>
             <p className="text-xs text-muted-foreground mt-1">
               Try refreshing or switching to DFM exchange

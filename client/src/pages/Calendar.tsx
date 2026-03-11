@@ -70,7 +70,7 @@ function CalendarGrid({ year, month }: { year: number; month: number }) {
           key={wd}
           className={`text-center py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
             i === 5 || i === 6
-              ? "text-muted-foreground/30 bg-card/20"
+              ? "text-muted-foreground/60 bg-card/20"
               : "text-muted-foreground/60 bg-card/40"
           }`}
         >
@@ -113,7 +113,7 @@ function CalendarGrid({ year, month }: { year: number; month: number }) {
                     : holiday
                     ? "text-neon-purple"
                     : isWeekend
-                    ? "text-muted-foreground/30"
+                    ? "text-muted-foreground/60"
                     : "text-foreground/70"
                 }`}
               >
@@ -136,7 +136,7 @@ function CalendarGrid({ year, month }: { year: number; month: number }) {
             )}
 
             {!holiday && isWeekend && (
-              <span className="text-[8px] text-muted-foreground/20 mt-1 block">Weekend</span>
+              <span className="text-[8px] text-muted-foreground/60 mt-1 block">Weekend</span>
             )}
           </div>
         );
@@ -168,9 +168,9 @@ function UpcomingHolidayCard({ holiday }: { holiday: UAEHoliday }) {
           <span className="font-semibold text-sm text-foreground/90">{holiday.name}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-muted-foreground/50">{dayName}</span>
+          <span className="text-[11px] text-muted-foreground">{dayName}</span>
           {holiday.nameAr && (
-            <span className="text-[11px] text-muted-foreground/40 font-arabic" dir="rtl">
+            <span className="text-[11px] text-muted-foreground/70 font-arabic" dir="rtl">
               {holiday.nameAr}
             </span>
           )}
@@ -184,7 +184,7 @@ function UpcomingHolidayCard({ holiday }: { holiday: UAEHoliday }) {
             {daysAway}d away
           </Badge>
         ) : (
-          <span className="text-xs text-muted-foreground/40 font-mono">{daysAway}d</span>
+          <span className="text-xs text-muted-foreground/70 font-mono">{daysAway}d</span>
         )}
       </div>
     </div>
@@ -217,7 +217,7 @@ function YearSummary({ year }: { year: number }) {
             <CalendarDays className="h-4 w-4 text-primary" />
             {year} Holiday Summary
           </CardTitle>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Star className="h-3 w-3 text-neon-gold" /> {fixedCount} Fixed
             </span>
@@ -239,7 +239,7 @@ function YearSummary({ year }: { year: number }) {
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] font-medium text-foreground/85">{g.name}</span>
                   {g.nameAr && (
-                    <span className="text-[11px] text-muted-foreground/40 ml-2" dir="rtl">{g.nameAr}</span>
+                    <span className="text-[11px] text-muted-foreground/70 ml-2" dir="rtl">{g.nameAr}</span>
                   )}
                 </div>
                 <div className="shrink-0 text-right">
@@ -250,7 +250,7 @@ function YearSummary({ year }: { year: number }) {
                     )}
                   </span>
                   {g.dates.length > 1 && (
-                    <span className="text-[10px] text-muted-foreground/30 ml-1.5">({g.dates.length} days)</span>
+                    <span className="text-[10px] text-muted-foreground/70 ml-1.5">({g.dates.length} days)</span>
                   )}
                 </div>
               </div>
@@ -529,7 +529,7 @@ function CorporateEventsSection() {
       {upcomingEarnings.length === 0 && upcomingDividends.length === 0 && (
         <Card className="border-border/30 bg-card/30">
           <CardContent className="py-12 text-center">
-            <CalendarDays className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <CalendarDays className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
             <p className="text-muted-foreground">No upcoming corporate events found</p>
           </CardContent>
         </Card>
@@ -606,7 +606,7 @@ export default function Calendar() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground/50 bg-card/30 border border-border/20 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground bg-card/30 border border-border/20 rounded-lg px-3 py-2">
             <span className="flex items-center gap-1.5">
               <Sun className="h-3 w-3 text-neon-green" />
               {tradingDaysThisMonth} trading days
@@ -628,11 +628,11 @@ export default function Calendar() {
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground/50 font-semibold uppercase tracking-[0.12em]">Trading Hours</p>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Trading Hours</p>
               <p className="text-sm font-semibold text-foreground/90">Mon-Fri, 10:00 AM - 3:00 PM (UAE Time, GMT+4)</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground/50">
+          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-neon-gold" />
               Pre-Open: 9:30-10:00
@@ -697,7 +697,7 @@ export default function Calendar() {
                   <CalendarGrid year={viewYear} month={viewMonth} />
 
                   {/* Legend */}
-                  <div className="flex flex-wrap items-center gap-4 mt-4 text-[10px] text-muted-foreground/50">
+                  <div className="flex flex-wrap items-center gap-4 mt-4 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <span className="h-3 w-3 rounded border border-primary/30 bg-primary/[0.08]" />
                       Today
@@ -731,7 +731,7 @@ export default function Calendar() {
                           <div key={i} className="flex items-center gap-2 text-[12px]">
                             <HolidayIcon type={h.type} />
                             <span className="text-foreground/80">{h.name}</span>
-                            {h.nameAr && <span className="text-muted-foreground/40 text-[11px]" dir="rtl">{h.nameAr}</span>}
+                            {h.nameAr && <span className="text-muted-foreground/70 text-[11px]" dir="rtl">{h.nameAr}</span>}
                           </div>
                         ))}
                       </div>
@@ -760,14 +760,14 @@ export default function Calendar() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground/40 text-sm">
+                    <div className="p-8 text-center text-muted-foreground/70 text-sm">
                       No upcoming holidays in the calendar
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              <div className="p-3.5 rounded-xl border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground/50 leading-relaxed">
+              <div className="p-3.5 rounded-xl border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground leading-relaxed">
                 <p className="font-semibold text-foreground/60 mb-1">Note on Islamic Holidays</p>
                 <p>
                   Islamic holidays follow the Hijri (lunar) calendar and may shift by 1-2 days 

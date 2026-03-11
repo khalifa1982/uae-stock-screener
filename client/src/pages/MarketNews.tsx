@@ -144,7 +144,7 @@ export default function MarketNews() {
       ) : filteredItems.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="py-16 text-center">
-            <Newspaper className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+            <Newspaper className="h-10 w-10 text-muted-foreground/60 mx-auto mb-4" />
             <p className="text-muted-foreground">No news articles found</p>
             <p className="text-xs text-muted-foreground/60 mt-1">
               Try adjusting your search or filter criteria

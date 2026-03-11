@@ -28,9 +28,9 @@ export function RealtimeIndicator({ isConnected, subscribedCount, className = ""
             </>
           ) : (
             <>
-              <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
-              <WifiOff className="h-3.5 w-3.5 text-muted-foreground/30" />
-              <span className="text-[10px] font-medium text-muted-foreground/30 uppercase tracking-wider">Offline</span>
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/60" />
+              <WifiOff className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">Offline</span>
             </>
           )}
         </div>

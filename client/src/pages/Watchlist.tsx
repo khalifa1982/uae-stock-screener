@@ -69,7 +69,7 @@ export default function Watchlist() {
         </div>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <EyeOff className="h-12 w-12 text-muted-foreground/30 mb-4" />
+            <EyeOff className="h-12 w-12 text-muted-foreground/60 mb-4" />
             <p className="text-muted-foreground mb-4">Sign in to create and manage your watchlist</p>
             <Button onClick={() => { window.location.href = getLoginUrl(); }}>
               Sign In

@@ -99,7 +99,7 @@ function PriceTargetBar({ low, median, high, current }: { low: number; median: n
         />
         {/* Low marker */}
         <div className="absolute top-2.5 flex flex-col items-center" style={{ left: `${pctLow}%`, transform: 'translateX(-50%)' }}>
-          <div className="w-0.5 h-5 bg-muted-foreground/50" />
+          <div className="w-0.5 h-5 bg-muted-foreground/70" />
         </div>
         {/* Median marker */}
         <div className="absolute top-2 flex flex-col items-center" style={{ left: `${pctMedian}%`, transform: 'translateX(-50%)' }}>
@@ -107,7 +107,7 @@ function PriceTargetBar({ low, median, high, current }: { low: number; median: n
         </div>
         {/* High marker */}
         <div className="absolute top-2.5 flex flex-col items-center" style={{ left: `${pctHigh}%`, transform: 'translateX(-50%)' }}>
-          <div className="w-0.5 h-5 bg-muted-foreground/50" />
+          <div className="w-0.5 h-5 bg-muted-foreground/70" />
         </div>
         {/* Current price marker */}
         <div className="absolute top-0 flex flex-col items-center" style={{ left: `${pctCurrent}%`, transform: 'translateX(-50%)' }}>

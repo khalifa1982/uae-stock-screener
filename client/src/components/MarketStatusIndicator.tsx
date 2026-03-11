@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Clock, CalendarOff, Wifi } from "lucide-react";
+import { Clock, CalendarOff, Wifi, Timer } from "lucide-react";
 import type { MarketPhase } from "../../../shared/marketStatus";
 
 /**
@@ -57,6 +57,27 @@ const phaseConfig: Record<MarketPhase, {
 };
 
 /**
+ * Build a human-friendly countdown string like "Opens in 6h 17m" or "Closes in 12m 30s"
+ */
+function getCountdownDescription(phase: MarketPhase, countdown: string, nextPhaseLabel: string): string {
+  if (!countdown) return "";
+  
+  if (phase === "closed" || phase === "holiday") {
+    return `Opens in ${countdown}`;
+  }
+  if (phase === "pre-open") {
+    return `Trading starts in ${countdown}`;
+  }
+  if (phase === "open") {
+    return `Pre-close in ${countdown}`;
+  }
+  if (phase === "pre-close") {
+    return `Closes in ${countdown}`;
+  }
+  return `${nextPhaseLabel} in ${countdown}`;
+}
+
+/**
  * Enhanced market status badge for the dashboard header.
  * Shows:
  * - Color-coded dot (pulsing when active) + phase label + countdown
@@ -71,6 +92,7 @@ export function MarketStatusBadge() {
   const config = phaseConfig[status.phase];
   const isActive = status.phase === "open" || status.phase === "pre-open" || status.phase === "pre-close";
   const isLive = autoRefresh !== false;
+  const countdownDesc = getCountdownDescription(status.phase, status.countdown, status.nextPhaseLabel);
 
   return (
     <TooltipProvider>
@@ -97,7 +119,7 @@ export function MarketStatusBadge() {
                 status.label
               )}
               {status.countdown && (
-                <span className="text-[10px] opacity-70 font-mono ml-0.5">({status.countdown})</span>
+                <span className="text-[10px] opacity-80 font-mono ml-0.5">({status.countdown})</span>
               )}
             </Badge>
 
@@ -114,7 +136,7 @@ export function MarketStatusBadge() {
             )}
 
             {/* UAE Time */}
-            <span className="text-[10px] text-muted-foreground/50 font-mono hidden sm:inline">
+            <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">
               {status.uaeTimeStr}
             </span>
           </div>
@@ -123,6 +145,15 @@ export function MarketStatusBadge() {
           <div className="space-y-1.5">
             <p className="font-medium text-sm">{status.label}</p>
             <p className="text-xs text-muted-foreground">{status.description}</p>
+            
+            {/* Countdown Timer - prominent display */}
+            {status.countdown && (
+              <div className="flex items-center gap-2 text-xs pt-1 border-t border-border/50">
+                <Timer className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold text-foreground">{countdownDesc}</span>
+              </div>
+            )}
+            
             {status.holiday && (
               <div className="flex items-center gap-2 text-xs text-purple-400 pt-1 border-t border-border/50">
                 <CalendarOff className="h-3 w-3" />
@@ -140,11 +171,11 @@ export function MarketStatusBadge() {
               </div>
             )}
             {status.countdown && (
-              <p className="text-xs">
+              <p className="text-xs text-muted-foreground">
                 Next: <span className="font-medium text-foreground">{status.nextPhaseLabel}</span>
               </p>
             )}
-            <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border/50">
+            <div className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/50">
               <p>Mon-Fri: Pre-Open 9:00 · Open 9:30 · Pre-Close 2:50 · Close 3:00</p>
             </div>
           </div>
@@ -161,6 +192,7 @@ export function MarketStatusBadge() {
 export function MarketStatusCard() {
   const status = useMarketStatus();
   const config = phaseConfig[status.phase];
+  const countdownDesc = getCountdownDescription(status.phase, status.countdown, status.nextPhaseLabel);
 
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${config.color}`}>
@@ -176,10 +208,10 @@ export function MarketStatusCard() {
       {status.holiday && (
         <span className="text-xs opacity-80">{status.holiday.nameAr}</span>
       )}
-      <span className="text-xs opacity-70">{status.uaeDayStr} {status.uaeTimeStr}</span>
-      {status.countdown && (
-        <span className="text-xs font-mono ml-auto opacity-80">
-          {status.nextPhaseLabel} in {status.countdown}
+      <span className="text-xs opacity-80">{status.uaeDayStr} {status.uaeTimeStr}</span>
+      {countdownDesc && (
+        <span className="text-xs font-mono ml-auto font-semibold">
+          {countdownDesc}
         </span>
       )}
     </div>

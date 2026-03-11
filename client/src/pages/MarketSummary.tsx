@@ -210,7 +210,7 @@ export default function MarketSummary() {
       {!isLoading && (!displaySummaries || displaySummaries.length === 0) && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <FileText className="h-12 w-12 text-muted-foreground/30 mb-4" />
+            <FileText className="h-12 w-12 text-muted-foreground/60 mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground">{t.noData}</h3>
             <p className="text-sm text-muted-foreground/60 mt-1">{t.noDataSub}</p>
             <Button

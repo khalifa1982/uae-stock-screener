@@ -81,7 +81,7 @@ function MoverRow({ stock, onClick }: { stock: any; onClick: () => void }) {
       <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />
       <div className="min-w-0 flex-1 overflow-hidden">
         <span className="font-mono text-[13px] font-semibold text-foreground/90 group-hover:text-foreground transition-colors">{stock.symbol}</span>
-        <p className="text-[10px] text-muted-foreground/60 truncate leading-tight">{stock.name}</p>
+        <p className="text-[10px] text-muted-foreground truncate leading-tight">{stock.name}</p>
       </div>
       <div className="flex items-center gap-3 shrink-0 text-right">
         <span className="font-mono text-[13px] tabular-nums text-foreground/80">{formatNumber(stock.price)}</span>
@@ -273,7 +273,7 @@ export default function Home() {
                 <Building2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.12em]">Stocks</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Stocks</p>
                 <p className="text-2xl font-bold font-mono text-foreground tracking-tight">{stats.total}</p>
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function Home() {
                 <TrendingUp className="h-5 w-5 text-gain" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.12em]">Gainers</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Gainers</p>
                 <p className="text-2xl font-bold font-mono text-gain tracking-tight">{stats.gainers}</p>
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function Home() {
                 <TrendingDown className="h-5 w-5 text-loss" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.12em]">Losers</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Losers</p>
                 <p className="text-2xl font-bold font-mono text-loss tracking-tight">{stats.losers}</p>
               </div>
             </div>
@@ -306,7 +306,7 @@ export default function Home() {
                 <BarChart3 className="h-5 w-5 text-neon-purple" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-[0.12em]">Total Volume</p>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Total Volume</p>
                 <p className="text-2xl font-bold font-mono text-foreground tracking-tight">{formatLargeNumber(stats.totalVolume)}</p>
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function Home() {
                       <StockLogo logoUrl={s.logoUrl} symbol={s.symbol} />
                       <div className="min-w-0 flex-1 overflow-hidden">
                         <span className="font-mono text-[13px] font-semibold text-foreground/90">{s.symbol}</span>
-                        <p className="text-[10px] text-muted-foreground/60 truncate leading-tight">{s.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate leading-tight">{s.name}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 text-right">
                         <span className="font-mono text-xs tabular-nums text-muted-foreground">{formatLargeNumber(s.volume)}</span>
@@ -420,21 +420,21 @@ export default function Home() {
                 <TabsTrigger value="ALL" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">All Markets</TabsTrigger>
                 <TabsTrigger value="DFM" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                   DFM
-                  <span className="ml-1.5 text-[10px] text-muted-foreground/50">(68)</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground/70">(68)</span>
                 </TabsTrigger>
                 <TabsTrigger value="ADX" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                   ADX
-                  <span className="ml-1.5 text-[10px] text-muted-foreground/50">(102)</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground/70">(102)</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
               <Input
                 placeholder="Search by symbol, name, or sector..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 bg-secondary/20 border-border/30 h-9 text-sm placeholder:text-muted-foreground/40"
+                className="pl-9 bg-secondary/20 border-border/30 h-9 text-sm placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
@@ -492,7 +492,7 @@ export default function Home() {
                 <tbody>
                   {filteredStocks.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center p-12 text-muted-foreground/60">
+                      <td colSpan={8} className="text-center p-12 text-muted-foreground">
                         {search ? "No stocks match your search." : "No data available. Click Refresh to load."}
                       </td>
                     </tr>
@@ -510,7 +510,7 @@ export default function Home() {
                               <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />
                               <div>
                                 <span className="font-mono font-semibold text-[13px] text-foreground/90">{stock.symbol}</span>
-                                <span className="text-[11px] text-muted-foreground/50 lg:hidden block mt-0.5 truncate max-w-[160px]">
+                                <span className="text-[11px] text-muted-foreground/70 lg:hidden block mt-0.5 truncate max-w-[160px]">
                                   {stock.name}
                                 </span>
                               </div>
@@ -518,20 +518,20 @@ export default function Home() {
                           </td>
                           <td className="hidden lg:table-cell">
                             <span className="text-[13px] text-foreground/70 truncate block max-w-[240px]">{stock.name}</span>
-                            <span className="text-[11px] text-muted-foreground/40">{stock.sector}</span>
+                            <span className="text-[11px] text-muted-foreground/70">{stock.sector}</span>
                           </td>
                           <td className="text-right">
                             {hasData ? (
                               <>
                                 <span className={`font-mono font-medium text-[13px] ${getPriceFlashClass(priceFlashes, stock.exchange, stock.symbol)}`}>{formatNumber(stock.price)}</span>
-                                <span className="text-[10px] text-muted-foreground/40 ml-1">AED</span>
+                                <span className="text-[10px] text-muted-foreground/70 ml-1">AED</span>
                               </>
                             ) : (
-                              <span className="text-[11px] text-muted-foreground/40 italic">No data</span>
+                              <span className="text-[11px] text-muted-foreground/70 italic">No data</span>
                             )}
                           </td>
                           <td className="text-right">
-                            {hasData ? <ChangeDisplay value={stock.changePercent} /> : <span className="text-xs text-muted-foreground/40">—</span>}
+                            {hasData ? <ChangeDisplay value={stock.changePercent} /> : <span className="text-xs text-muted-foreground/70">—</span>}
                           </td>
                           <td className="text-right hidden md:table-cell">
                             <span className="font-mono text-[13px] text-foreground/70">{hasData && stock.pe != null ? formatNumber(stock.pe, 1) : "—"}</span>
@@ -554,7 +554,7 @@ export default function Home() {
                 </tbody>
               </table>
               {filteredStocks.length > 0 && (
-                <div className="p-3 text-[11px] text-muted-foreground/50 border-t border-border/20 flex items-center justify-between">
+                <div className="p-3 text-[11px] text-muted-foreground border-t border-border/20 flex items-center justify-between">
                   <span>
                     Showing {filteredStocks.length} of {stocks?.length ?? 0} stocks
                     {search && ` matching "${search}"`}
@@ -570,8 +570,8 @@ export default function Home() {
       </Card>
 
       {/* ─── Footer ─── */}
-      <footer className="mt-16 border-t border-border/20 rounded-xl overflow-hidden">
-        <div className="py-10 px-6 bg-card/20 backdrop-blur-sm">
+      <footer className="mt-16 border-t border-border/40 rounded-xl overflow-hidden">
+        <div className="py-10 px-6 bg-card/40 backdrop-blur-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
@@ -580,15 +580,15 @@ export default function Home() {
                 </div>
                 <span className="font-bold text-lg tracking-tight">uae.market</span>
               </div>
-              <p className="text-[13px] text-muted-foreground/60 leading-relaxed">
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
                 Real-time market intelligence for Abu Dhabi Securities Exchange (ADX) and Dubai Financial Market (DFM). 
                 Visit us at <a href="https://www.uae.market" className="text-primary/80 hover:text-primary hover:underline transition-colors">www.uae.market</a>
               </p>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-semibold text-[11px] uppercase tracking-[0.12em] text-muted-foreground/50">Markets Covered</h4>
-              <div className="space-y-1.5 text-[13px] text-muted-foreground/50">
+              <h4 className="font-semibold text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Markets Covered</h4>
+              <div className="space-y-1.5 text-[13px] text-muted-foreground">
                 <p>Abu Dhabi Securities Exchange (ADX)</p>
                 <p>Dubai Financial Market (DFM)</p>
                 <p>170+ Listed Securities</p>
@@ -597,10 +597,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-border/15 mt-8 pt-6">
+          <div className="border-t border-border/30 mt-8 pt-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-muted-foreground/40">
+                <span className="text-[11px] text-muted-foreground">
                   Developed and designed by
                 </span>
                 <a 
@@ -612,16 +612,16 @@ export default function Home() {
                   <span className="font-bold text-sm bg-gradient-to-r from-primary to-neon-purple bg-clip-text text-transparent">
                     Aboood.AI
                   </span>
-                  <svg className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3 h-3 text-muted-foreground/70 group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
               </div>
-              <p className="text-[10px] text-muted-foreground/30 text-center md:text-right leading-relaxed max-w-md">
+              <p className="text-[10px] text-muted-foreground/70 text-center md:text-right leading-relaxed max-w-md">
                 Brain AI — The first independent Arab AI system. Born in the UAE with 16 parallel neural engines.
               </p>
             </div>
-            <p className="text-[10px] text-muted-foreground/25 text-center mt-4">
+            <p className="text-[10px] text-muted-foreground/60 text-center mt-4">
               Disclaimer: This platform is for informational purposes only. Not financial advice.
             </p>
           </div>

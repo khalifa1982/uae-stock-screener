@@ -740,3 +740,11 @@
 ### Build & Deploy
 - [x] Update APP_VERSION to v9.4
 - [x] Build and deploy Docker v9.4 to Northflank
+
+## Phase 27 - Font Visibility & Countdown Fixes
+
+- [x] Fix: Font colors too dim/invisible in dark mode across all pages
+- [x] Fix: Footer text barely readable (disclaimer, credits, Brain AI text)
+- [x] Fix: Improve text contrast in both light and dark themes
+- [x] Add: Live countdown to market open in market status indicator tooltip
+- [ ] Build and deploy v9.5
