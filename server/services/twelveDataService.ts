@@ -4,6 +4,8 @@
  * API Docs: https://twelvedata.com/docs
  */
 
+import { toTwelveDataSymbol } from './tdSymbolMapper';
+
 const TWELVE_DATA_BASE = 'https://api.twelvedata.com';
 
 function getApiKey(): string {
@@ -71,8 +73,8 @@ export async function checkTwelveDataHealth(): Promise<TwelveDataStatus> {
 
   try {
     totalRequests++;
-    // Test with a UAE stock to verify the key works (restricted to UAE market only)
-    const resp = await fetch(`${TWELVE_DATA_BASE}/quote?symbol=EMAAR:DFM&apikey=${apiKey}`, {
+    // Test with a UAE stock to verify the key works (use mapped symbol)
+    const resp = await fetch(`${TWELVE_DATA_BASE}/quote?symbol=EMAR:DFM&apikey=${apiKey}`, {
       signal: AbortSignal.timeout(10000),
     });
 
@@ -164,9 +166,11 @@ export async function fetchTwelveDataQuote(symbol: string, exchange: string): Pr
 
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange}`;
+    // Map to TwelveData symbol format
+    const mapped = toTwelveDataSymbol(symbol, exchange as 'ADX' | 'DFM');
+    const tdSymbol = mapped ? mapped.fullSymbol : `${symbol}:${exchange}`;
     const resp = await fetch(
-      `${TWELVE_DATA_BASE}/quote?symbol=${encodeURIComponent(tvSymbol)}&apikey=${apiKey}`,
+      `${TWELVE_DATA_BASE}/quote?symbol=${encodeURIComponent(tdSymbol)}&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(10000) }
     );
 
@@ -223,9 +227,11 @@ export async function fetchTwelveDataIndicator(
 
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange}`;
+    // Map to TwelveData symbol format
+    const mapped = toTwelveDataSymbol(symbol, exchange as 'ADX' | 'DFM');
+    const tdSymbol = mapped ? mapped.fullSymbol : `${symbol}:${exchange}`;
     const queryParams = new URLSearchParams({
-      symbol: tvSymbol,
+      symbol: tdSymbol,
       interval: '1day',
       apikey: apiKey,
       ...params,
@@ -274,9 +280,11 @@ export async function fetchTwelveDataFundamentals(
 
   try {
     totalRequests++;
-    const tvSymbol = `${symbol}:${exchange}`;
+    // Map to TwelveData symbol format
+    const mapped = toTwelveDataSymbol(symbol, exchange as 'ADX' | 'DFM');
+    const tdSymbol = mapped ? mapped.fullSymbol : `${symbol}:${exchange}`;
     const resp = await fetch(
-      `${TWELVE_DATA_BASE}/${type}?symbol=${encodeURIComponent(tvSymbol)}&apikey=${apiKey}`,
+      `${TWELVE_DATA_BASE}/${type}?symbol=${encodeURIComponent(tdSymbol)}&apikey=${apiKey}`,
       { signal: AbortSignal.timeout(15000) }
     );
 

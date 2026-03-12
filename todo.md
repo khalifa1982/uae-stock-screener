@@ -763,7 +763,7 @@
 - [x] Redesign: Dense, compact terminal-style layout inspired by Jeff Terminal
 - [x] Redesign: Smaller fonts, tighter spacing, information-dense panels
 - [x] Redesign: Ticker bar with scrolling stock prices
-- [ ] Build and deploy v9.7
+- [x] Build and deploy v9.7
 
 ### Terminal-Style Redesign Details
 - [x] Replace sidebar with compact top navigation bar
@@ -776,3 +776,11 @@
 - [x] Compact Watchlist, Alerts, Notifications pages
 - [x] Mobile responsive compact layout
 - [x] Update version to v9.7
+
+## Phase 30 - Heatmap Redesign & API Fix
+
+- [x] Fix: TwelveData API key error - symbol mapping issue (EMAAR→EMAR) fixed in twelveDataService.ts
+- [x] Fix: TwelveData API key updated and verified working
+- [x] Redesign: Market Heatmap as treemap layout with proportional tiles, green/red intensity by % change
+- [ ] Fix: Verify terminal redesign is deployed (old sidebar still showing on production)
+- [ ] Build and deploy v9.8
