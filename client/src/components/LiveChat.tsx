@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useChat, type ChatMessageData, type OnlineUser } from "@/hooks/useChat";
+import { useChat, type ChatMessageData, type OnlineUser, type ReactionData } from "@/hooks/useChat";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { MessageCircle, X, Send, Image, Smile, Users, Wifi, WifiOff, ChevronDown } from "lucide-react";
+import { MessageCircle, X, Send, Image, Smile, Users, Wifi, WifiOff, ChevronDown, Reply, CornerDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// ─── Emoji Picker (lightweight inline) ─────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────
 const QUICK_EMOJIS = [
   "😀", "😂", "🤣", "😍", "🥰", "😎", "🤔", "😮", "😢", "😡",
   "👍", "👎", "👏", "🙏", "💪", "🔥", "❤️", "💯", "🎉", "🚀",
@@ -12,9 +12,15 @@ const QUICK_EMOJIS = [
   "🇦🇪", "🏆", "💎", "🐂", "🐻", "🤝", "👀", "💡", "⏰", "🎯",
 ];
 
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "📈", "📉"];
+
+// ─── Emoji Picker ──────────────────────────────────────────────────
 function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
   return (
-    <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded shadow-xl p-3 z-50 w-[280px]">
+    <div
+      className="absolute bottom-full left-0 mb-2 rounded-lg shadow-xl p-3 z-50 w-[280px] border border-border"
+      style={{ backgroundColor: "oklch(0.14 0.014 260)" }}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground">Quick Emojis</span>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -31,6 +37,95 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
             {emoji}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Reaction Bar (on hover/long-press) ────────────────────────────
+function ReactionBar({
+  messageId,
+  onReact,
+  onReply,
+}: {
+  messageId: number;
+  onReact: (messageId: number, emoji: string) => void;
+  onReply: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shadow-lg border border-border/50 animate-in fade-in zoom-in-95 duration-150"
+      style={{ backgroundColor: "oklch(0.16 0.014 260)" }}
+    >
+      {REACTION_EMOJIS.map((emoji) => (
+        <button
+          key={emoji}
+          onClick={() => onReact(messageId, emoji)}
+          className="w-6 h-6 flex items-center justify-center text-xs hover:scale-125 transition-transform rounded-full hover:bg-accent/50"
+        >
+          {emoji}
+        </button>
+      ))}
+      <div className="w-px h-4 bg-border/50 mx-0.5" />
+      <button
+        onClick={onReply}
+        className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground hover:scale-110 transition-all rounded-full hover:bg-accent/50"
+        title="Reply"
+      >
+        <Reply className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Reaction Display ──────────────────────────────────────────────
+function ReactionsDisplay({
+  reactions,
+  messageId,
+  currentUserId,
+  onReact,
+}: {
+  reactions: ReactionData[];
+  messageId: number;
+  currentUserId?: number;
+  onReact: (messageId: number, emoji: string) => void;
+}) {
+  if (!reactions || reactions.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {reactions.map((r) => {
+        const hasReacted = r.users.some(u => u.userId === currentUserId);
+        return (
+          <button
+            key={r.emoji}
+            onClick={() => onReact(messageId, r.emoji)}
+            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] transition-colors border ${
+              hasReacted
+                ? "bg-primary/20 border-primary/40 text-primary"
+                : "bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted"
+            }`}
+            title={r.users.map(u => u.userName).join(", ")}
+          >
+            <span>{r.emoji}</span>
+            <span className="font-medium">{r.count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Reply Preview (in message) ────────────────────────────────────
+function ReplyPreview({ userName, content, type }: { userName?: string; content?: string; type?: string }) {
+  if (!userName) return null;
+  return (
+    <div className="flex items-start gap-1 mb-1 pl-2 border-l-2 border-primary/40 opacity-75">
+      <CornerDownRight className="w-2.5 h-2.5 mt-0.5 shrink-0 text-primary/60" />
+      <div className="min-w-0">
+        <span className="text-[9px] font-semibold text-primary/80">{userName}</span>
+        <p className="text-[9px] truncate max-w-[180px]">
+          {type === "image" ? "📷 Photo" : (content || "...")}
+        </p>
       </div>
     </div>
   );
@@ -56,7 +151,22 @@ function UserAvatar({ name, color, size = "sm" }: { name: string; color: string;
 }
 
 // ─── Message Bubble ────────────────────────────────────────────────
-function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean }) {
+function MessageBubble({
+  msg,
+  isOwn,
+  currentUserId,
+  onReact,
+  onReply,
+}: {
+  msg: ChatMessageData;
+  isOwn: boolean;
+  currentUserId?: number;
+  onReact: (messageId: number, emoji: string) => void;
+  onReply: (msg: ChatMessageData) => void;
+}) {
+  const [showActions, setShowActions] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   if (msg.type === "system") {
     return (
       <div className="flex justify-center my-1.5">
@@ -71,33 +181,56 @@ function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean })
     ? new Date(msg.timestamp).toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false,
+        hour12: true,
         timeZone: "Asia/Dubai",
       })
     : "";
 
-  // Detect if content is Arabic
   const isArabic = msg.content ? /[\u0600-\u06FF]/.test(msg.content) : false;
 
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => setShowActions(true), 200);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setShowActions(false);
+  };
+
   return (
-    <div className={`flex gap-1.5 mb-1.5 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+    <div
+      className={`flex gap-1.5 mb-2 group relative ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {!isOwn && (
         <UserAvatar name={msg.userName || "?"} color={msg.userColor || "#666"} />
       )}
-      <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"}`}>
+      <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"} relative`}>
         {!isOwn && (
-          <span className="text-[10px] font-medium ml-1 mb-0.5 block" style={{ color: msg.userColor }}>
-            {msg.userName}
-          </span>
+          <div className="flex items-center gap-1.5 ml-1 mb-0.5">
+            <span className="text-[10px] font-medium" style={{ color: msg.userColor }}>
+              {msg.userName}
+            </span>
+            <span className="text-[9px] text-muted-foreground/50">{time}</span>
+          </div>
         )}
         <div
-          className={`rounded-md px-3 py-1.5 text-[11px] break-words ${
+          className={`rounded-lg px-3 py-1.5 text-[11px] break-words ${
             isOwn
               ? "bg-primary text-primary-foreground rounded-br-sm"
               : "bg-muted text-foreground rounded-bl-sm"
           }`}
           dir={isArabic ? "rtl" : "ltr"}
         >
+          {/* Reply preview */}
+          {msg.replyToId && (
+            <ReplyPreview
+              userName={msg.replyToUserName}
+              content={msg.replyToContent}
+              type={msg.replyToType}
+            />
+          )}
           {msg.type === "image" && msg.imageUrl && (
             <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
               <img
@@ -110,9 +243,30 @@ function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean })
           )}
           {msg.content && <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>}
         </div>
-        <span className={`text-[9px] text-muted-foreground mt-0.5 block ${isOwn ? "text-right mr-1" : "ml-1"}`}>
-          {time}
-        </span>
+        {isOwn && (
+          <span className="text-[9px] text-muted-foreground/50 mt-0.5 block text-right mr-1">
+            {time}
+          </span>
+        )}
+        {/* Reactions display */}
+        {msg.id && (
+          <ReactionsDisplay
+            reactions={msg.reactions || []}
+            messageId={msg.id}
+            currentUserId={currentUserId}
+            onReact={onReact}
+          />
+        )}
+        {/* Action bar on hover */}
+        {showActions && msg.id && (
+          <div className={`absolute ${isOwn ? "left-0 -translate-x-full" : "right-0 translate-x-full"} top-0 z-10 px-1`}>
+            <ReactionBar
+              messageId={msg.id}
+              onReact={onReact}
+              onReply={() => onReply(msg)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -121,7 +275,10 @@ function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean })
 // ─── Online Users Panel ────────────────────────────────────────────
 function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: () => void }) {
   return (
-    <div className="absolute top-0 right-0 w-48 h-full bg-popover border-l border-border z-50 flex flex-col">
+    <div
+      className="absolute top-0 right-0 w-48 h-full border-l border-border z-50 flex flex-col"
+      style={{ backgroundColor: "oklch(0.12 0.014 260)" }}
+    >
       <div className="flex items-center justify-between p-3 border-b border-border">
         <span className="text-xs font-semibold">Online ({users.length})</span>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -146,10 +303,67 @@ function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: ()
   );
 }
 
+// ─── Typing Indicator ──────────────────────────────────────────────
+function TypingIndicator({ users }: { users: string[] }) {
+  if (users.length === 0) return null;
+  const text = users.length === 1
+    ? `${users[0]} is typing`
+    : users.length === 2
+    ? `${users[0]} and ${users[1]} are typing`
+    : `${users[0]} and ${users.length - 1} others are typing`;
+
+  return (
+    <div className="px-3 py-1 flex items-center gap-1.5">
+      <div className="flex gap-0.5">
+        <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      </div>
+      <span className="text-[10px] text-muted-foreground italic">{text}</span>
+    </div>
+  );
+}
+
+// ─── Reply Banner ──────────────────────────────────────────────────
+function ReplyBanner({
+  replyTo,
+  onCancel,
+}: {
+  replyTo: ChatMessageData;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 border-t border-border bg-primary/5">
+      <Reply className="w-3.5 h-3.5 text-primary shrink-0" />
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] font-semibold text-primary">{replyTo.userName}</span>
+        <p className="text-[10px] text-muted-foreground truncate">
+          {replyTo.type === "image" ? "📷 Photo" : (replyTo.content || "...")}
+        </p>
+      </div>
+      <button onClick={onCancel} className="text-muted-foreground hover:text-foreground shrink-0">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Main LiveChat Component ───────────────────────────────────────
 export function LiveChat() {
   const { user, isAuthenticated } = useAuth();
-  const { messages, onlineUsers, isConnected, typingUser, sendMessage, sendImage, sendTyping, clearMessages, mode } = useChat();
+  const {
+    messages,
+    onlineUsers,
+    isConnected,
+    typingUsers,
+    sendMessage,
+    sendImage,
+    sendTyping,
+    sendReaction,
+    clearMessages,
+    mode,
+    newMessageFlag,
+  } = useChat();
   const isAdmin = user?.role === "admin";
 
   const [isOpen, setIsOpen] = useState(false);
@@ -158,17 +372,26 @@ export function LiveChat() {
   const [showUsers, setShowUsers] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [replyTo, setReplyTo] = useState<ChatMessageData | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevNewMessageFlagRef = useRef(0);
 
-  // Auto-scroll to bottom when new messages arrive
+  // ─── Auto-open chat when new messages arrive while logged in ─────
+  useEffect(() => {
+    if (newMessageFlag > prevNewMessageFlagRef.current && !isOpen && isAuthenticated) {
+      setIsOpen(true);
+    }
+    prevNewMessageFlagRef.current = newMessageFlag;
+  }, [newMessageFlag, isOpen, isAuthenticated]);
+
+  // ─── Auto-scroll to bottom when new messages arrive ──────────────
   useEffect(() => {
     if (!isOpen) {
-      // Count unread when chat is closed
       setUnreadCount(prev => prev + 1);
       return;
     }
@@ -182,7 +405,7 @@ export function LiveChat() {
     }
   }, [messages, isOpen]);
 
-  // Reset unread when opening
+  // ─── Reset unread when opening ───────────────────────────────────
   useEffect(() => {
     if (isOpen) {
       setUnreadCount(0);
@@ -192,7 +415,7 @@ export function LiveChat() {
     }
   }, [isOpen]);
 
-  // Scroll handler
+  // ─── Scroll handler ──────────────────────────────────────────────
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -207,8 +430,9 @@ export function LiveChat() {
 
   const handleSend = () => {
     if (!inputText.trim()) return;
-    sendMessage(inputText);
+    sendMessage(inputText, replyTo?.id);
     setInputText("");
+    setReplyTo(null);
     inputRef.current?.focus();
   };
 
@@ -217,11 +441,13 @@ export function LiveChat() {
       e.preventDefault();
       handleSend();
     }
+    if (e.key === "Escape" && replyTo) {
+      setReplyTo(null);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
-    // Debounced typing indicator
     if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
     typingDebounceRef.current = setTimeout(() => sendTyping(), 500);
   };
@@ -247,10 +473,14 @@ export function LiveChat() {
     inputRef.current?.focus();
   };
 
-  // Don't render if not authenticated
+  const handleReply = (msg: ChatMessageData) => {
+    setReplyTo(msg);
+    inputRef.current?.focus();
+  };
+
   if (!isAuthenticated) return null;
 
-  // Floating chat button (when closed)
+  // ─── Floating chat button (when closed) ──────────────────────────
   if (!isOpen) {
     return (
       <button
@@ -267,9 +497,12 @@ export function LiveChat() {
     );
   }
 
-  // Chat panel (when open)
+  // ─── Chat panel (when open) ──────────────────────────────────────
   return (
-    <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-[200] w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-md bg-background border border-border shadow-2xl flex flex-col overflow-hidden">
+    <div
+      className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-[200] w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-lg border border-border shadow-2xl flex flex-col overflow-hidden"
+      style={{ backgroundColor: "oklch(0.10 0.014 260)" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-primary text-primary-foreground shrink-0">
         <div className="flex items-center gap-2">
@@ -279,7 +512,7 @@ export function LiveChat() {
             {isConnected ? (
               <>
                 <Wifi className="w-3 h-3" />
-                <span>{mode === "http" ? "Connected (HTTP)" : "Connected"}</span>
+                <span>{mode === "http" ? "HTTP" : "Live"}</span>
               </>
             ) : (
               <>
@@ -343,6 +576,9 @@ export function LiveChat() {
               key={msg.id || `msg-${i}`}
               msg={msg}
               isOwn={msg.userId === user?.id}
+              currentUserId={user?.id}
+              onReact={sendReaction}
+              onReply={handleReply}
             />
           ))}
           <div ref={messagesEndRef} />
@@ -365,14 +601,15 @@ export function LiveChat() {
       </div>
 
       {/* Typing indicator */}
-      {typingUser && (
-        <div className="px-3 py-1 text-[10px] text-muted-foreground italic">
-          {typingUser} is typing...
-        </div>
+      <TypingIndicator users={typingUsers} />
+
+      {/* Reply banner */}
+      {replyTo && (
+        <ReplyBanner replyTo={replyTo} onCancel={() => setReplyTo(null)} />
       )}
 
       {/* Input area */}
-      <div className="shrink-0 border-t border-border px-2 py-2 bg-background relative">
+      <div className="shrink-0 border-t border-border px-2 py-2 relative" style={{ backgroundColor: "oklch(0.12 0.014 260)" }}>
         {showEmoji && (
           <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} />
         )}
@@ -404,7 +641,7 @@ export function LiveChat() {
             value={inputText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={replyTo ? `Reply to ${replyTo.userName}...` : "Type a message..."}
             className="flex-1 bg-muted/50 border border-border rounded-full px-3 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
             dir="auto"
             autoComplete="off"

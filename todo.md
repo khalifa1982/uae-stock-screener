@@ -929,3 +929,15 @@
 
 ## Phase 38 - Bug Fix: Admin Erase Chat History
 - [x] Fix admin "erase chat history" to delete messages from database for all users (not just clear admin's local screen)
+
+## Phase 39 - Chat Feature Enhancements
+- [ ] Add emoji reactions to chat messages (👍 ❤️ 😂 🔥 📈 📉) with toggle and counts
+- [ ] Add typing indicator ("User is typing..." with animated dots, multi-user support)
+- [ ] Add message timestamps displayed elegantly with message grouping by user/time
+- [ ] Auto-open chat when new message arrives (with 5-min cooldown after manual close)
+- [x] Daily auto-reset at midnight UAE time (cron job + startup check + system message)
+- [ ] Add message reply/quote feature (reply to specific messages)
+- [ ] Add join/leave system messages when users enter/exit chat
+- [ ] Unread message count badge on chat icon
+- [ ] Smooth scroll-to-bottom with new message indicator
+- [ ] Add notification sound for new messages when chat is closed

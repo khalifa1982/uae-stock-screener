@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 
+export interface ReactionData {
+  emoji: string;
+  count: number;
+  users: { userId: number; userName: string }[];
+}
+
 export interface ChatMessageData {
   id?: number;
   type: "message" | "image" | "system";
@@ -12,6 +18,11 @@ export interface ChatMessageData {
   imageUrl?: string;
   timestamp?: string;
   messageType?: string;
+  reactions?: ReactionData[];
+  replyToId?: number;
+  replyToContent?: string;
+  replyToUserName?: string;
+  replyToType?: string;
 }
 
 export interface OnlineUser {
@@ -24,44 +35,69 @@ interface UseChatReturn {
   messages: ChatMessageData[];
   onlineUsers: OnlineUser[];
   isConnected: boolean;
-  typingUser: string | null;
-  sendMessage: (content: string) => void;
+  typingUsers: string[];
+  sendMessage: (content: string, replyToId?: number) => void;
   sendImage: (base64Data: string, mime: string, caption?: string) => void;
   sendTyping: () => void;
+  sendReaction: (messageId: number, emoji: string) => void;
   clearMessages: () => void;
   mode: "ws" | "http";
+  newMessageFlag: number; // increments on each new non-own message for auto-open
 }
 
 const HTTP_POLL_INTERVAL = 3000;
 const WS_CONNECT_TIMEOUT = 5000;
-const WS_MAX_RETRIES = 2; // Try WS only twice before falling back to HTTP
+const WS_MAX_RETRIES = 2;
 
 export function useChat(): UseChatReturn {
   const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [mode, setMode] = useState<"ws" | "http">("ws");
+  const [newMessageFlag, setNewMessageFlag] = useState(0);
 
-  // Use refs to avoid stale closure issues
   const modeRef = useRef<"ws" | "http">("ws");
   const wsRef = useRef<WebSocket | null>(null);
   const mountedRef = useRef(true);
   const wsRetryCount = useRef(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastMessageIdRef = useRef(0);
   const connectingRef = useRef(false);
-  // Track last known clearedAt timestamp to detect server-side clears
   const lastClearedAtRef = useRef(0);
 
-  // tRPC mutations for HTTP mode
   const sendMutation = trpc.chat.send.useMutation();
   const sendImageMutation = trpc.chat.sendImage.useMutation();
   const clearMutation = trpc.chat.clearAll.useMutation();
+  const reactMutation = trpc.chat.react.useMutation();
   const utils = trpc.useUtils();
+
+  // ─── Helper: update reactions on a message ───────────────────────
+  const updateMessageReactions = useCallback((messageId: number, reactions: ReactionData[]) => {
+    setMessages(prev => prev.map(m =>
+      m.id === messageId ? { ...m, reactions } : m
+    ));
+  }, []);
+
+  // ─── Helper: add typing user with auto-expire ────────────────────
+  const addTypingUser = useCallback((userName: string) => {
+    setTypingUsers(prev => {
+      if (prev.includes(userName)) return prev;
+      return [...prev, userName];
+    });
+    // Clear existing timeout for this user
+    const existing = typingTimeoutsRef.current.get(userName);
+    if (existing) clearTimeout(existing);
+    // Set new timeout to remove after 3s
+    const timeout = setTimeout(() => {
+      setTypingUsers(prev => prev.filter(u => u !== userName));
+      typingTimeoutsRef.current.delete(userName);
+    }, 3000);
+    typingTimeoutsRef.current.set(userName, timeout);
+  }, []);
 
   // ─── Cleanup ──────────────────────────────────────────────────────
   const cleanupAll = useCallback(() => {
@@ -69,10 +105,8 @@ export function useChat(): UseChatReturn {
       clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
     }
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
+    typingTimeoutsRef.current.forEach(t => clearTimeout(t));
+    typingTimeoutsRef.current.clear();
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -90,7 +124,7 @@ export function useChat(): UseChatReturn {
 
   // ─── HTTP Polling Mode ────────────────────────────────────────────
   const startHttpPolling = useCallback(() => {
-    if (pollTimerRef.current) return; // Already polling
+    if (pollTimerRef.current) return;
     console.log("[Chat] Starting HTTP polling mode");
     modeRef.current = "http";
     setMode("http");
@@ -99,7 +133,6 @@ export function useChat(): UseChatReturn {
     const fetchMessages = async () => {
       if (!mountedRef.current || !isAuthenticated) return;
       try {
-        // Always do a full fetch (no sinceId) so we can detect clears
         const msgs = await utils.chat.messages.fetch(
           { sinceId: undefined },
           { staleTime: 0 }
@@ -115,20 +148,22 @@ export function useChat(): UseChatReturn {
           content: m.content,
           imageUrl: m.imageUrl,
           timestamp: m.timestamp,
+          reactions: m.reactions || [],
+          replyToId: m.replyToId,
         }));
 
-        // Replace entire messages array with server truth
-        // This handles both new messages AND cleared messages
         setMessages(mapped);
 
         if (msgs.length > 0) {
           const maxId = Math.max(...msgs.map((m: any) => m.id || 0));
+          if (maxId > lastMessageIdRef.current) {
+            setNewMessageFlag(prev => prev + 1);
+          }
           lastMessageIdRef.current = maxId;
         } else {
           lastMessageIdRef.current = 0;
         }
       } catch (err) {
-        // Silently handle - will retry on next poll
         console.debug("[Chat] Poll error:", err);
       }
     };
@@ -143,7 +178,6 @@ export function useChat(): UseChatReturn {
       } catch {}
     };
 
-    // Check for chat clears via the clearedAt endpoint
     const checkChatCleared = async () => {
       if (!mountedRef.current || !isAuthenticated) return;
       try {
@@ -151,19 +185,15 @@ export function useChat(): UseChatReturn {
         if (!mountedRef.current || !result) return;
         if (result.clearedAt > lastClearedAtRef.current) {
           lastClearedAtRef.current = result.clearedAt;
-          // Chat was cleared on server - reset local state
           setMessages([]);
           lastMessageIdRef.current = 0;
-          console.log("[Chat] Detected server-side clear, resetting messages");
         }
       } catch {}
     };
 
-    // Initial fetch
     fetchMessages();
     fetchOnlineUsers();
 
-    // Start polling
     pollTimerRef.current = setInterval(() => {
       fetchMessages();
       fetchOnlineUsers();
@@ -175,7 +205,7 @@ export function useChat(): UseChatReturn {
   const connectWebSocket = useCallback(() => {
     if (!isAuthenticated || !user || !mountedRef.current) return;
     if (connectingRef.current) return;
-    if (modeRef.current === "http") return; // Already switched to HTTP
+    if (modeRef.current === "http") return;
 
     connectingRef.current = true;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -187,16 +217,12 @@ export function useChat(): UseChatReturn {
 
       const connectionTimeout = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
-          console.log("[Chat] WS connection timeout");
           connectingRef.current = false;
           wsRetryCount.current++;
           try { ws.close(); } catch {}
-          
           if (wsRetryCount.current >= WS_MAX_RETRIES) {
-            console.log("[Chat] WS failed after retries, switching to HTTP");
             startHttpPolling();
           } else {
-            // Try again after a short delay
             setTimeout(() => {
               if (mountedRef.current && modeRef.current === "ws") {
                 connectWebSocket();
@@ -213,7 +239,6 @@ export function useChat(): UseChatReturn {
         modeRef.current = "ws";
         setMode("ws");
         setIsConnected(true);
-        console.log("[Chat] WebSocket connected");
 
         if (heartbeatRef.current) clearInterval(heartbeatRef.current);
         heartbeatRef.current = setInterval(() => {
@@ -238,6 +263,11 @@ export function useChat(): UseChatReturn {
                   content: m.content,
                   imageUrl: m.imageUrl,
                   timestamp: m.timestamp || m.createdAt,
+                  reactions: m.reactions || [],
+                  replyToId: m.replyToId,
+                  replyToContent: m.replyToContent,
+                  replyToUserName: m.replyToUserName,
+                  replyToType: m.replyToType,
                 })));
               }
               break;
@@ -253,22 +283,38 @@ export function useChat(): UseChatReturn {
                 content: data.content,
                 imageUrl: data.imageUrl,
                 timestamp: data.timestamp,
+                reactions: [],
+                replyToId: data.replyToId,
+                replyToContent: data.replyToContent,
+                replyToUserName: data.replyToUserName,
+                replyToType: data.replyToType,
               }]);
+              // Signal new message for auto-open (only for non-own messages)
+              if (data.userId !== user?.id && data.type !== "system") {
+                setNewMessageFlag(prev => prev + 1);
+              }
+              // Remove typing indicator for this user
+              if (data.userName) {
+                setTypingUsers(prev => prev.filter(u => u !== data.userName));
+              }
               break;
             case "presence":
               if (data.onlineUsers) setOnlineUsers(data.onlineUsers);
               break;
             case "typing":
               if (data.typingUser && data.userId !== user?.id) {
-                setTypingUser(data.typingUser);
-                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-                typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+                addTypingUser(data.typingUser);
               }
               break;
             case "cleared":
-              // Server broadcast that chat was cleared - reset everything
               setMessages([]);
               lastMessageIdRef.current = 0;
+              break;
+            case "reaction":
+            case "reaction_removed":
+              if (data.messageId && data.reactions) {
+                updateMessageReactions(data.messageId, data.reactions);
+              }
               break;
           }
         } catch (err) {
@@ -287,7 +333,6 @@ export function useChat(): UseChatReturn {
 
         if (mountedRef.current && isAuthenticated && modeRef.current === "ws") {
           wsRetryCount.current++;
-          console.log(`[Chat] WS disconnected, retry count: ${wsRetryCount.current}`);
           if (wsRetryCount.current >= WS_MAX_RETRIES) {
             startHttpPolling();
           } else {
@@ -303,23 +348,20 @@ export function useChat(): UseChatReturn {
       ws.onerror = () => {
         clearTimeout(connectionTimeout);
         connectingRef.current = false;
-        // onclose will handle the retry/fallback logic
       };
     } catch (err) {
       connectingRef.current = false;
       wsRetryCount.current++;
-      console.error("[Chat] WS connection error:", err);
       if (wsRetryCount.current >= WS_MAX_RETRIES) {
         startHttpPolling();
       }
     }
-  }, [isAuthenticated, user, startHttpPolling]);
+  }, [isAuthenticated, user, startHttpPolling, addTypingUser, updateMessageReactions]);
 
   // ─── Initialize connection ────────────────────────────────────────
   useEffect(() => {
     mountedRef.current = true;
     if (isAuthenticated && user) {
-      // Reset state
       wsRetryCount.current = 0;
       modeRef.current = "ws";
       connectWebSocket();
@@ -335,28 +377,28 @@ export function useChat(): UseChatReturn {
     const handleVisibility = () => {
       if (document.visibilityState === "visible" && mountedRef.current && isAuthenticated) {
         if (modeRef.current === "http") {
-          // In HTTP mode, just make sure polling is running
-          if (!pollTimerRef.current) {
-            startHttpPolling();
-          }
+          if (!pollTimerRef.current) startHttpPolling();
         } else if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
           wsRetryCount.current = 0;
           connectWebSocket();
         }
       }
     };
-
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [isAuthenticated, connectWebSocket, startHttpPolling]);
 
   // ─── Send functions ───────────────────────────────────────────────
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((content: string, replyToId?: number) => {
     if (!content.trim()) return;
     if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", content }));
+      wsRef.current.send(JSON.stringify({
+        type: replyToId ? "reply" : "message",
+        content,
+        replyToId,
+      }));
     } else {
-      sendMutation.mutate({ content });
+      sendMutation.mutate({ content, replyToId });
     }
   }, [sendMutation]);
 
@@ -373,6 +415,14 @@ export function useChat(): UseChatReturn {
       wsRef.current.send(JSON.stringify({ type: "typing" }));
     }
   }, []);
+
+  const sendReaction = useCallback((messageId: number, emoji: string) => {
+    if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "reaction", messageId, emoji }));
+    } else {
+      reactMutation.mutate({ messageId, emoji });
+    }
+  }, [reactMutation]);
 
   const clearMessages = useCallback(() => {
     if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -391,11 +441,13 @@ export function useChat(): UseChatReturn {
     messages,
     onlineUsers,
     isConnected,
-    typingUser,
+    typingUsers,
     sendMessage,
     sendImage,
     sendTyping,
+    sendReaction,
     clearMessages,
     mode,
+    newMessageFlag,
   };
 }

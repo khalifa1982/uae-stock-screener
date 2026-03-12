@@ -19,7 +19,7 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
-import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt } from "./services/chatService";
+import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt, toggleMessageReaction, ALLOWED_REACTION_EMOJIS } from "./services/chatService";
 import { fetchSAOverview, fetchSAFinancials, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
 import { getEarningsTranscript } from "./services/earningsTranscriptService";
@@ -1541,10 +1541,10 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       }),
 
     send: protectedProcedure
-      .input(z.object({ content: z.string().min(1).max(2000) }))
+      .input(z.object({ content: z.string().min(1).max(2000), replyToId: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
         registerPollingUser(ctx.user.id, ctx.user.name || "User");
-        return postChatMessage(ctx.user.id, ctx.user.name || "User", input.content);
+        return postChatMessage(ctx.user.id, ctx.user.name || "User", input.content, input.replyToId);
       }),
 
     sendImage: protectedProcedure
@@ -1561,6 +1561,12 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
     clearedAt: protectedProcedure
       .query(() => {
         return { clearedAt: getChatClearedAt() };
+      }),
+
+    react: protectedProcedure
+      .input(z.object({ messageId: z.number(), emoji: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        return toggleMessageReaction(input.messageId, ctx.user.id, ctx.user.name || "User", input.emoji);
       }),
 
     clearAll: protectedProcedure
