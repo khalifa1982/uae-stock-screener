@@ -297,7 +297,7 @@
 - [x] Build TradingView forecasts fetcher (price targets, analyst ratings, EPS/revenue estimates, earnings history)
 - [x] Build TradingView seasonals computation (5yr weekly data -> monthly avg returns with win rates)
 - [x] Build TradingView performance fetcher (1W/1M/3M/6M/YTD/1Y/5Y/All + volatility + beta)
-- [ ] Remove Yahoo Finance dependency (still used for chart data and seasonality source)
+- [x] Remove Yahoo Finance dependency (still used for chart data and seasonality source)
 
 ### Stock Detail Page Restructure
 - [x] New tab layout: Overview | Technicals | Financials | News | Forecasts | Seasonals | Profile | AI Analysis
@@ -900,3 +900,29 @@
 - [x] Show syncing/connected state during trading hours
 - [x] Show disconnected/offline state after trading hours
 - [x] Replace duplicate LIVE text with meaningful connection status indicators
+
+## Phase 37 - Notification Improvements & Deployment
+
+### Clear All Notifications
+- [x] Add "Clear All" button to bulk-delete all notifications
+- [x] Add backend deleteAll mutation for notifications
+
+### Notification Grouping
+- [x] Group repeated stock alerts by symbol (e.g., multiple volume spikes for same stock)
+- [x] Show group count badge for grouped notifications
+- [x] Expandable/collapsible groups with latest alert shown first
+- [x] Grouped view reduces clutter for 800+ accumulated alerts
+
+### Deployment
+- [ ] Build Docker image and push to Northflank for live deployment
+
+### Tab Overlap Fix (Mobile)
+- [ ] Fix stock detail page tabs overlapping on mobile (3rd row overlaps 2nd row)
+- [ ] Ensure all tab rows are properly spaced and scrollable on small screens
+
+### Data Source Cleanup
+- [x] Remove Simply Wall St data source completely
+- [x] Remove Yahoo Finance data source completely
+- [ ] Keep only TradingView and TwelveData as data sources
+- [ ] Update admin page to reflect only 2 data sources
+- [ ] Clean up any references to removed services

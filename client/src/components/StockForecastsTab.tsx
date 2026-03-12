@@ -160,9 +160,9 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
   }
 
   const hasForecast = forecast && (forecast.priceTargetMedian != null || forecast.recommendationMark != null);
-  const hasYahooAnalyst = profile && (profile.targetMeanPrice != null || profile.recommendationKey != null);
+  const hasAnalystData = profile && (profile.targetMeanPrice != null || profile.recommendationKey != null);
 
-  if (!hasForecast && !hasYahooAnalyst) {
+  if (!hasForecast && !hasAnalystData) {
     return (
       <Card className="border-border/50">
         <CardContent className="py-12 text-center">
@@ -328,7 +328,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
         </Card>
       )}
 
-      {/* Earnings History from Yahoo */}
+      {/* Earnings History */}
       {profile?.earnings && profile.earnings.length > 0 && (
         <Card className="border-border/50">
           <CardHeader className="pb-3">

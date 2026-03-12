@@ -5,14 +5,13 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, createNotification, getNotificationPreferences, upsertNotificationPreferences } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
 import { fetchAllTVStocks, fetchTVStocksByTickers, getTradingViewStats } from "./services/tradingViewService";
 import { getTwelveDataStats } from "./services/twelveDataService";
-import { getSWSStats } from "./services/simplyWallStService";
-import { getYahooStats } from "./services/yahooFinanceService";
+// Simply Wall St and Yahoo Finance removed - using TradingView + TwelveData only
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
@@ -200,7 +199,7 @@ export const appRouter = router({
           return snapshot;
         }
         
-        // FALLBACK: Yahoo Finance
+        // FALLBACK: TwelveData quote
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
@@ -347,7 +346,7 @@ export const appRouter = router({
           };
         }
         
-        // FALLBACK: Yahoo Finance
+        // FALLBACK: TwelveData quote
         const data = await fetchStockData(stock);
         return { ...data, ...stock };
       }),
@@ -462,118 +461,105 @@ export const appRouter = router({
           if (tvStocks.length > 0) tvData = tvStocks[0];
         } catch (e) { /* ignore TV errors */ }
         
-        // Try Yahoo Finance for detailed profile
-        let raw: any = null;
-        if (stock.yahooSymbol) {
-          raw = await fetchFullProfile(stock.yahooSymbol);
-        }
-        
-        // If neither source has data, return unavailable
-        if (!raw && !tvData) return { stock, profile: null, available: false };
-        // Flatten the nested profile into a single object for the frontend
-        // Use Yahoo data when available, fill gaps with TradingView
-        const co = raw?.company || {} as any;
-        const ks = raw?.keyStats || {} as any;
-        const div = raw?.dividends || {} as any;
-        const an = raw?.analyst || {} as any;
-        const ti = raw?.tradingInfo || {} as any;
+        // TradingView is the sole data source for profiles
+        if (!tvData) return { stock, profile: null, available: false };
         const tv = tvData || {} as any;
         
-        // Helper: pick first non-null value (Yahoo first, then TradingView)
+        // Helper: pick first non-null value
         const pick = (...vals: any[]) => {
           for (const v of vals) { if (v != null && v !== 0) return v; }
           return null;
         };
         
         const profile = {
-          // Company info
-          name: co.name || tv.description || null,
-          description: co.description || tv.description || null,
-          sector: co.sector || tv.sector || stock.sector || null,
-          industry: co.industry || tv.industry || null,
-          website: co.website || null,
-          logo: co.logo || (tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null),
-          fullTimeEmployees: pick(co.fullTimeEmployees, tv.employees),
-          country: co.country || tv.country || 'United Arab Emirates',
-          city: co.city || null,
-          phone: co.phone || null,
-          officers: co.officers || [],
-          // Key Stats - Valuation (merge Yahoo + TV)
-          marketCap: pick(ks.marketCap, tv.marketCap),
-          enterpriseValue: ks.enterpriseValue || null,
-          trailingPE: pick(ks.trailingPE, tv.pe),
-          forwardPE: ks.forwardPE || null,
-          pegRatio: ks.pegRatio || null,
-          priceToSales: pick(ks.priceToSales, tv.priceToSales),
-          priceToBook: pick(ks.priceToBook, tv.priceToBook),
-          evToRevenue: ks.evToRevenue || null,
-          evToEbitda: ks.evToEbitda || null,
-          // Key Stats - Profitability (merge Yahoo + TV)
-          totalRevenue: pick(ks.totalRevenue, tv.totalRevenue),
-          revenueGrowth: ks.revenueGrowth || null,
-          grossMargin: pick(ks.grossMargin, tv.grossMargin != null ? tv.grossMargin / 100 : null),
-          ebitdaMargin: ks.ebitdaMargin || null,
-          operatingMargin: pick(ks.operatingMargin, tv.operatingMargin != null ? tv.operatingMargin / 100 : null),
-          profitMargin: pick(ks.profitMargin, tv.afterTaxMargin != null ? tv.afterTaxMargin / 100 : null),
-          returnOnEquity: pick(ks.returnOnEquity, tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null),
-          returnOnAssets: ks.returnOnAssets || null,
-          // Key Stats - Financial Health (merge Yahoo + TV)
-          totalCash: ks.totalCash || null,
-          totalDebt: pick(ks.totalDebt, tv.totalDebt),
-          debtToEquity: pick(ks.debtToEquity, tv.debtToEquity),
-          currentRatio: pick(ks.currentRatio, tv.currentRatio),
-          quickRatio: ks.quickRatio || null,
-          bookValue: ks.bookValue || null,
-          freeCashflow: pick(ks.freeCashflow, tv.freeCashFlow),
-          operatingCashflow: ks.operatingCashflow || null,
-          // Key Stats - Per Share (merge Yahoo + TV)
-          trailingEps: pick(ks.trailingEps, tv.eps),
-          forwardEps: ks.forwardEps || null,
-          revenuePerShare: ks.revenuePerShare || null,
-          // Key Stats - Trading (merge Yahoo + TV)
-          beta: pick(ks.beta, tv.beta),
-          fiftyTwoWeekHigh: pick(ks.fiftyTwoWeekHigh, tv.allTimeHigh),
-          fiftyTwoWeekLow: pick(ks.fiftyTwoWeekLow, tv.allTimeLow),
-          fiftyDayAverage: pick(ks.fiftyDayAverage, tv.sma50),
-          twoHundredDayAverage: pick(ks.twoHundredDayAverage, tv.sma200),
-          sharesOutstanding: pick(ks.sharesOutstanding, tv.sharesOutstanding),
-          floatShares: ks.floatShares || null,
-          heldPercentInsiders: ks.heldPercentInsiders || null,
-          heldPercentInstitutions: ks.heldPercentInstitutions || null,
-          shortRatio: ks.shortRatio || null,
-          // Dividends (merge Yahoo + TV)
-          dividendRate: div.dividendRate || null,
-          dividendYield: pick(div.dividendYield, tv.dividendYield != null ? tv.dividendYield / 100 : null),
-          exDividendDate: div.exDividendDate || null,
-          payoutRatio: div.payoutRatio || null,
-          fiveYearAvgDividendYield: div.fiveYearAvgDividendYield || null,
-          trailingAnnualDividendRate: div.trailingAnnualDividendRate || null,
-          trailingAnnualDividendYield: div.trailingAnnualDividendYield || null,
-          // Analyst
-          targetMeanPrice: an.targetMeanPrice || null,
-          targetHighPrice: an.targetHighPrice || null,
-          targetLowPrice: an.targetLowPrice || null,
-          targetMedianPrice: an.targetMedianPrice || null,
-          recommendationMean: an.recommendationMean || null,
-          recommendationKey: an.recommendationKey || null,
-          numberOfAnalystOpinions: an.numberOfAnalystOpinions || null,
-          recommendations: an.recommendationTrend || [],
-          // Earnings
-          earnings: raw?.earnings?.history || [],
-          // Financial Statements
-          incomeStatement: raw?.financialStatements?.incomeStatements || [],
-          balanceSheet: raw?.financialStatements?.balanceSheets || [],
-          cashFlow: raw?.financialStatements?.cashFlows || [],
-          // Insider Holders
-          insiderHolders: raw?.insiderHolders || [],
-          // Trading Info (merge Yahoo + TV)
-          previousClose: pick(ti.previousClose, tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null),
-          open: pick(ti.open, tv.open),
-          dayHigh: pick(ti.dayHigh, tv.high),
-          dayLow: pick(ti.dayLow, tv.low),
-          volume: pick(ti.volume, tv.volume),
-          averageVolume: ti.averageVolume || null,
-          averageVolume10days: ti.averageVolume10days || null,
+          // Company info (TradingView only)
+          name: tv.description || null,
+          description: tv.description || null,
+          sector: tv.sector || stock.sector || null,
+          industry: tv.industry || null,
+          website: null,
+          logo: tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null,
+          fullTimeEmployees: tv.employees ?? null,
+          country: tv.country || 'United Arab Emirates',
+          city: null,
+          phone: null,
+          officers: [],
+          // Key Stats - Valuation (TradingView)
+          marketCap: tv.marketCap ?? null,
+          enterpriseValue: tv.enterpriseValue ?? null,
+          trailingPE: tv.pe ?? null,
+          forwardPE: null,
+          pegRatio: tv.pegRatio ?? null,
+          priceToSales: tv.priceToSales ?? null,
+          priceToBook: tv.priceToBook ?? null,
+          evToRevenue: null,
+          evToEbitda: tv.evToEbitda ?? null,
+          // Key Stats - Profitability (TradingView)
+          totalRevenue: tv.totalRevenue ?? null,
+          revenueGrowth: null,
+          grossMargin: tv.grossMargin != null ? tv.grossMargin / 100 : null,
+          ebitdaMargin: null,
+          operatingMargin: tv.operatingMargin != null ? tv.operatingMargin / 100 : null,
+          profitMargin: tv.afterTaxMargin != null ? tv.afterTaxMargin / 100 : null,
+          returnOnEquity: tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null,
+          returnOnAssets: tv.returnOnAssets != null ? tv.returnOnAssets / 100 : null,
+          // Key Stats - Financial Health (TradingView)
+          totalCash: null,
+          totalDebt: tv.totalDebt ?? null,
+          debtToEquity: tv.debtToEquity ?? null,
+          currentRatio: tv.currentRatio ?? null,
+          quickRatio: tv.quickRatio ?? null,
+          bookValue: tv.bookValuePerShare ?? null,
+          freeCashflow: tv.freeCashFlow ?? null,
+          operatingCashflow: tv.operatingCashFlow ?? null,
+          // Key Stats - Per Share (TradingView)
+          trailingEps: tv.eps ?? null,
+          forwardEps: tv.epsForecast ?? null,
+          revenuePerShare: null,
+          // Key Stats - Trading (TradingView)
+          beta: tv.beta ?? null,
+          fiftyTwoWeekHigh: tv.allTimeHigh ?? null,
+          fiftyTwoWeekLow: tv.allTimeLow ?? null,
+          fiftyDayAverage: tv.sma50 ?? null,
+          twoHundredDayAverage: tv.sma200 ?? null,
+          sharesOutstanding: tv.sharesOutstanding ?? null,
+          floatShares: null,
+          heldPercentInsiders: null,
+          heldPercentInstitutions: null,
+          shortRatio: null,
+          // Dividends (TradingView)
+          dividendRate: null,
+          dividendYield: tv.dividendYield != null ? tv.dividendYield / 100 : null,
+          exDividendDate: null,
+          payoutRatio: null,
+          fiveYearAvgDividendYield: null,
+          trailingAnnualDividendRate: null,
+          trailingAnnualDividendYield: null,
+          // Analyst (TradingView recommendations)
+          targetMeanPrice: null,
+          targetHighPrice: null,
+          targetLowPrice: null,
+          targetMedianPrice: null,
+          recommendationMean: tv.recommendAll ?? null,
+          recommendationKey: tv.recommendAll != null ? (tv.recommendAll > 0.3 ? 'buy' : tv.recommendAll < -0.3 ? 'sell' : 'hold') : null,
+          numberOfAnalystOpinions: null,
+          recommendations: [],
+          // Earnings (not available from TradingView)
+          earnings: [],
+          // Financial Statements (not available from TradingView scanner)
+          incomeStatement: [],
+          balanceSheet: [],
+          cashFlow: [],
+          // Insider Holders (not available from TradingView)
+          insiderHolders: [],
+          // Trading Info (TradingView)
+          previousClose: tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null,
+          open: tv.open ?? null,
+          dayHigh: tv.high ?? null,
+          dayLow: tv.low ?? null,
+          volume: tv.volume ?? null,
+          averageVolume: null,
+          averageVolume10days: null,
           // ─── TradingView Comprehensive Data ───
           // Volume Averages
           tvAvgVolume10d: tv.avgVolume10d ?? null,
@@ -582,10 +568,10 @@ export const appRouter = router({
           tvAvgVolume90d: tv.avgVolume90d ?? null,
           // Valuation
           tvPriceToFreeCashFlow: tv.priceToFreeCashFlow ?? null,
-          tvEnterpriseValue: pick(ks.enterpriseValue, tv.enterpriseValue),
-          tvEVToEBITDA: pick(ks.evToEbitda, tv.evToEbitda),
+          tvEnterpriseValue: tv.enterpriseValue ?? null,
+          tvEVToEBITDA: tv.evToEbitda ?? null,
           // Income Statement
-          tvTotalRevenue: pick(ks.totalRevenue, tv.totalRevenue),
+          tvTotalRevenue: tv.totalRevenue ?? null,
           tvGrossProfit: tv.grossProfit ?? null,
           tvNetIncome: tv.netIncome ?? null,
           tvEPS: tv.eps ?? null,
@@ -595,28 +581,28 @@ export const appRouter = router({
           // Balance Sheet
           tvTotalAssets: tv.totalAssets ?? null,
           tvTotalLiabilities: tv.totalLiabilities ?? null,
-          tvTotalDebt: pick(ks.totalDebt, tv.totalDebt),
+          tvTotalDebt: tv.totalDebt ?? null,
           tvTotalCurrentAssets: tv.totalCurrentAssets ?? null,
-          tvSharesOutstanding: pick(ks.sharesOutstanding, tv.sharesOutstanding),
+          tvSharesOutstanding: tv.sharesOutstanding ?? null,
           tvTotalEquity: tv.totalAssets != null && tv.totalLiabilities != null ? tv.totalAssets - tv.totalLiabilities : null,
           // Cash Flow
-          tvFreeCashFlow: pick(ks.freeCashflow, tv.freeCashFlow),
+          tvFreeCashFlow: tv.freeCashFlow ?? null,
           // Profitability (normalized to decimal)
-          tvGrossMargin: pick(ks.grossMargin, tv.grossMargin != null ? tv.grossMargin / 100 : null),
-          tvOperatingMargin: pick(ks.operatingMargin, tv.operatingMargin != null ? tv.operatingMargin / 100 : null),
+          tvGrossMargin: tv.grossMargin != null ? tv.grossMargin / 100 : null,
+          tvOperatingMargin: tv.operatingMargin != null ? tv.operatingMargin / 100 : null,
           tvPreTaxMargin: tv.preTaxMargin != null ? tv.preTaxMargin / 100 : null,
-          tvNetMargin: pick(ks.profitMargin, tv.netMargin != null ? tv.netMargin / 100 : null),
-          tvROE: pick(ks.returnOnEquity, tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null),
-          tvROA: pick(ks.returnOnAssets, tv.returnOnAssets != null ? tv.returnOnAssets / 100 : null),
+          tvNetMargin: tv.netMargin != null ? tv.netMargin / 100 : null,
+          tvROE: tv.returnOnEquity != null ? tv.returnOnEquity / 100 : null,
+          tvROA: tv.returnOnAssets != null ? tv.returnOnAssets / 100 : null,
           tvROIC: tv.returnOnInvestedCapital != null ? tv.returnOnInvestedCapital / 100 : null,
           // Dividends
-          tvDividendYield: pick(div.dividendYield, tv.dividendYield != null ? tv.dividendYield / 100 : null),
+          tvDividendYield: tv.dividendYield != null ? tv.dividendYield / 100 : null,
           tvDividendPerShare: tv.dividendPerShare ?? null,
           // Ratios
-          tvCurrentRatio: pick(ks.currentRatio, tv.currentRatio),
-          tvQuickRatio: pick(ks.quickRatio, tv.quickRatio),
-          tvDebtToEquity: pick(ks.debtToEquity, tv.debtToEquity),
-          tvEmployees: pick(co.fullTimeEmployees, tv.employees),
+          tvCurrentRatio: tv.currentRatio ?? null,
+          tvQuickRatio: tv.quickRatio ?? null,
+          tvDebtToEquity: tv.debtToEquity ?? null,
+          tvEmployees: tv.employees ?? null,
           // ─── Technical Analysis ───
           // Recommendations
           tvRecommendation: tv.recommendAll ?? null,
@@ -675,7 +661,7 @@ export const appRouter = router({
           tvVolatilityWeek: tv.volatilityWeek ?? null,
           tvVolatilityMonth: tv.volatilityMonth ?? null,
           tvATR: tv.atr ?? null,
-          tvBeta: pick(ks.beta, tv.beta),
+          tvBeta: tv.beta ?? null,
         };
         return { stock, profile, available: true };
       }),
@@ -784,12 +770,7 @@ export const appRouter = router({
         const tv = tvStocks.length > 0 ? tvStocks[0] : null;
         if (!tv) throw new Error("No data available for this stock");
         
-        // Also get Yahoo data for payout ratio
-        let yahooProfile: any = null;
-        if (stock.yahooSymbol) {
-          try { yahooProfile = await fetchFullProfile(stock.yahooSymbol); } catch(e) {}
-        }
-        const div = yahooProfile?.dividends || {};
+        // Payout ratio not available from TradingView scanner
         
         const sector = tv.sector || stock.sector || 'Unknown';
         
@@ -825,7 +806,7 @@ export const appRouter = router({
           bookValuePerShare: tv.bookValuePerShare,
           dividendYield: tv.dividendYield != null ? tv.dividendYield / 100 : null,
           dividendPerShare: tv.dividendPerShare,
-          payoutRatio: div.payoutRatio || null,
+          payoutRatio: null,
           perfYear: tv.perfYear,
           perf5Year: tv.perf5Year,
           sector,
@@ -1079,12 +1060,12 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
-        // Use 5 years of weekly data for seasonality
+        // Use 5 years of weekly data for seasonality (TwelveData/TradingView)
         const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk');
         if (!rawChart || !rawChart.timestamps || !rawChart.close) {
           return [];
         }
-        // Transform Yahoo chart format into { date, close } array for computeSeasonality
+        // Transform chart data into { date, close } array for computeSeasonality
         const chartData = rawChart.timestamps.map((ts: number, i: number) => ({
           date: new Date(ts).toISOString().split('T')[0],
           close: rawChart.close[i] ?? 0,
@@ -1267,6 +1248,12 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       .input(z.object({ notificationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await deleteNotification(input.notificationId, ctx.user.id);
+        return { success: true };
+      }),
+
+    deleteAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        await deleteAllNotifications(ctx.user.id);
         return { success: true };
       }),
 

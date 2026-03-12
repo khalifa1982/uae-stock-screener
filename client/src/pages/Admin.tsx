@@ -114,28 +114,13 @@ function TradingViewLogo() {
   );
 }
 
-function SimplyWallStLogo() {
-  return (
-    <div className="w-10 h-10 rounded bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center shrink-0">
-      <BarChart3 className="w-5 h-5 text-white" />
-    </div>
-  );
-}
 
-function YahooLogo() {
-  return (
-    <div className="w-10 h-10 rounded bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-bold text-[11px] shrink-0">
-      Y!
-    </div>
-  );
-}
 
 function getSourceLogo(id: string) {
   switch (id) {
     case "twelvedata": return <TwelveDataLogo />;
     case "tradingview": return <TradingViewLogo />;
-    case "simplywall": return <SimplyWallStLogo />;
-    case "yahoo": return <YahooLogo />;
+
     default: return <div className="w-10 h-10 rounded bg-muted flex items-center justify-center"><Database className="w-5 h-5" /></div>;
   }
 }

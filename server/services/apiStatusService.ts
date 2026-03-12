@@ -1,13 +1,11 @@
 /**
  * API Status Service
- * Aggregates health checks and statistics from all data sources.
+ * Aggregates health checks and statistics from TwelveData and TradingView.
  * Provides a unified view for the admin dashboard.
  */
 
 import { checkTwelveDataHealth, getTwelveDataStats } from './twelveDataService';
 import { checkTradingViewHealth, getTradingViewStats } from './tradingViewService';
-import { checkSWSHealth, getSWSStats } from './simplyWallStService';
-import { checkYahooHealth, getYahooStats } from './yahooFinanceService';
 
 export interface ApiSourceInfo {
   id: string;
@@ -42,22 +40,16 @@ export interface ApiStatusDashboard {
  * Run health checks on all data sources
  */
 export async function checkAllApiHealth(): Promise<ApiStatusDashboard> {
-  const [twelveData, tradingView, sws, yahoo] = await Promise.allSettled([
+  const [twelveData, tradingView] = await Promise.allSettled([
     checkTwelveDataHealth(),
     checkTradingViewHealth(),
-    checkSWSHealth(),
-    checkYahooHealth(),
   ]);
 
   const tdStats = getTwelveDataStats();
   const tvStats = getTradingViewStats();
-  const swsStats = getSWSStats();
-  const yahooStats = getYahooStats();
 
   const tdStatus = twelveData.status === 'fulfilled' ? twelveData.value : null;
   const tvStatus = tradingView.status === 'fulfilled' ? tradingView.value : null;
-  const swsStatus = sws.status === 'fulfilled' ? sws.value : null;
-  const yahooStatus = yahoo.status === 'fulfilled' ? yahoo.value : null;
 
   const sources: ApiSourceInfo[] = [
     {
@@ -113,61 +105,11 @@ export async function checkAllApiHealth(): Promise<ApiStatusDashboard> {
         cachedStocks: tvStats.cachedStocks,
       },
     },
-    {
-      id: 'simplywall',
-      name: 'Simply Wall St',
-      description: 'Company analysis platform providing snowflake valuation scores, fair value estimates, risk analysis, and health assessments. Uses web scraping approach (may be blocked by Cloudflare).',
-      website: 'https://simplywall.st',
-      type: 'web-scraping',
-      status: swsStatus?.connected ? 'connected' : 'disconnected',
-      statusMessage: swsStatus?.error || null,
-      lastChecked: swsStatus?.lastChecked || null,
-      lastSuccessfulFetch: swsStatus?.lastSuccessfulFetch || swsStats.status.lastSuccessfulFetch,
-      totalRequests: swsStats.totalRequests,
-      failedRequests: swsStats.failedRequests,
-      successRate: swsStats.successRate,
-      features: ['Snowflake Scores', 'Fair Value Estimate', 'Risk Analysis', 'Company Health'],
-      dataProvided: ['Value Score', 'Future Score', 'Past Performance Score', 'Health Score', 'Dividend Score', 'Fair Value', 'Risk Factors'],
-      requiresApiKey: false,
-      apiKeyConfigured: true,
-      stocksCovered: swsStats.cachedCompanies,
-      extra: {
-        method: swsStatus?.method || 'web-scraping',
-        cachedCompanies: swsStats.cachedCompanies,
-      },
-    },
-    {
-      id: 'yahoo',
-      name: 'Yahoo Finance',
-      description: 'Built-in Data API providing comprehensive stock data including quotes, company profiles (officers, description), financial statements, analyst recommendations, earnings history, and insider holdings for DFM stocks.',
-      website: 'https://finance.yahoo.com',
-      type: 'built-in',
-      status: yahooStatus?.connected ? 'connected' : 'disconnected',
-      statusMessage: yahooStatus?.error || null,
-      lastChecked: yahooStatus?.lastChecked || null,
-      lastSuccessfulFetch: yahooStatus?.lastSuccessfulFetch || yahooStats.status.lastSuccessfulFetch,
-      totalRequests: yahooStats.totalRequests,
-      failedRequests: yahooStats.failedRequests,
-      successRate: yahooStats.successRate,
-      features: ['Stock Quotes', 'Company Profiles', 'Financial Statements', 'Analyst Recommendations', 'Earnings History', 'Insider Holdings', 'Chart Data'],
-      dataProvided: [
-        'Real-time Prices', 'Company Description', 'Officers & BOD',
-        'Income Statement (4yr)', 'Balance Sheet', 'Cash Flow',
-        'Key Statistics (28+)', 'Analyst Targets', 'Earnings Surprises',
-        'Dividend History', 'Insider Transactions',
-      ],
-      requiresApiKey: false,
-      apiKeyConfigured: true,
-      stocksCovered: yahooStatus?.coveredStocks || 68,
-      extra: {
-        method: yahooStatus?.method || 'built-in-data-api',
-      },
-    },
   ];
 
   const connectedSources = sources.filter(s => s.status === 'connected').length;
   const overallHealth: 'healthy' | 'degraded' | 'critical' =
-    connectedSources >= 3 ? 'healthy' :
+    connectedSources >= 2 ? 'healthy' :
     connectedSources >= 1 ? 'degraded' :
     'critical';
 
@@ -186,8 +128,6 @@ export async function checkAllApiHealth(): Promise<ApiStatusDashboard> {
 export function getApiStatusSnapshot(): ApiStatusDashboard {
   const tdStats = getTwelveDataStats();
   const tvStats = getTradingViewStats();
-  const swsStats = getSWSStats();
-  const yahooStats = getYahooStats();
 
   const sources: ApiSourceInfo[] = [
     {
@@ -230,46 +170,6 @@ export function getApiStatusSnapshot(): ApiStatusDashboard {
       stocksCovered: tvStats.status.stockCount || 174,
       extra: { cacheAge: tvStats.cacheAge, cachedStocks: tvStats.cachedStocks },
     },
-    {
-      id: 'simplywall',
-      name: 'Simply Wall St',
-      description: 'Company valuation and risk analysis via web scraping',
-      website: 'https://simplywall.st',
-      type: 'web-scraping',
-      status: swsStats.status.connected ? 'connected' : 'disconnected',
-      statusMessage: swsStats.status.error,
-      lastChecked: swsStats.status.lastChecked,
-      lastSuccessfulFetch: swsStats.status.lastSuccessfulFetch,
-      totalRequests: swsStats.totalRequests,
-      failedRequests: swsStats.failedRequests,
-      successRate: swsStats.successRate,
-      features: ['Snowflake Scores', 'Fair Value', 'Risk Analysis'],
-      dataProvided: ['Valuation Scores', 'Fair Value Estimate', 'Risk Factors'],
-      requiresApiKey: false,
-      apiKeyConfigured: true,
-      stocksCovered: swsStats.cachedCompanies,
-      extra: { cachedCompanies: swsStats.cachedCompanies },
-    },
-    {
-      id: 'yahoo',
-      name: 'Yahoo Finance',
-      description: 'Built-in Data API for quotes, profiles, and financial statements',
-      website: 'https://finance.yahoo.com',
-      type: 'built-in',
-      status: yahooStats.status.connected ? 'connected' : 'disconnected',
-      statusMessage: yahooStats.status.error,
-      lastChecked: yahooStats.status.lastChecked,
-      lastSuccessfulFetch: yahooStats.status.lastSuccessfulFetch,
-      totalRequests: yahooStats.totalRequests,
-      failedRequests: yahooStats.failedRequests,
-      successRate: yahooStats.successRate,
-      features: ['Stock Quotes', 'Company Profiles', 'Financial Statements'],
-      dataProvided: ['Prices', 'Company Info', 'Officers', 'Financials', 'Analyst Data'],
-      requiresApiKey: false,
-      apiKeyConfigured: true,
-      stocksCovered: 68,
-      extra: {},
-    },
   ];
 
   const connectedSources = sources.filter(s => s.status === 'connected').length;
@@ -279,6 +179,6 @@ export function getApiStatusSnapshot(): ApiStatusDashboard {
     totalSources: sources.length,
     connectedSources,
     lastFullCheck: new Date().toISOString(),
-    overallHealth: connectedSources >= 3 ? 'healthy' : connectedSources >= 1 ? 'degraded' : 'critical',
+    overallHealth: connectedSources >= 2 ? 'healthy' : connectedSources >= 1 ? 'degraded' : 'critical',
   };
 }

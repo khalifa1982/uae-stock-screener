@@ -362,8 +362,8 @@ export default function StockDetail() {
               </div>
               <p className="text-muted-foreground text-[11px]">{stockInfo.name}</p>
               {profile?.website && (
-                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                  <Globe className="h-3 w-3" /> {profile.website.replace(/^https?:\/\//, '')}
+                <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                  <Globe className="h-3 w-3" /> {(profile.website as string).replace(/^https?:\/\//, '')}
                 </a>
               )}
             </div>
@@ -385,7 +385,7 @@ export default function StockDetail() {
 
       {/* ─── Tabs ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-secondary/50 flex-wrap">
+        <TabsList className="bg-secondary/50 h-auto gap-1 p-1.5 overflow-x-auto flex-wrap">
           <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="orderbook" className="text-xs gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
           <TabsTrigger value="technicals" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
@@ -418,11 +418,11 @@ export default function StockDetail() {
                 <AnalystConsensus
                   recommendation={profile.tvRecommendation ?? (profile.recommendationMean != null ? ((5 - profile.recommendationMean) / 2 - 1) : null)}
                   totalAnalysts={profile.numberOfAnalystOpinions ?? null}
-                  strongBuy={profile.recommendations?.[0]?.strongBuy ?? null}
-                  buy={profile.recommendations?.[0]?.buy ?? null}
-                  hold={profile.recommendations?.[0]?.hold ?? null}
-                  sell={profile.recommendations?.[0]?.sell ?? null}
-                  strongSell={profile.recommendations?.[0]?.strongSell ?? null}
+                  strongBuy={(profile.recommendations as any)?.[0]?.strongBuy ?? null}
+                  buy={(profile.recommendations as any)?.[0]?.buy ?? null}
+                  hold={(profile.recommendations as any)?.[0]?.hold ?? null}
+                  sell={(profile.recommendations as any)?.[0]?.sell ?? null}
+                  strongSell={(profile.recommendations as any)?.[0]?.strongSell ?? null}
                   targetLow={profile.targetLowPrice ?? null}
                   targetHigh={profile.targetHighPrice ?? null}
                   targetMean={profile.targetMeanPrice ?? profile.targetMedianPrice ?? null}
@@ -749,7 +749,7 @@ export default function StockDetail() {
             <div className="space-y-1.5">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded" />)}</div>
           ) : profile ? (
             <>
-              {/* Income / Balance / Cash Flow from Yahoo */}
+              {/* Income / Balance / Cash Flow */}
               {profile.incomeStatement && profile.incomeStatement.length > 0 && (
                 <FinancialTable title="Income Statement (Annual)" data={profile.incomeStatement} icon={FileText} />
               )}
@@ -795,7 +795,7 @@ export default function StockDetail() {
                 </Card>
               )}
 
-              {/* TradingView Financial Summary (fallback when Yahoo has no statements) */}
+              {/* TradingView Financial Summary */}
               {(!profile.incomeStatement || profile.incomeStatement.length === 0) &&
                (!profile.balanceSheet || profile.balanceSheet.length === 0) &&
                (!profile.cashFlow || profile.cashFlow.length === 0) && (

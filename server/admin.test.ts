@@ -29,16 +29,16 @@ describe("admin.apiHealthCheck", () => {
     expect(result).toHaveProperty("lastFullCheck");
     expect(result).toHaveProperty("overallHealth");
 
-    // Should have exactly 4 data sources
-    expect(result.sources).toHaveLength(4);
-    expect(result.totalSources).toBe(4);
+    // Should have exactly 2 data sources (TwelveData + TradingView)
+    expect(result.sources).toHaveLength(2);
+    expect(result.totalSources).toBe(2);
 
-    // Verify source IDs
+    // Verify source IDs (only TwelveData + TradingView)
     const sourceIds = result.sources.map(s => s.id);
     expect(sourceIds).toContain("twelvedata");
     expect(sourceIds).toContain("tradingview");
-    expect(sourceIds).toContain("simplywall");
-    expect(sourceIds).toContain("yahoo");
+    expect(sourceIds).not.toContain("simplywall");
+    expect(sourceIds).not.toContain("yahoo");
   });
 
   it("each source has required fields", async () => {
@@ -104,7 +104,7 @@ describe("admin.apiStatus", () => {
 
     expect(result).toHaveProperty("sources");
     expect(result).toHaveProperty("totalSources");
-    expect(result.sources).toHaveLength(4);
+    expect(result.sources).toHaveLength(2);
   });
 });
 
@@ -178,30 +178,31 @@ describe("TradingView source configuration", () => {
   });
 });
 
-describe("Simply Wall St source configuration", () => {
-  it("reports as web scraping type", async () => {
+describe("Data sources only include TwelveData and TradingView", () => {
+  it("does NOT include Simply Wall St", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.admin.apiHealthCheck();
     const sws = result.sources.find(s => s.id === "simplywall");
-
-    expect(sws).toBeDefined();
-    expect(sws!.type).toBe("web-scraping");
-    expect(sws!.requiresApiKey).toBe(false);
+    expect(sws).toBeUndefined();
   });
-});
 
-describe("Yahoo Finance source configuration", () => {
-  it("reports as built-in type", async () => {
+  it("does NOT include Yahoo Finance", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.admin.apiHealthCheck();
     const yahoo = result.sources.find(s => s.id === "yahoo");
+    expect(yahoo).toBeUndefined();
+  });
 
-    expect(yahoo).toBeDefined();
-    expect(yahoo!.type).toBe("built-in");
-    expect(yahoo!.requiresApiKey).toBe(false);
+  it("includes only TwelveData and TradingView", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.admin.apiHealthCheck();
+    expect(result.sources.length).toBe(2);
+    expect(result.sources.map(s => s.id).sort()).toEqual(["tradingview", "twelvedata"]);
   });
 });

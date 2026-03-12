@@ -11,8 +11,11 @@ import {
   Trash2,
   AlertTriangle,
   Info,
+  ChevronDown,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -42,9 +45,228 @@ function SeverityIcon({ severity }: { severity: string }) {
   }
 }
 
+interface NotificationGroup {
+  symbol: string | null;
+  items: any[];
+  latestTime: Date;
+  unreadCount: number;
+  highestSeverity: string;
+}
+
+function groupNotifications(notifications: any[]): (NotificationGroup | any)[] {
+  // Group by symbol, keep non-symbol notifications as standalone
+  const symbolGroups = new Map<string, any[]>();
+  const standalone: any[] = [];
+
+  for (const notif of notifications) {
+    if (notif.symbol) {
+      const existing = symbolGroups.get(notif.symbol) || [];
+      existing.push(notif);
+      symbolGroups.set(notif.symbol, existing);
+    } else {
+      standalone.push(notif);
+    }
+  }
+
+  const result: (NotificationGroup | any)[] = [];
+
+  // Convert symbol groups - only group if 2+ notifications for same symbol
+  for (const [symbol, items] of Array.from(symbolGroups.entries())) {
+    if (items.length >= 2) {
+      const severityOrder: Record<string, number> = { critical: 3, warning: 2, high: 2, medium: 1, info: 0 };
+      const highestSeverity = items.reduce((max: string, item: any) => {
+        return (severityOrder[item.severity] || 0) > (severityOrder[max] || 0) ? item.severity : max;
+      }, "info");
+
+      result.push({
+        symbol,
+        items,
+        latestTime: new Date(items[0].createdAt),
+        unreadCount: items.filter((i: any) => !i.isRead).length,
+        highestSeverity,
+      });
+    } else {
+      // Single notification for this symbol - show as standalone
+      standalone.push(...items);
+    }
+  }
+
+  // Add standalone notifications
+  for (const notif of standalone) {
+    result.push(notif);
+  }
+
+  // Sort by latest time (newest first)
+  result.sort((a, b) => {
+    const timeA = 'latestTime' in a ? a.latestTime.getTime() : new Date(a.createdAt).getTime();
+    const timeB = 'latestTime' in b ? b.latestTime.getTime() : new Date(b.createdAt).getTime();
+    return timeB - timeA;
+  });
+
+  return result;
+}
+
+function isGroup(item: any): item is NotificationGroup {
+  return 'items' in item && Array.isArray(item.items);
+}
+
+function NotificationItem({
+  notif,
+  isLast,
+  onMarkRead,
+  onDelete,
+  onClose,
+}: {
+  notif: any;
+  isLast: boolean;
+  onMarkRead: (id: number) => void;
+  onDelete: (id: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className={`group relative flex gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
+        !isLast ? "border-b border-border/20" : ""
+      }`}
+      style={!notif.isRead ? { background: "oklch(0.12 0.02 260)" } : undefined}
+    >
+      {!notif.isRead && (
+        <div className="absolute left-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+      )}
+      <div className="mt-0.5 shrink-0">
+        <SeverityIcon severity={notif.severity} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-xs leading-tight ${!notif.isRead ? "font-semibold text-foreground" : "font-medium text-foreground/90"}`}>
+            {notif.title}
+          </p>
+          <span className="text-[9px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+            {formatTimeAgo(notif.createdAt)}
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+          {notif.message}
+        </p>
+        <div className="flex items-center gap-2 mt-1.5">
+          {notif.symbol && (
+            <Link
+              href={`/stock/${notif.symbol}`}
+              onClick={onClose}
+              className="text-[10px] text-primary hover:underline font-medium"
+            >
+              View {notif.symbol}
+            </Link>
+          )}
+          <div className="flex-1" />
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {!notif.isRead && (
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent transition-colors"
+                title="Mark as read"
+                onClick={() => onMarkRead(notif.id)}
+              >
+                <Check className="h-2.5 w-2.5 text-muted-foreground" />
+              </button>
+            )}
+            <button
+              className="h-5 w-5 flex items-center justify-center rounded hover:bg-destructive/10 transition-colors"
+              title="Delete"
+              onClick={() => onDelete(notif.id)}
+            >
+              <Trash2 className="h-2.5 w-2.5 text-muted-foreground hover:text-destructive" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupedNotification({
+  group,
+  onMarkRead,
+  onDelete,
+  onClose,
+}: {
+  group: NotificationGroup;
+  onMarkRead: (id: number) => void;
+  onDelete: (id: number) => void;
+  onClose: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border-b border-border/20">
+      {/* Group header - clickable to expand */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/5 text-left"
+        style={group.unreadCount > 0 ? { background: "oklch(0.11 0.018 260)" } : undefined}
+      >
+        <div className="mt-0.5 shrink-0">
+          <Layers className="h-4 w-4 text-primary/70" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-foreground">{group.symbol}</span>
+            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-mono">
+              {group.items.length} alerts
+            </Badge>
+            {group.unreadCount > 0 && (
+              <Badge className="text-[9px] h-4 px-1.5 bg-primary/20 text-primary border-primary/30" variant="outline">
+                {group.unreadCount} new
+              </Badge>
+            )}
+            <span className="text-[9px] text-muted-foreground ml-auto shrink-0">
+              {formatTimeAgo(group.latestTime)}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+            Latest: {group.items[0].title}
+          </p>
+        </div>
+        <div className="shrink-0">
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+
+      {/* Expanded items */}
+      {expanded && (
+        <div className="border-t border-border/10" style={{ background: "oklch(0.09 0.012 260)" }}>
+          {group.items.map((notif, idx) => (
+            <NotificationItem
+              key={notif.id}
+              notif={notif}
+              isLast={idx === group.items.length - 1}
+              onMarkRead={onMarkRead}
+              onDelete={onDelete}
+              onClose={onClose}
+            />
+          ))}
+          <div className="px-3 py-1.5 flex justify-center">
+            <Link
+              href={`/stock/${group.symbol}`}
+              onClick={onClose}
+              className="text-[10px] text-primary hover:underline font-medium"
+            >
+              View {group.symbol} details &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NotificationCenter() {
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const prevCountRef = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -55,7 +277,6 @@ export default function NotificationCenter() {
     playSoundOnly,
   } = useAlertNotifications();
 
-  // Only fetch if authenticated
   const { data: unreadCount, refetch: refetchCount } = trpc.notifications.unreadCount.useQuery(
     undefined,
     {
@@ -95,12 +316,28 @@ export default function NotificationCenter() {
     },
   });
 
+  const deleteAllMutation = trpc.notifications.deleteAll.useMutation({
+    onSuccess: () => {
+      refetchCount();
+      refetchList();
+      setShowClearConfirm(false);
+      toast.success("All notifications cleared");
+    },
+  });
+
+  // Group notifications by symbol
+  const groupedItems = useMemo(() => {
+    if (!notificationList || notificationList.length === 0) return [];
+    return groupNotifications(notificationList);
+  }, [notificationList]);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setShowClearConfirm(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -111,7 +348,10 @@ export default function NotificationCenter() {
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setShowClearConfirm(false);
+      }
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
@@ -150,6 +390,7 @@ export default function NotificationCenter() {
   }
 
   const count = unreadCount ?? 0;
+  const totalNotifications = notificationList?.length ?? 0;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -171,7 +412,7 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {/* Dropdown panel - uses explicit inline background to guarantee opacity */}
+      {/* Dropdown panel */}
       {open && (
         <div
           className={`absolute z-[200] border border-border rounded-lg shadow-2xl overflow-hidden ${
@@ -217,18 +458,60 @@ export default function NotificationCenter() {
                   disabled={markAllReadMutation.isPending}
                 >
                   <CheckCheck className="h-3 w-3" />
-                  Mark all read
+                  Read all
+                </Button>
+              )}
+              {totalNotifications > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1"
+                  onClick={() => setShowClearConfirm(true)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear all
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Notification List - scrollable */}
+          {/* Clear All Confirmation */}
+          {showClearConfirm && (
+            <div
+              className="px-3 py-3 border-b border-border/50 flex items-center justify-between gap-2"
+              style={{ background: "oklch(0.12 0.03 25)" }}
+            >
+              <p className="text-xs text-red-300">
+                Delete all {totalNotifications} notifications?
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] text-muted-foreground"
+                  onClick={() => setShowClearConfirm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-6 text-[10px]"
+                  onClick={() => deleteAllMutation.mutate()}
+                  disabled={deleteAllMutation.isPending}
+                >
+                  {deleteAllMutation.isPending ? "Clearing..." : "Yes, clear all"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Notification List - scrollable with grouping */}
           <div
             className="overflow-y-auto overscroll-contain"
             style={{ maxHeight: isMobile ? "calc(100vh - 12rem)" : "380px" }}
           >
-            {!notificationList || notificationList.length === 0 ? (
+            {groupedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <Bell className="h-8 w-8 text-muted-foreground/60 mb-3" />
                 <p className="text-sm text-muted-foreground">No notifications yet</p>
@@ -238,84 +521,34 @@ export default function NotificationCenter() {
               </div>
             ) : (
               <div>
-                {notificationList.map((notif: any, idx: number) => (
-                  <div
-                    key={notif.id}
-                    className={`group relative flex gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
-                      idx < notificationList.length - 1 ? "border-b border-border/20" : ""
-                    }`}
-                    style={
-                      !notif.isRead
-                        ? { background: "oklch(0.12 0.02 260)" }
-                        : undefined
-                    }
-                  >
-                    {/* Unread indicator */}
-                    {!notif.isRead && (
-                      <div className="absolute left-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
-                    )}
-
-                    {/* Icon */}
-                    <div className="mt-0.5 shrink-0">
-                      <SeverityIcon severity={notif.severity} />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`text-xs leading-tight ${!notif.isRead ? "font-semibold text-foreground" : "font-medium text-foreground/90"}`}>
-                          {notif.title}
-                        </p>
-                        <span className="text-[9px] text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
-                          {formatTimeAgo(notif.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
-                        {notif.message}
-                      </p>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 mt-1.5">
-                        {notif.symbol && (
-                          <Link
-                            href={`/stock/${notif.symbol}`}
-                            onClick={() => setOpen(false)}
-                            className="text-[10px] text-primary hover:underline font-medium"
-                          >
-                            View {notif.symbol}
-                          </Link>
-                        )}
-                        <div className="flex-1" />
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!notif.isRead && (
-                            <button
-                              className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent transition-colors"
-                              title="Mark as read"
-                              onClick={() => markReadMutation.mutate({ notificationId: notif.id })}
-                            >
-                              <Check className="h-2.5 w-2.5 text-muted-foreground" />
-                            </button>
-                          )}
-                          <button
-                            className="h-5 w-5 flex items-center justify-center rounded hover:bg-destructive/10 transition-colors"
-                            title="Delete"
-                            onClick={() => deleteMutation.mutate({ notificationId: notif.id })}
-                          >
-                            <Trash2 className="h-2.5 w-2.5 text-muted-foreground hover:text-destructive" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {groupedItems.map((item, idx) =>
+                  isGroup(item) ? (
+                    <GroupedNotification
+                      key={`group-${item.symbol}`}
+                      group={item}
+                      onMarkRead={(id) => markReadMutation.mutate({ notificationId: id })}
+                      onDelete={(id) => deleteMutation.mutate({ notificationId: id })}
+                      onClose={() => setOpen(false)}
+                    />
+                  ) : (
+                    <NotificationItem
+                      key={item.id}
+                      notif={item}
+                      isLast={idx === groupedItems.length - 1}
+                      onMarkRead={(id) => markReadMutation.mutate({ notificationId: id })}
+                      onDelete={(id) => deleteMutation.mutate({ notificationId: id })}
+                      onClose={() => setOpen(false)}
+                    />
+                  )
+                )}
               </div>
             )}
           </div>
 
           {/* Footer */}
-          {notificationList && notificationList.length > 0 && (
+          {totalNotifications > 0 && (
             <div
-              className="border-t border-border/50 px-3 py-2 sticky bottom-0"
+              className="border-t border-border/50 px-3 py-2 sticky bottom-0 flex items-center justify-between"
               style={{ background: "oklch(0.10 0.014 260)" }}
             >
               <Link
@@ -325,6 +558,9 @@ export default function NotificationCenter() {
               >
                 View all alerts &rarr;
               </Link>
+              <span className="text-[9px] text-muted-foreground font-mono">
+                {totalNotifications} total
+              </span>
             </div>
           )}
         </div>

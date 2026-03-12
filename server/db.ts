@@ -264,6 +264,13 @@ export async function deleteNotification(notificationId: number, userId: number)
     .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
 }
 
+export async function deleteAllNotifications(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notifications)
+    .where(eq(notifications.userId, userId));
+}
+
 // Notification preferences operations
 export async function getNotificationPreferences(userId: number) {
   const db = await getDb();
