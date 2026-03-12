@@ -62,13 +62,13 @@ function formatRawPercent(num: number | null | undefined): string {
 // ─── Reusable Components ───────────────────────────────────────────
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color?: string }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 neon-card">
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${color || "bg-primary/10"}`}>
+    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
+      <div className={`h-9 w-9 rounded flex items-center justify-center shrink-0 ${color || "bg-primary/10"}`}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
         <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-semibold font-mono truncate">{value}</p>
+        <p className="text-[11px] font-semibold font-mono truncate">{value}</p>
       </div>
     </div>
   );
@@ -78,7 +78,7 @@ function DataRow({ label, value, highlight }: { label: string; value: string; hi
   return (
     <div className="flex justify-between items-center py-2 px-3 rounded-md hover:bg-muted/10">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`font-mono text-sm ${highlight ? "font-semibold text-foreground" : "text-foreground/80"}`}>{value}</span>
+      <span className={`font-mono text-[11px] ${highlight ? "font-semibold text-foreground" : "text-foreground/80"}`}>{value}</span>
     </div>
   );
 }
@@ -92,7 +92,7 @@ function RSIGauge({ value }: { value: number | null | undefined }) {
     <div className="space-y-2">
       <div className="flex justify-between items-center">
         <span className="text-xs text-muted-foreground">RSI (14)</span>
-        <span className={`text-sm font-mono font-semibold ${color}`}>{value.toFixed(1)}</span>
+        <span className={`text-[11px] font-mono font-semibold ${color}`}>{value.toFixed(1)}</span>
       </div>
       <div className="h-2 rounded-full bg-secondary/50 overflow-hidden">
         <div className={`h-full rounded-full transition-all ${value > 70 ? "bg-[oklch(0.65_0.22_25)]" : value < 30 ? "bg-[oklch(0.72_0.17_155)]" : "bg-primary"}`} style={{ width: `${pct}%` }} />
@@ -117,7 +117,7 @@ function RecommendationGauge({ value, label }: { value: number | null | undefine
     <div className="space-y-2">
       <div className="flex justify-between items-center">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className={`text-sm font-mono font-bold ${textColor}`}>{text}</span>
+        <span className={`text-[11px] font-mono font-bold ${textColor}`}>{text}</span>
       </div>
       <div className="h-3 rounded-full overflow-hidden flex">
         <div className="flex-1 bg-[oklch(0.65_0.22_25)]" />
@@ -183,7 +183,7 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
           <Icon className="h-4 w-4 text-primary" /> {title}
         </CardTitle>
       </CardHeader>
@@ -315,7 +315,7 @@ export default function StockDetail() {
 
   if (!stockInfo) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-1.5">
         <p className="text-muted-foreground">Stock not found</p>
         <Button variant="outline" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
@@ -325,26 +325,26 @@ export default function StockDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* ─── Header ─── */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5">
+          <div className="flex items-start gap-1.5">
             {profile?.logo ? (
-              <div className="h-14 w-14 rounded-xl bg-white/10 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="h-14 w-14 rounded-md bg-white/10 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
                 <img src={profile.logo} alt={stockInfo.name} className="h-10 w-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             ) : (
-              <div className="h-14 w-14 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center shrink-0">
-                <span className="text-lg font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
+              <div className="h-14 w-14 rounded-md bg-muted/50 border border-border/40 flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
               </div>
             )}
             <div>
-              <div className="flex items-center gap-3 mb-1 flex-wrap">
-                <h1 className="text-2xl font-bold tracking-tight font-mono neon-text">{symbol}</h1>
+              <div className="flex items-center gap-1 mb-1 flex-wrap">
+                <h1 className="text-xs font-bold tracking-tight font-mono neon-text">{symbol}</h1>
                 <Badge variant="outline" className={`text-xs font-mono ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
                   {stockInfo.exchange}
                 </Badge>
@@ -353,7 +353,7 @@ export default function StockDetail() {
                 <MarketStatusBadge />
                 <RealtimeIndicator isConnected={wsConnected} />
               </div>
-              <p className="text-muted-foreground text-sm">{stockInfo.name}</p>
+              <p className="text-muted-foreground text-[11px]">{stockInfo.name}</p>
               {profile?.website && (
                 <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
                   <Globe className="h-3 w-3" /> {profile.website.replace(/^https?:\/\//, '')}
@@ -362,11 +362,11 @@ export default function StockDetail() {
             </div>
           </div>
           {detail && (
-            <div className="flex items-end gap-3">
-              <span className="text-3xl font-bold font-mono neon-text">{price != null ? formatNumber(price) : "—"}</span>
-              <span className="text-sm text-muted-foreground mb-1">AED</span>
+            <div className="flex items-end gap-1">
+              <span className="text-[11px] font-bold font-mono neon-text">{price != null ? formatNumber(price) : "—"}</span>
+              <span className="text-[11px] text-muted-foreground mb-1">AED</span>
               {priceChange != null && (
-                <span className={`flex items-center gap-1 text-lg font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
+                <span className={`flex items-center gap-1 text-[11px] font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
                   {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
                   {priceChange > 0 ? "+" : ""}{priceChange.toFixed(3)}%
                 </span>
@@ -391,7 +391,7 @@ export default function StockDetail() {
         </TabsList>
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
-        <TabsContent value="overview" className="space-y-6 mt-4">
+        <TabsContent value="overview" className="space-y-2 mt-4">
           {/* Advanced Price Chart with Technical Overlays */}
           <AdvancedChart
             symbol={symbol}
@@ -403,18 +403,18 @@ export default function StockDetail() {
           />
 
           {/* Key Metrics + Quick Technical */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
             <Card className="border-border/50 lg:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-primary" /> Key Metrics
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {detailLoading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">{Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1">{Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-16 rounded" />)}</div>
                 ) : detail ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1">
                     <MetricCard label="Open" value={formatNumber(detail.open)} icon={Target} />
                     <MetricCard label="Day High" value={formatNumber(detail.dayHigh)} icon={ArrowUp} />
                     <MetricCard label="Day Low" value={formatNumber(detail.dayLow)} icon={ArrowDown} />
@@ -440,14 +440,14 @@ export default function StockDetail() {
 
             {/* Quick Technical Snapshot */}
             <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <Activity className="h-4 w-4 text-primary" /> Technical Snapshot
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-1.5">
                 {detailLoading ? (
-                  <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+                  <div className="space-y-1.5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded" />)}</div>
                 ) : detail ? (
                   <>
                     <RSIGauge value={detail.rsi} />
@@ -455,7 +455,7 @@ export default function StockDetail() {
                       <RecommendationGauge value={profile.tvRecommendation} label="Overall Rating" />
                     )}
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 20</span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-medium">{detail.sma20 != null ? formatNumber(detail.sma20, 3) : "—"}</span>
@@ -466,7 +466,7 @@ export default function StockDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 50</span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-medium">{detail.sma50 != null ? formatNumber(detail.sma50, 3) : "—"}</span>
@@ -477,7 +477,7 @@ export default function StockDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 200</span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-medium">{(detail as any).sma200 != null ? formatNumber((detail as any).sma200, 3) : (profile?.tvSMA200 != null ? formatNumber(profile.tvSMA200, 3) : "—")}</span>
@@ -488,7 +488,7 @@ export default function StockDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded bg-secondary/30">
                         <span className="text-xs text-muted-foreground">MACD</span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-medium">{(detail as any).macdValue != null ? formatNumber((detail as any).macdValue, 4) : (profile?.tvMACD != null ? formatNumber(profile.tvMACD, 4) : "—")}</span>
@@ -501,12 +501,12 @@ export default function StockDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                      <div className="flex justify-between items-center p-2 rounded bg-secondary/30">
                         <span className="text-xs text-muted-foreground">MACD Signal</span>
                         <span className="font-mono text-xs font-medium">{(detail as any).macdSignal != null ? formatNumber((detail as any).macdSignal, 4) : (profile?.tvMACDSignal != null ? formatNumber(profile.tvMACDSignal, 4) : "—")}</span>
                       </div>
                       {detail.price != null && detail.sma50 != null && (
-                        <div className={`p-2.5 rounded-lg border ${detail.price > detail.sma50 ? "border-[oklch(0.72_0.17_155/30%)] bg-[oklch(0.72_0.17_155/5%)]" : "border-[oklch(0.65_0.22_25/30%)] bg-[oklch(0.65_0.22_25/5%)]"}`}>
+                        <div className={`p-2.5 rounded border ${detail.price > detail.sma50 ? "border-[oklch(0.72_0.17_155/30%)] bg-[oklch(0.72_0.17_155/5%)]" : "border-[oklch(0.65_0.22_25/30%)] bg-[oklch(0.65_0.22_25/5%)]"}`}>
                           <div className="flex items-center gap-2">
                             {detail.price > detail.sma50 ? <TrendingUp className="h-3.5 w-3.5 text-gain" /> : <TrendingDown className="h-3.5 w-3.5 text-loss" />}
                             <span className={`text-xs font-medium ${detail.price > detail.sma50 ? "text-gain" : "text-loss"}`}>
@@ -543,13 +543,13 @@ export default function StockDetail() {
           {/* Performance & Volatility */}
           {profile && (profile.tvPerfWeek != null || profile.tvPerfMonth != null) && (
             <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" /> Performance & Volatility
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-1">
                   {[
                     { label: "1 Week", val: profile.tvPerfWeek, perf: true },
                     { label: "1 Month", val: profile.tvPerfMonth, perf: true },
@@ -565,9 +565,9 @@ export default function StockDetail() {
                     { label: "ATR", val: profile.tvATR, perf: false },
                     { label: "Beta", val: profile.tvBeta, perf: false },
                   ].map(({ label, val, perf }) => (
-                    <div key={label} className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <div key={label} className="p-3 rounded bg-secondary/30 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-                      <p className={`text-sm font-bold font-mono ${
+                      <p className={`text-[11px] font-bold font-mono ${
                         !perf ? "text-foreground" :
                         val != null && val > 0 ? "text-gain" : val != null && val < 0 ? "text-loss" : "text-muted-foreground"
                       }`}>
@@ -583,13 +583,13 @@ export default function StockDetail() {
           {/* Key Statistics */}
           {profile && (
             <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <PieChart className="h-4 w-4 text-primary" /> Key Statistics
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                   {/* Valuation */}
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Valuation</h4>
@@ -659,7 +659,7 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ TECHNICALS TAB ═══════════════ */}
-        <TabsContent value="technicals" className="space-y-6 mt-4">
+        <TabsContent value="technicals" className="space-y-2 mt-4">
           {/* TwelveData Real Technical Analysis */}
           <TechnicalAnalysisTab
             symbol={symbol}
@@ -670,32 +670,32 @@ export default function StockDetail() {
           {/* Volume Analysis from TradingView */}
           {profile && (
             <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" /> Volume Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                  <div className="p-3 rounded bg-secondary/30 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Current</p>
-                    <p className="text-sm font-bold font-mono">{formatLargeNumber(detail?.volume)}</p>
+                    <p className="text-[11px] font-bold font-mono">{formatLargeNumber(detail?.volume)}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                  <div className="p-3 rounded bg-secondary/30 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 10d</p>
-                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume10d)}</p>
+                    <p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume10d)}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                  <div className="p-3 rounded bg-secondary/30 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 30d</p>
-                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume30d)}</p>
+                    <p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume30d)}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                  <div className="p-3 rounded bg-secondary/30 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg 90d</p>
-                    <p className="text-sm font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume90d)}</p>
+                    <p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.tvAvgVolume90d)}</p>
                   </div>
                 </div>
                 {detail?.volume != null && profile.tvAvgVolume30d != null && profile.tvAvgVolume30d > 0 && (
-                  <div className={`mt-3 p-2.5 rounded-lg border ${detail.volume > profile.tvAvgVolume30d * 1.5 ? "border-primary/30 bg-primary/5" : "border-border/30 bg-secondary/10"}`}>
+                  <div className={`mt-3 p-2.5 rounded border ${detail.volume > profile.tvAvgVolume30d * 1.5 ? "border-primary/30 bg-primary/5" : "border-border/30 bg-secondary/10"}`}>
                     <p className="text-xs text-muted-foreground">
                       Volume is <span className="font-mono font-semibold text-foreground">{(detail.volume / profile.tvAvgVolume30d).toFixed(2)}x</span> the 30-day average
                       {detail.volume > profile.tvAvgVolume30d * 2 && <span className="text-primary ml-1">(Unusual activity)</span>}
@@ -708,12 +708,12 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ FINANCIALS TAB ═══════════════ */}
-        <TabsContent value="financials" className="space-y-6 mt-4">
+        <TabsContent value="financials" className="space-y-2 mt-4">
           {/* TradingView Extended Financials (always shown) */}
           <StockFinancialsExtended symbol={symbol} />
 
           {profileLoading ? (
-            <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}</div>
+            <div className="space-y-1.5">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded" />)}</div>
           ) : profile ? (
             <>
               {/* Income / Balance / Cash Flow from Yahoo */}
@@ -729,7 +729,7 @@ export default function StockDetail() {
               {profile.earnings && profile.earnings.length > 0 && (
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
                       <BarChart3 className="h-4 w-4 text-primary" /> Earnings History
                     </CardTitle>
                   </CardHeader>
@@ -769,14 +769,14 @@ export default function StockDetail() {
                 <>
                   {(profile.tvNetIncome != null || profile.tvEBITDA != null || profile.tvTotalAssets != null) ? (
                     <Card className="border-border/50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <CardHeader className="pb-1">
+                        <CardTitle className="text-xs font-semibold flex items-center gap-2">
                           <FileText className="h-4 w-4 text-primary" /> Financial Summary
                           <Badge variant="outline" className="text-[10px] ml-2">TradingView</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                           <div>
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Income</h4>
                             <div className="space-y-1">
@@ -831,32 +831,32 @@ export default function StockDetail() {
               {/* Dividends Section */}
               {(profile.dividendRate || profile.tvDividendYield || profile.tvDividendPerShare || profile.exDividendDate) && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-primary" /> Dividend Information
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-3 rounded-lg bg-secondary/30">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+                      <div className="p-3 rounded bg-secondary/30">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Annual Rate</p>
-                        <p className="text-lg font-bold font-mono">{profile.dividendRate ? formatNumber(profile.dividendRate) + " AED" : "—"}</p>
+                        <p className="text-[11px] font-bold font-mono">{profile.dividendRate ? formatNumber(profile.dividendRate) + " AED" : "—"}</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-secondary/30">
+                      <div className="p-3 rounded bg-secondary/30">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Yield</p>
-                        <p className="text-lg font-bold font-mono">{profile.tvDividendYield ? formatPercent(profile.tvDividendYield) : profile.dividendYield ? formatPercent(profile.dividendYield) : "—"}</p>
+                        <p className="text-[11px] font-bold font-mono">{profile.tvDividendYield ? formatPercent(profile.tvDividendYield) : profile.dividendYield ? formatPercent(profile.dividendYield) : "—"}</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-secondary/30">
+                      <div className="p-3 rounded bg-secondary/30">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Per Share</p>
-                        <p className="text-lg font-bold font-mono">{profile.tvDividendPerShare ? formatNumber(profile.tvDividendPerShare) + " AED" : "—"}</p>
+                        <p className="text-[11px] font-bold font-mono">{profile.tvDividendPerShare ? formatNumber(profile.tvDividendPerShare) + " AED" : "—"}</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-secondary/30">
+                      <div className="p-3 rounded bg-secondary/30">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Payout Ratio</p>
-                        <p className="text-lg font-bold font-mono">{profile.payoutRatio ? formatPercent(profile.payoutRatio) : "—"}</p>
+                        <p className="text-[11px] font-bold font-mono">{profile.payoutRatio ? formatPercent(profile.payoutRatio) : "—"}</p>
                       </div>
                     </div>
                     {profile.exDividendDate && (
-                      <div className="mt-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="mt-3 p-2.5 rounded bg-primary/5 border border-primary/20">
                         <p className="text-xs text-muted-foreground">Ex-Dividend Date: <span className="font-mono font-semibold text-foreground">{profile.exDividendDate}</span></p>
                       </div>
                     )}
@@ -875,7 +875,7 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ ORDER BOOK TAB ═══════════════ */}
-        <TabsContent value="orderbook" className="space-y-6 mt-4">
+        <TabsContent value="orderbook" className="space-y-2 mt-4">
           {detail && (
             <>
               <PriceBook
@@ -903,41 +903,41 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ NEWS TAB ═══════════════ */}
-        <TabsContent value="news" className="space-y-6 mt-4">
+        <TabsContent value="news" className="space-y-2 mt-4">
           <StockNewsTab symbol={symbol} />
         </TabsContent>
 
         {/* ═══════════════ FORECASTS TAB ═══════════════ */}
-        <TabsContent value="forecasts" className="space-y-6 mt-4">
+        <TabsContent value="forecasts" className="space-y-2 mt-4">
           <StockForecastsTab symbol={symbol} currentPrice={price} />
         </TabsContent>
 
         {/* ═══════════════ SEASONALS TAB ═══════════════ */}
-        <TabsContent value="seasonals" className="space-y-6 mt-4">
+        <TabsContent value="seasonals" className="space-y-2 mt-4">
           <StockSeasonalsTab symbol={symbol} />
         </TabsContent>
 
         {/* ═══════════════ PROFILE TAB ═══════════════ */}
-        <TabsContent value="profile" className="space-y-6 mt-4">
+        <TabsContent value="profile" className="space-y-2 mt-4">
           {profileLoading ? (
-            <div className="space-y-4"><Skeleton className="h-48 rounded-lg" /><Skeleton className="h-32 rounded-lg" /></div>
+            <div className="space-y-1.5"><Skeleton className="h-48 rounded" /><Skeleton className="h-32 rounded" /></div>
           ) : profile ? (
             <>
               {/* Company Info */}
               <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-primary" /> About {stockInfo.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {profile.description && profile.description !== stockInfo.name && (
                     <>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{profile.description}</p>
+                      <p className="text-[11px] text-foreground/80 leading-relaxed">{profile.description}</p>
                       <Separator className="my-4" />
                     </>
                   )}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 text-[11px]">
                     {profile.sector && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Sector</p><p className="font-medium">{profile.sector}</p></div>}
                     {profile.industry && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Industry</p><p className="font-medium">{profile.industry}</p></div>}
                     {(profile.tvEmployees || profile.fullTimeEmployees) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Employees</p><p className="font-medium">{(profile.tvEmployees || profile.fullTimeEmployees)?.toLocaleString()}</p></div>}
@@ -951,15 +951,15 @@ export default function StockDetail() {
                   {/* Key Financial Summary in Profile */}
                   <Separator className="my-4" />
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financial Snapshot</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {profile.marketCap && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Market Cap</p><p className="text-lg font-bold font-mono">{formatLargeNumber(profile.marketCap)}</p></div>}
-                    {profile.trailingPE && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">P/E Ratio</p><p className="text-lg font-bold font-mono">{formatNumber(profile.trailingPE, 1)}</p></div>}
-                    {profile.trailingEps && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">EPS</p><p className="text-lg font-bold font-mono">{formatNumber(profile.trailingEps)}</p></div>}
-                    {(profile.dividendYield || profile.tvDividendYield) && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Div Yield</p><p className="text-lg font-bold font-mono">{formatPercent(profile.dividendYield || profile.tvDividendYield)}</p></div>}
-                    {profile.returnOnEquity && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">ROE</p><p className="text-lg font-bold font-mono">{formatPercent(profile.returnOnEquity)}</p></div>}
-                    {profile.debtToEquity && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/Equity</p><p className="text-lg font-bold font-mono">{formatNumber(profile.debtToEquity, 2)}</p></div>}
-                    {profile.currentRatio && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Current Ratio</p><p className="text-lg font-bold font-mono">{formatNumber(profile.currentRatio, 2)}</p></div>}
-                    {profile.beta && <div className="p-3 rounded-lg bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Beta</p><p className="text-lg font-bold font-mono">{formatNumber(profile.beta, 2)}</p></div>}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                    {profile.marketCap && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Market Cap</p><p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.marketCap)}</p></div>}
+                    {profile.trailingPE && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">P/E Ratio</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.trailingPE, 1)}</p></div>}
+                    {profile.trailingEps && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">EPS</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.trailingEps)}</p></div>}
+                    {(profile.dividendYield || profile.tvDividendYield) && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Div Yield</p><p className="text-[11px] font-bold font-mono">{formatPercent(profile.dividendYield || profile.tvDividendYield)}</p></div>}
+                    {profile.returnOnEquity && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">ROE</p><p className="text-[11px] font-bold font-mono">{formatPercent(profile.returnOnEquity)}</p></div>}
+                    {profile.debtToEquity && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/Equity</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.debtToEquity, 2)}</p></div>}
+                    {profile.currentRatio && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Current Ratio</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.currentRatio, 2)}</p></div>}
+                    {profile.beta && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Beta</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.beta, 2)}</p></div>}
                   </div>
                 </CardContent>
               </Card>
@@ -967,20 +967,20 @@ export default function StockDetail() {
               {/* Officers */}
               {profile.officers && profile.officers.length > 0 && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Users className="h-4 w-4 text-primary" /> Key Officers & Board
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                       {profile.officers.map((officer: any, i: number) => (
-                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20 border border-border/20">
+                        <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
                           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                             <Briefcase className="h-4 w-4 text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate">{officer.name}</p>
+                            <p className="text-[11px] font-semibold truncate">{officer.name}</p>
                             <p className="text-xs text-muted-foreground">{officer.title}</p>
                             {officer.age && <p className="text-[11px] text-muted-foreground mt-0.5">Age: {officer.age}</p>}
                             {officer.totalPay && <p className="text-[11px] text-muted-foreground">Compensation: {formatLargeNumber(officer.totalPay)}</p>}
@@ -995,8 +995,8 @@ export default function StockDetail() {
               {/* Analyst Recommendations */}
               {profile.recommendations && profile.recommendations.length > 0 && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" /> Analyst Recommendations
                     </CardTitle>
                   </CardHeader>
@@ -1028,8 +1028,8 @@ export default function StockDetail() {
                       </table>
                     </div>
                     {profile.targetMeanPrice && (
-                      <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                        <div className="flex items-center gap-4 text-sm">
+                      <div className="mt-4 p-3 rounded bg-primary/5 border border-primary/20">
+                        <div className="flex items-center gap-1.5 text-[11px]">
                           <span className="text-muted-foreground">Analyst Target Price:</span>
                           <span className="font-mono font-bold text-primary">{formatNumber(profile.targetMeanPrice)} AED</span>
                           {profile.targetHighPrice && (
@@ -1045,35 +1045,35 @@ export default function StockDetail() {
               {/* Insider Holdings */}
               {profile.insiderHolders && profile.insiderHolders.length > 0 && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" /> Insider Holdings
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1">
                       {profile.heldPercentInsiders != null && (
-                        <div className="p-3 rounded-lg bg-secondary/30">
+                        <div className="p-3 rounded bg-secondary/30">
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Insiders</p>
-                          <p className="text-lg font-bold font-mono">{formatPercent(profile.heldPercentInsiders)}</p>
+                          <p className="text-[11px] font-bold font-mono">{formatPercent(profile.heldPercentInsiders)}</p>
                         </div>
                       )}
                       {profile.heldPercentInstitutions != null && (
-                        <div className="p-3 rounded-lg bg-secondary/30">
+                        <div className="p-3 rounded bg-secondary/30">
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Institutions</p>
-                          <p className="text-lg font-bold font-mono">{formatPercent(profile.heldPercentInstitutions)}</p>
+                          <p className="text-[11px] font-bold font-mono">{formatPercent(profile.heldPercentInstitutions)}</p>
                         </div>
                       )}
                       {profile.floatShares != null && (
-                        <div className="p-3 rounded-lg bg-secondary/30">
+                        <div className="p-3 rounded bg-secondary/30">
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Float</p>
-                          <p className="text-lg font-bold font-mono">{formatLargeNumber(profile.floatShares)}</p>
+                          <p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.floatShares)}</p>
                         </div>
                       )}
                       {profile.shortRatio != null && (
-                        <div className="p-3 rounded-lg bg-secondary/30">
+                        <div className="p-3 rounded bg-secondary/30">
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Short Ratio</p>
-                          <p className="text-lg font-bold font-mono">{formatNumber(profile.shortRatio, 2)}</p>
+                          <p className="text-[11px] font-bold font-mono">{formatNumber(profile.shortRatio, 2)}</p>
                         </div>
                       )}
                     </div>
@@ -1101,14 +1101,14 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ AI ANALYSIS TAB ═══════════════ */}
-        <TabsContent value="analysis" className="space-y-6 mt-4">
+        <TabsContent value="analysis" className="space-y-2 mt-4">
           {/* Snowflake Score Overview */}
           {snowflakeLoading ? (
             <Card className="border-border/50">
               <CardContent className="py-12">
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-1">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Computing Snowflake analysis...</span>
+                  <span className="text-[11px] text-muted-foreground">Computing Snowflake analysis...</span>
                 </div>
               </CardContent>
             </Card>
@@ -1116,14 +1116,14 @@ export default function StockDetail() {
             <>
               {/* Snowflake Score Card */}
               <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" /> Snowflake Score
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Comprehensive analysis across 5 dimensions, 30 checks total</p>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col lg:flex-row items-center gap-6">
+                  <div className="flex flex-col lg:flex-row items-center gap-2">
                     {/* Snowflake Chart */}
                     <div className="flex flex-col items-center">
                       <SnowflakeChart
@@ -1138,10 +1138,10 @@ export default function StockDetail() {
                         size={260}
                       />
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-3xl font-bold font-mono" style={{ color: snowflakeData.snowflake.color }}>
+                        <span className="text-[11px] font-bold font-mono" style={{ color: snowflakeData.snowflake.color }}>
                           {snowflakeData.snowflake.totalScore}
                         </span>
-                        <span className="text-lg text-muted-foreground font-medium">/30</span>
+                        <span className="text-[11px] text-muted-foreground font-medium">/30</span>
                       </div>
                       <span className="text-xs text-muted-foreground">
                         {snowflakeData.snowflake.totalScore >= 21 ? 'Excellent' : snowflakeData.snowflake.totalScore >= 16 ? 'Good' : snowflakeData.snowflake.totalScore >= 11 ? 'Average' : 'Below Average'}
@@ -1150,7 +1150,7 @@ export default function StockDetail() {
 
                     {/* Score Summary Grid */}
                     <div className="flex-1 w-full">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                         {[
                           { cat: snowflakeData.snowflake.value, icon: '💎', desc: 'Is it trading at a fair price?' },
                           { cat: snowflakeData.snowflake.future, icon: '🚀', desc: 'Expected future growth' },
@@ -1158,12 +1158,12 @@ export default function StockDetail() {
                           { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
                           { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
                         ].map(({ cat, icon, desc }) => (
-                          <div key={cat.name} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 neon-card">
-                            <span className="text-xl">{icon}</span>
+                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
+                            <span className="text-[11px]">{icon}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold">{cat.name}</span>
-                                <span className="text-sm font-bold font-mono">{cat.score}/{cat.maxScore}</span>
+                                <span className="text-[11px] font-semibold">{cat.name}</span>
+                                <span className="text-[11px] font-bold font-mono">{cat.score}/{cat.maxScore}</span>
                               </div>
                               <p className="text-[10px] text-muted-foreground truncate">{desc}</p>
                               <div className="flex gap-0.5 mt-1">
@@ -1189,8 +1189,8 @@ export default function StockDetail() {
 
               {/* Fair Value Estimation */}
               <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" /> Fair Value Estimation
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Intrinsic value calculated using {snowflakeData.fairValue.method} model</p>
@@ -1203,9 +1203,9 @@ export default function StockDetail() {
                     method={snowflakeData.fairValue.method}
                   />
                   {snowflakeData.fairValue.details.freeCashFlow && (
-                    <div className="mt-4 pt-4 border-t border-border/30">
+                    <div className="mt-4 pt-1.5 border-t border-border/30">
                       <p className="text-xs text-muted-foreground mb-2">Model Parameters</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                         {[
                           { label: 'FCF', value: `AED ${(snowflakeData.fairValue.details.freeCashFlow / 1e9).toFixed(2)}B` },
                           { label: 'Growth Rate', value: `${snowflakeData.fairValue.details.growthRate}%` },
@@ -1225,8 +1225,8 @@ export default function StockDetail() {
 
               {/* Detailed Checks */}
               <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Shield className="h-4 w-4 text-primary" /> Detailed Analysis Checks
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">30 individual checks across 5 categories (click to expand)</p>
@@ -1247,15 +1247,15 @@ export default function StockDetail() {
               {/* Peer Comparison */}
               {snowflakeData.peers && snowflakeData.peers.length > 0 && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Layers className="h-4 w-4 text-primary" /> Peer Comparison
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">Snowflake scores of top peers in the same sector</p>
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-[11px]">
                         <thead>
                           <tr className="border-b border-border/30">
                             <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Company</th>
@@ -1300,13 +1300,13 @@ export default function StockDetail() {
               {/* Market Averages */}
               {snowflakeData.marketAverages && (
                 <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <PieChart className="h-4 w-4 text-primary" /> Market Context
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                       {[
                         { label: 'Market Avg P/E', value: snowflakeData.marketAverages.pe?.toFixed(1) + 'x' },
                         { label: 'Sector Avg P/E', value: snowflakeData.marketAverages.industryPE ? snowflakeData.marketAverages.industryPE.toFixed(1) + 'x' : 'N/A' },
@@ -1315,9 +1315,9 @@ export default function StockDetail() {
                         { label: 'Div Yield 25th %', value: (snowflakeData.marketAverages.dividendYield25 * 100).toFixed(2) + '%' },
                         { label: 'Div Yield 75th %', value: (snowflakeData.marketAverages.dividendYield75 * 100).toFixed(2) + '%' },
                       ].map(m => (
-                        <div key={m.label} className="p-3 rounded-lg bg-secondary/30 border border-border/30">
+                        <div key={m.label} className="p-3 rounded bg-secondary/30 border border-border/30">
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</div>
-                          <div className="text-sm font-mono font-semibold mt-0.5">{m.value}</div>
+                          <div className="text-[11px] font-mono font-semibold mt-0.5">{m.value}</div>
                         </div>
                       ))}
                     </div>
@@ -1328,17 +1328,17 @@ export default function StockDetail() {
           ) : (
             <Card className="border-border/50">
               <CardContent className="py-8">
-                <p className="text-sm text-muted-foreground text-center">Unable to load Snowflake analysis. Please try again.</p>
+                <p className="text-[11px] text-muted-foreground text-center">Unable to load Snowflake analysis. Please try again.</p>
               </CardContent>
             </Card>
           )}
 
           {/* AI Deep Analysis */}
           <Card className="border-border/50">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Brain className="h-4 w-4 text-primary" /> AI Deep Analysis
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">Comprehensive AI-powered research report</p>
@@ -1357,11 +1357,11 @@ export default function StockDetail() {
             </CardHeader>
             <CardContent>
               {aiAnalysisMutation.data && aiAnalysisMutation.data.summary !== "AI analysis temporarily unavailable. Please try again later." ? (
-                <div className="space-y-5">
+                <div className="space-y-1.5">
                   {/* Rating Badge */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
                     <Badge
-                      className={`text-sm px-3 py-1.5 ${
+                      className={`text-[11px] px-3 py-1.5 ${
                         aiAnalysisMutation.data.rating?.includes('Buy')
                           ? 'bg-[oklch(0.72_0.17_155/15%)] text-gain border-[oklch(0.72_0.17_155/30%)]'
                           : aiAnalysisMutation.data.rating?.includes('Sell')
@@ -1379,14 +1379,14 @@ export default function StockDetail() {
 
                   {/* Summary */}
                   <div>
-                    <h4 className="text-sm font-semibold mb-2">Executive Summary</h4>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.summary}</p>
+                    <h4 className="text-[11px] font-semibold mb-2">Executive Summary</h4>
+                    <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.summary}</p>
                   </div>
 
                   {/* Rewards & Risks */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                      <h4 className="text-[11px] font-semibold flex items-center gap-1.5">
                         <TrendingUp className="h-3.5 w-3.5 text-gain" /> Key Rewards
                       </h4>
                       <ul className="space-y-1.5">
@@ -1399,7 +1399,7 @@ export default function StockDetail() {
                       </ul>
                     </div>
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                      <h4 className="text-[11px] font-semibold flex items-center gap-1.5">
                         <TrendingDown className="h-3.5 w-3.5 text-loss" /> Key Risks
                       </h4>
                       <ul className="space-y-1.5">
@@ -1416,20 +1416,20 @@ export default function StockDetail() {
                   {/* Outlook */}
                   {aiAnalysisMutation.data.outlook && (
                     <div>
-                      <h4 className="text-sm font-semibold mb-2">Forward Outlook</h4>
-                      <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.outlook}</p>
+                      <h4 className="text-[11px] font-semibold mb-2">Forward Outlook</h4>
+                      <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-line">{aiAnalysisMutation.data.outlook}</p>
                     </div>
                   )}
                 </div>
               ) : aiAnalysisMutation.isPending ? (
-                <div className="flex items-center gap-3 py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Generating comprehensive analysis report...</span>
+                <div className="flex items-center gap-1 py-8">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  <span className="text-[11px] text-muted-foreground">Generating comprehensive analysis report...</span>
                 </div>
               ) : aiAnalysisMutation.data?.summary === "AI analysis temporarily unavailable. Please try again later." ? (
-                <p className="text-sm text-muted-foreground py-4">AI analysis temporarily unavailable. Please try again later.</p>
+                <p className="text-[11px] text-muted-foreground py-1.5">AI analysis temporarily unavailable. Please try again later.</p>
               ) : (
-                <p className="text-sm text-muted-foreground py-4">
+                <p className="text-[11px] text-muted-foreground py-1.5">
                   Click "Generate Report" to get a comprehensive AI-powered analysis including investment thesis, rewards, risks, and forward outlook.
                 </p>
               )}
@@ -1438,9 +1438,9 @@ export default function StockDetail() {
 
           {/* Quick Sentiment (kept from original) */}
           <Card className="border-border/50">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <Activity className="h-4 w-4 text-primary" /> Quick Sentiment
                 </CardTitle>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => sentimentMutation.mutate({ symbol, name: stockInfo.name })} disabled={sentimentMutation.isPending}>
@@ -1452,22 +1452,22 @@ export default function StockDetail() {
             <CardContent>
               {sentimentMutation.data ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <Badge className={`text-sm px-3 py-1 ${sentimentMutation.data.sentiment === "bullish" ? "bg-[oklch(0.72_0.17_155/15%)] text-gain border-[oklch(0.72_0.17_155/30%)]" : sentimentMutation.data.sentiment === "bearish" ? "bg-[oklch(0.65_0.22_25/15%)] text-loss border-[oklch(0.65_0.22_25/30%)]" : "bg-secondary text-muted-foreground"}`} variant="outline">
+                  <div className="flex items-center gap-1.5">
+                    <Badge className={`text-[11px] px-3 py-1 ${sentimentMutation.data.sentiment === "bullish" ? "bg-[oklch(0.72_0.17_155/15%)] text-gain border-[oklch(0.72_0.17_155/30%)]" : sentimentMutation.data.sentiment === "bearish" ? "bg-[oklch(0.65_0.22_25/15%)] text-loss border-[oklch(0.65_0.22_25/30%)]" : "bg-secondary text-muted-foreground"}`} variant="outline">
                       {sentimentMutation.data.sentiment === "bullish" ? <TrendingUp className="h-4 w-4 mr-1.5" /> : sentimentMutation.data.sentiment === "bearish" ? <TrendingDown className="h-4 w-4 mr-1.5" /> : null}
                       {sentimentMutation.data.sentiment.charAt(0).toUpperCase() + sentimentMutation.data.sentiment.slice(1)}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">Score: <span className="font-mono font-medium text-foreground">{sentimentMutation.data.score?.toFixed(2)}</span></span>
+                    <span className="text-[11px] text-muted-foreground">Score: <span className="font-mono font-medium text-foreground">{sentimentMutation.data.score?.toFixed(2)}</span></span>
                   </div>
-                  <p className="text-sm text-foreground/80 leading-relaxed">{sentimentMutation.data.summary}</p>
+                  <p className="text-[11px] text-foreground/80 leading-relaxed">{sentimentMutation.data.summary}</p>
                 </div>
               ) : sentimentMutation.isPending ? (
-                <div className="flex items-center gap-3 py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Checking sentiment...</span>
+                <div className="flex items-center gap-1 py-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  <span className="text-[11px] text-muted-foreground">Checking sentiment...</span>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground py-4">
+                <p className="text-[11px] text-muted-foreground py-1.5">
                   Quick AI sentiment check based on current market conditions.
                 </p>
               )}

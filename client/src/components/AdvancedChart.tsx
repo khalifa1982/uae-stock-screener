@@ -193,8 +193,8 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   return (
     <Card className="border-border/50 neon-card">
       <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <CardTitle className="text-xs font-semibold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" />
             <span className="neon-text">Advanced Chart</span>
             <Badge variant="outline" className="text-[9px] ml-1 border-primary/30 text-primary">
@@ -233,7 +233,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
       </CardHeader>
       <CardContent className="space-y-1">
         {chartLoading ? (
-          <Skeleton className="h-[350px] w-full rounded-lg" />
+          <Skeleton className="h-[350px] w-full rounded" />
         ) : mergedData.length > 0 ? (
           <>
             {/* ═══ Main Price Chart with Overlays ═══ */}
@@ -319,7 +319,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
             </ResponsiveContainer>
 
             {/* Legend */}
-            <div className="flex items-center gap-3 px-2 flex-wrap">
+            <div className="flex items-center gap-1 px-2 flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 rounded" style={{ backgroundColor: NEON.cyan }} />
                 <span className="text-[9px] text-muted-foreground">Price</span>

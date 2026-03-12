@@ -82,15 +82,15 @@ export default function MarketNews() {
   }, [filteredItems]);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-2 animate-fade-in-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2.5">
-            <Newspaper className="h-6 w-6 text-primary" />
+          <h1 className="text-xs font-bold tracking-tight flex items-center gap-2.5">
+            <Newspaper className="h-4 w-4 text-primary" />
             Market News
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Latest news and headlines for UAE stocks
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function MarketNews() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-1">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -127,7 +127,7 @@ export default function MarketNews() {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <span>{filteredItems.length} articles</span>
         {data?.fetchedAt && (
           <span>Updated {timeAgo(new Date(data.fetchedAt).getTime() / 1000)}</span>
@@ -138,13 +138,13 @@ export default function MarketNews() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 10 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+            <Skeleton key={i} className="h-24 rounded" />
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="py-16 text-center">
-            <Newspaper className="h-10 w-10 text-muted-foreground/60 mx-auto mb-4" />
+            <Newspaper className="h-10 w-10 text-muted-foreground/60 mx-auto mb-1" />
             <p className="text-muted-foreground">No news articles found</p>
             <p className="text-xs text-muted-foreground/60 mt-1">
               Try adjusting your search or filter criteria
@@ -152,10 +152,10 @@ export default function MarketNews() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {groupedByDate.map(([dateLabel, items]) => (
             <div key={dateLabel}>
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-1 mb-3">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {dateLabel}
                 </h3>
@@ -172,13 +172,13 @@ export default function MarketNews() {
                         href={`https://www.tradingview.com${item.storyPath}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-start gap-4 p-4 hover:bg-muted/10 transition-colors group"
+                        className="flex items-start gap-1.5 p-2 hover:bg-muted/10 transition-colors group"
                       >
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                          <h3 className="text-[11px] font-medium leading-snug group-hover:text-primary transition-colors line-clamp-2">
                             {item.title}
                           </h3>
-                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <div className="flex items-center gap-1 mt-2 flex-wrap">
                             <div className="flex items-center gap-1.5">
                               <Clock className="h-3 w-3 text-muted-foreground" />
                               <span className="text-[11px] text-muted-foreground font-mono">

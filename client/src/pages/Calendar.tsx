@@ -64,7 +64,7 @@ function CalendarGrid({ year, month }: { year: number; month: number }) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-border/10 rounded-xl overflow-hidden border border-border/20">
+    <div className="grid grid-cols-7 gap-px bg-border/10 rounded-md overflow-hidden border border-border/20">
       {WEEKDAYS.map((wd, i) => (
         <div
           key={wd}
@@ -153,19 +153,19 @@ function UpcomingHolidayCard({ holiday }: { holiday: UAEHoliday }) {
   const dayName = date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
 
   return (
-    <div className="flex items-center gap-4 py-3.5 px-4 rounded-xl hover:bg-white/[0.02] transition-all group">
-      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-neon-purple/10 to-primary/5 border border-neon-purple/15 flex flex-col items-center justify-center shrink-0">
+    <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-md hover:bg-white/[0.02] transition-all group">
+      <div className="h-12 w-12 rounded-md bg-gradient-to-br from-neon-purple/10 to-primary/5 border border-neon-purple/15 flex flex-col items-center justify-center shrink-0">
         <span className="text-[10px] text-neon-purple/70 font-semibold uppercase leading-none">
           {date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
         </span>
-        <span className="text-lg font-bold text-neon-purple font-mono leading-tight">
+        <span className="text-[11px] font-bold text-neon-purple font-mono leading-tight">
           {date.getUTCDate()}
         </span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <HolidayIcon type={holiday.type} />
-          <span className="font-semibold text-sm text-foreground/90">{holiday.name}</span>
+          <span className="font-semibold text-[11px] text-foreground/90">{holiday.name}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">{dayName}</span>
@@ -211,13 +211,13 @@ function YearSummary({ year }: { year: number }) {
 
   return (
     <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-1">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2.5">
+          <CardTitle className="text-[11px] font-semibold flex items-center gap-2.5">
             <CalendarDays className="h-4 w-4 text-primary" />
             {year} Holiday Summary
           </CardTitle>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Star className="h-3 w-3 text-neon-gold" /> {fixedCount} Fixed
             </span>
@@ -234,7 +234,7 @@ function YearSummary({ year }: { year: number }) {
             const endDate = g.dates.length > 1 ? new Date(g.dates[g.dates.length - 1] + "T12:00:00Z") : null;
 
             return (
-              <div key={i} className="flex items-center gap-4 py-3 px-5 hover:bg-white/[0.015] transition-all">
+              <div key={i} className="flex items-center gap-1.5 py-1 px-2 hover:bg-white/[0.015] transition-all">
                 <HolidayIcon type={g.type} />
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] font-medium text-foreground/85">{g.name}</span>
@@ -313,7 +313,7 @@ function CorporateEventsSection() {
     return (
       <div className="space-y-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 rounded-lg" />
+          <Skeleton key={i} className="h-16 rounded" />
         ))}
       </div>
     );
@@ -332,27 +332,27 @@ function CorporateEventsSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-1.5">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-1">
         <Card className="bg-card/50 border-border/30">
           <CardContent className="p-3 text-center">
             <BarChart3 className="h-4 w-4 text-blue-400 mx-auto mb-1" />
-            <p className="text-lg font-bold">{upcomingEarnings.length}</p>
+            <p className="text-[11px] font-bold">{upcomingEarnings.length}</p>
             <p className="text-[10px] text-muted-foreground">Upcoming Earnings</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/30">
           <CardContent className="p-3 text-center">
             <DollarSign className="h-4 w-4 text-emerald-400 mx-auto mb-1" />
-            <p className="text-lg font-bold">{upcomingDividends.length}</p>
+            <p className="text-[11px] font-bold">{upcomingDividends.length}</p>
             <p className="text-[10px] text-muted-foreground">Upcoming Dividends</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/30">
           <CardContent className="p-3 text-center">
             <Clock className="h-4 w-4 text-amber-400 mx-auto mb-1" />
-            <p className="text-lg font-bold">{recentEarnings.length}</p>
+            <p className="text-[11px] font-bold">{recentEarnings.length}</p>
             <p className="text-[10px] text-muted-foreground">Recent Earnings</p>
           </CardContent>
         </Card>
@@ -371,7 +371,7 @@ function CorporateEventsSection() {
       {(eventFilter === "all" || eventFilter === "earnings") && upcomingEarnings.length > 0 && (
         <Card className="border-border/30 bg-card/30 overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-400" />
               Upcoming Earnings Releases
               <Badge variant="outline" className="text-[10px] ml-auto">{upcomingEarnings.length}</Badge>
@@ -381,13 +381,13 @@ function CorporateEventsSection() {
             <div className="divide-y divide-border/10">
               {upcomingEarnings.slice(0, 20).map((event: CorporateEvent) => (
                 <Link key={`earn-${event.symbol}`} href={`/stock/${event.symbol}`}>
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer">
-                    <div className="h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-1 px-2 py-1 hover:bg-muted/10 transition-colors cursor-pointer">
+                    <div className="h-10 w-10 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-bold text-blue-400">{event.exchange}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{event.symbol}</span>
+                        <span className="text-[11px] font-semibold">{event.symbol}</span>
                         <span className="text-xs text-muted-foreground truncate">{event.name}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -428,7 +428,7 @@ function CorporateEventsSection() {
       {(eventFilter === "all" || eventFilter === "dividends") && upcomingDividends.length > 0 && (
         <Card className="border-border/30 bg-card/30 overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-emerald-400" />
               Upcoming Ex-Dividend Dates
               <Badge variant="outline" className="text-[10px] ml-auto">{upcomingDividends.length}</Badge>
@@ -438,13 +438,13 @@ function CorporateEventsSection() {
             <div className="divide-y divide-border/10">
               {upcomingDividends.slice(0, 20).map((event: CorporateEvent) => (
                 <Link key={`div-${event.symbol}`} href={`/stock/${event.symbol}`}>
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-1 px-2 py-1 hover:bg-muted/10 transition-colors cursor-pointer">
+                    <div className="h-10 w-10 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                       <DollarSign className="h-4 w-4 text-emerald-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{event.symbol}</span>
+                        <span className="text-[11px] font-semibold">{event.symbol}</span>
                         <span className="text-xs text-muted-foreground truncate">{event.name}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -482,7 +482,7 @@ function CorporateEventsSection() {
       {eventFilter === "all" && recentEarnings.length > 0 && (
         <Card className="border-border/30 bg-card/30 overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-400" />
               Recent Earnings (Last 30 Days)
               <Badge variant="outline" className="text-[10px] ml-auto">{recentEarnings.length}</Badge>
@@ -492,13 +492,13 @@ function CorporateEventsSection() {
             <div className="divide-y divide-border/10">
               {recentEarnings.slice(0, 15).map((event: CorporateEvent) => (
                 <Link key={`recent-${event.symbol}`} href={`/stock/${event.symbol}`}>
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/10 transition-colors cursor-pointer opacity-80">
-                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-1 px-2 py-1 hover:bg-muted/10 transition-colors cursor-pointer opacity-80">
+                    <div className="h-10 w-10 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-bold text-amber-400">{event.exchange}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{event.symbol}</span>
+                        <span className="text-[11px] font-semibold">{event.symbol}</span>
                         <span className="text-xs text-muted-foreground truncate">{event.name}</span>
                       </div>
                       <span className="text-[11px] text-muted-foreground/60 font-mono">
@@ -593,20 +593,20 @@ export default function Calendar() {
   }, [viewYear, viewMonth]);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-2 animate-fade-in-up">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight">Market Calendar</h1>
+          <div className="flex items-center gap-1 flex-wrap">
+            <h1 className="text-xs font-bold tracking-tight">Market Calendar</h1>
             <MarketStatusBadge />
           </div>
-          <p className="text-muted-foreground/70 text-sm mt-1.5">
+          <p className="text-muted-foreground/70 text-[11px] mt-1.5">
             UAE holidays, earnings releases & dividend dates
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground bg-card/30 border border-border/20 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-card/30 border border-border/20 rounded px-3 py-2">
             <span className="flex items-center gap-1.5">
               <Sun className="h-3 w-3 text-neon-green" />
               {tradingDaysThisMonth} trading days
@@ -621,18 +621,18 @@ export default function Calendar() {
       </div>
 
       {/* Market Hours Info */}
-      <div className="gradient-border-card p-4">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+      <div className="gradient-border-card p-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1">
+            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.12em]">Trading Hours</p>
-              <p className="text-sm font-semibold text-foreground/90">Mon-Fri, 10:00 AM - 3:00 PM (UAE Time, GMT+4)</p>
+              <p className="text-[11px] font-semibold text-foreground/90">Mon-Fri, 10:00 AM - 3:00 PM (UAE Time, GMT+4)</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-neon-gold" />
               Pre-Open: 9:30-10:00
@@ -663,27 +663,27 @@ export default function Calendar() {
         </TabsList>
 
         <TabsContent value="holidays" className="mt-4">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
             {/* Calendar Grid */}
-            <div className="xl:col-span-2 space-y-4">
+            <div className="xl:col-span-2 space-y-1.5">
               <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-1">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={goToPrevMonth}
-                        className="h-8 w-8 rounded-lg border border-border/20 flex items-center justify-center hover:bg-accent/40 transition-all"
+                        className="h-8 w-8 rounded border border-border/20 flex items-center justify-center hover:bg-accent/40 transition-all"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
                       <div className="text-center min-w-[180px]">
-                        <h2 className="text-lg font-bold tracking-tight">
+                        <h2 className="text-[11px] font-bold tracking-tight">
                           {MONTHS[viewMonth]} {viewYear}
                         </h2>
                       </div>
                       <button
                         onClick={goToNextMonth}
-                        className="h-8 w-8 rounded-lg border border-border/20 flex items-center justify-center hover:bg-accent/40 transition-all"
+                        className="h-8 w-8 rounded border border-border/20 flex items-center justify-center hover:bg-accent/40 transition-all"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -697,7 +697,7 @@ export default function Calendar() {
                   <CalendarGrid year={viewYear} month={viewMonth} />
 
                   {/* Legend */}
-                  <div className="flex flex-wrap items-center gap-4 mt-4 text-[10px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1.5 mt-4 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <span className="h-3 w-3 rounded border border-primary/30 bg-primary/[0.08]" />
                       Today
@@ -722,7 +722,7 @@ export default function Calendar() {
 
                   {/* This month's holidays */}
                   {holidaysThisMonth.length > 0 && (
-                    <div className="mt-4 p-3 rounded-xl border border-neon-purple/10 bg-neon-purple/[0.02]">
+                    <div className="mt-4 p-3 rounded-md border border-neon-purple/10 bg-neon-purple/[0.02]">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neon-purple/60 mb-2">
                         Holidays this month
                       </p>
@@ -742,11 +742,11 @@ export default function Calendar() {
             </div>
 
             {/* Upcoming Holidays Sidebar */}
-            <div className="space-y-4">
+            <div className="space-y-1.5">
               <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-neon-purple/15 to-neon-purple/5 flex items-center justify-center">
+                  <CardTitle className="text-[11px] font-semibold flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded bg-gradient-to-br from-neon-purple/15 to-neon-purple/5 flex items-center justify-center">
                       <AlertTriangle className="h-3.5 w-3.5 text-neon-purple" />
                     </div>
                     Upcoming Holidays
@@ -760,14 +760,14 @@ export default function Calendar() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground/70 text-sm">
+                    <div className="p-8 text-center text-muted-foreground/70 text-[11px]">
                       No upcoming holidays in the calendar
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              <div className="p-3.5 rounded-xl border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground leading-relaxed">
+              <div className="p-3.5 rounded-md border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground leading-relaxed">
                 <p className="font-semibold text-foreground/60 mb-1">Note on Islamic Holidays</p>
                 <p>
                   Islamic holidays follow the Hijri (lunar) calendar and may shift by 1-2 days 
@@ -779,12 +779,12 @@ export default function Calendar() {
           </div>
 
           {/* Year Summary */}
-          <div className="mt-6">
+          <div className="mt-2">
             <Tabs value={selectedYear} onValueChange={setSelectedYear}>
-              <TabsList className="bg-secondary/40 border border-border/20 mb-4">
-                <TabsTrigger value="2025" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2025</TabsTrigger>
-                <TabsTrigger value="2026" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2026</TabsTrigger>
-                <TabsTrigger value="2027" className="text-xs px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2027</TabsTrigger>
+              <TabsList className="bg-secondary/40 border border-border/20 mb-1">
+                <TabsTrigger value="2025" className="text-xs px-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2025</TabsTrigger>
+                <TabsTrigger value="2026" className="text-xs px-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2026</TabsTrigger>
+                <TabsTrigger value="2027" className="text-xs px-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">2027</TabsTrigger>
               </TabsList>
             </Tabs>
             <YearSummary year={parseInt(selectedYear)} />

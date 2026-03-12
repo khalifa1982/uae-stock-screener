@@ -129,10 +129,10 @@ export default function NotificationSettings() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="max-w-md w-full glass-card">
-          <CardContent className="p-8 text-center space-y-4">
+          <CardContent className="p-8 text-center space-y-1.5">
             <BellOff className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-xl font-semibold">Sign In Required</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-[11px] font-semibold">Sign In Required</h2>
+            <p className="text-[11px] text-muted-foreground">
               Please sign in to configure your notification preferences.
             </p>
           </CardContent>
@@ -150,15 +150,15 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-2 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BellRing className="h-6 w-6 text-primary" />
+          <h1 className="text-xs font-bold tracking-tight flex items-center gap-2">
+            <BellRing className="h-4 w-4 text-primary" />
             Notification Settings
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Customize how and when you receive volume spike alerts
           </p>
         </div>
@@ -187,24 +187,24 @@ export default function NotificationSettings() {
       {/* Notification Channels */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
+          <CardTitle className="text-[11px] flex items-center gap-2">
+            <Zap className="h-3.5 w-3.5 text-primary" />
             Notification Channels
           </CardTitle>
           <CardDescription>
             Choose how you want to be notified when volume spikes are detected
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-2">
           {/* Browser Push Notifications */}
-          <div className="space-y-4">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <Monitor className="h-5 w-5" />
+              <div className="flex items-center gap-1">
+                <div className={`p-2 rounded ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <Monitor className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Browser Push Notifications</Label>
+                  <Label className="text-[11px] font-medium">Browser Push Notifications</Label>
                   <p className="text-xs text-muted-foreground">
                     {permissionState === "unsupported"
                       ? "Your browser does not support push notifications"
@@ -247,7 +247,7 @@ export default function NotificationSettings() {
                   })}
                 </div>
                 {permissionState === "default" && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20 mt-2">
+                  <div className="flex items-center gap-2 p-2.5 rounded bg-primary/5 border border-primary/20 mt-2">
                     <Info className="h-4 w-4 text-primary shrink-0" />
                     <p className="text-xs text-muted-foreground flex-1">
                       Browser permission not yet granted.
@@ -270,14 +270,14 @@ export default function NotificationSettings() {
           <Separator className="bg-border/30" />
 
           {/* Sound Alerts */}
-          <div className="space-y-4">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              <div className="flex items-center gap-1">
+                <div className={`p-2 rounded ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Alert Sound</Label>
+                  <Label className="text-[11px] font-medium">Alert Sound</Label>
                   <p className="text-xs text-muted-foreground">
                     Play an audible alert when volume spikes are detected
                   </p>
@@ -290,7 +290,7 @@ export default function NotificationSettings() {
             </div>
             {soundEnabled && (
               <div className="ml-12 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
                   <VolumeX className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <Slider
                     value={[soundVolume * 100]}
@@ -311,12 +311,12 @@ export default function NotificationSettings() {
 
           {/* In-App Notifications */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <Bell className="h-5 w-5" />
+            <div className="flex items-center gap-1">
+              <div className={`p-2 rounded ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <Bell className="h-3.5 w-3.5" />
               </div>
               <div>
-                <Label className="text-sm font-medium">In-App Notifications</Label>
+                <Label className="text-[11px] font-medium">In-App Notifications</Label>
                 <p className="text-xs text-muted-foreground">
                   Show alerts in the notification center within the app
                 </p>
@@ -333,24 +333,24 @@ export default function NotificationSettings() {
       {/* Advanced Settings */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+          <CardTitle className="text-[11px] flex items-center gap-2">
+            <Shield className="h-3.5 w-3.5 text-primary" />
             Advanced Settings
           </CardTitle>
           <CardDescription>
             Fine-tune notification behavior and frequency
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-2">
           {/* Quiet Hours */}
-          <div className="space-y-4">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <Moon className="h-5 w-5" />
+              <div className="flex items-center gap-1">
+                <div className={`p-2 rounded ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <Moon className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Quiet Hours</Label>
+                  <Label className="text-[11px] font-medium">Quiet Hours</Label>
                   <p className="text-xs text-muted-foreground">
                     Suppress notifications during specified hours (UAE time)
                   </p>
@@ -362,7 +362,7 @@ export default function NotificationSettings() {
               />
             </div>
             {quietHoursEnabled && (
-              <div className="ml-12 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="ml-12 flex items-center gap-1 animate-in slide-in-from-top-2 duration-200">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">From</Label>
                   <Input
@@ -390,12 +390,12 @@ export default function NotificationSettings() {
 
           {/* Minimum Interval */}
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted text-muted-foreground">
-                <Clock className="h-5 w-5" />
+            <div className="flex items-center gap-1">
+              <div className="p-2 rounded bg-muted text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
               </div>
               <div className="flex-1">
-                <Label className="text-sm font-medium">Minimum Alert Interval</Label>
+                <Label className="text-[11px] font-medium">Minimum Alert Interval</Label>
                 <p className="text-xs text-muted-foreground">
                   Minimum time between notifications for the same stock
                 </p>
@@ -419,8 +419,8 @@ export default function NotificationSettings() {
       {/* Test & Preview */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Play className="h-5 w-5 text-primary" />
+          <CardTitle className="text-[11px] flex items-center gap-2">
+            <Play className="h-3.5 w-3.5 text-primary" />
             Test Notifications
           </CardTitle>
           <CardDescription>
@@ -428,14 +428,14 @@ export default function NotificationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             <Button
               variant="outline"
               onClick={testNotification}
-              className="gap-2 h-auto py-3 flex-col"
+              className="gap-2 h-auto py-1 flex-col"
               disabled={!browserEnabled && !soundEnabled}
             >
-              <Monitor className="h-5 w-5 text-primary" />
+              <Monitor className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs">Test Browser + Sound</span>
             </Button>
             <Button
@@ -446,10 +446,10 @@ export default function NotificationSettings() {
                   duration: 5000,
                 });
               }}
-              className="gap-2 h-auto py-3 flex-col"
+              className="gap-2 h-auto py-1 flex-col"
               disabled={!inAppEnabled}
             >
-              <Bell className="h-5 w-5 text-primary" />
+              <Bell className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs">Test In-App</span>
             </Button>
           </div>
@@ -459,17 +459,17 @@ export default function NotificationSettings() {
       {/* Severity Reference */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Info className="h-5 w-5 text-primary" />
+          <CardTitle className="text-[11px] flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 text-primary" />
             Severity Levels Reference
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             {SEVERITIES.map(sev => {
               const cfg = severityConfig[sev];
               return (
-                <div key={sev} className={`flex items-center gap-3 p-3 rounded-lg border ${cfg.color}`}>
+                <div key={sev} className={`flex items-center gap-1 p-3 rounded border ${cfg.color}`}>
                   <Badge variant="outline" className={`text-[10px] uppercase tracking-wider font-semibold ${cfg.color}`}>
                     {cfg.label}
                   </Badge>

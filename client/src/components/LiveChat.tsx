@@ -14,7 +14,7 @@ const QUICK_EMOJIS = [
 
 function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
   return (
-    <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded-lg shadow-xl p-3 z-50 w-[280px]">
+    <div className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded shadow-xl p-3 z-50 w-[280px]">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground">Quick Emojis</span>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -26,7 +26,7 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
           <button
             key={emoji}
             onClick={() => { onSelect(emoji); onClose(); }}
-            className="w-6 h-6 flex items-center justify-center text-base hover:bg-accent rounded transition-colors"
+            className="w-6 h-6 flex items-center justify-center text-xs hover:bg-accent rounded transition-colors"
           >
             {emoji}
           </button>
@@ -91,7 +91,7 @@ function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean })
           </span>
         )}
         <div
-          className={`rounded-2xl px-3 py-1.5 text-sm break-words ${
+          className={`rounded-md px-3 py-1.5 text-[11px] break-words ${
             isOwn
               ? "bg-primary text-primary-foreground rounded-br-sm"
               : "bg-muted text-foreground rounded-bl-sm"
@@ -103,7 +103,7 @@ function MessageBubble({ msg, isOwn }: { msg: ChatMessageData; isOwn: boolean })
               <img
                 src={msg.imageUrl}
                 alt="Shared image"
-                className="max-w-full max-h-48 rounded-lg mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                className="max-w-full max-h-48 rounded mb-1 cursor-pointer hover:opacity-90 transition-opacity"
                 loading="lazy"
               />
             </a>
@@ -139,7 +139,7 @@ function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: ()
           </div>
         ))}
         {users.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-4">No users online</p>
+          <p className="text-xs text-muted-foreground text-center py-1.5">No users online</p>
         )}
       </div>
     </div>
@@ -269,12 +269,12 @@ export function LiveChat() {
 
   // Chat panel (when open)
   return (
-    <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-50 w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-xl bg-background border border-border shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-50 w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-md bg-background border border-border shadow-2xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-primary text-primary-foreground shrink-0">
         <div className="flex items-center gap-2">
           <MessageCircle className="w-4 h-4" />
-          <span className="font-semibold text-sm">Live Chat</span>
+          <span className="font-semibold text-[11px]">Live Chat</span>
           <span className="flex items-center gap-1 text-[10px] opacity-80">
             {isConnected ? (
               <>
@@ -297,7 +297,7 @@ export function LiveChat() {
                   clearMessages();
                 }
               }}
-              className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+              className="p-1.5 rounded hover:bg-white/20 transition-colors"
               title="Clear all messages (Admin)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -334,7 +334,7 @@ export function LiveChat() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <MessageCircle className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm font-medium">No messages yet today</p>
+              <p className="text-[11px] font-medium">No messages yet today</p>
               <p className="text-xs opacity-70">Be the first to say hello!</p>
             </div>
           )}
@@ -405,7 +405,7 @@ export function LiveChat() {
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="flex-1 bg-muted/50 border border-border rounded-full px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
+            className="flex-1 bg-muted/50 border border-border rounded-full px-3 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/60"
             dir="auto"
             autoComplete="off"
           />

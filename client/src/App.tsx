@@ -15,7 +15,7 @@ import Calendar from "./pages/Calendar";
 import NotificationSettings from "./pages/NotificationSettings";
 import MarketNews from "./pages/MarketNews";
 import MarketSummary from "./pages/MarketSummary";
-import DashboardLayout from "./components/DashboardLayout";
+import TerminalLayout from "./components/TerminalLayout";
 import { LiveChat } from "./components/LiveChat";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -31,7 +31,7 @@ function Router() {
       
       {/* All other routes inside dashboard layout */}
       <Route>
-        <DashboardLayout>
+        <TerminalLayout>
           <Switch>
             <Route path={"/"} component={Home} />
             <Route path={"/screener"} component={Screener} />
@@ -47,7 +47,7 @@ function Router() {
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />
           </Switch>
-        </DashboardLayout>
+        </TerminalLayout>
       </Route>
     </Switch>
   );

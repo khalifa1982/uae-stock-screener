@@ -760,7 +760,19 @@
 
 ## Phase 29 - Terminal-Style Redesign
 
-- [ ] Redesign: Dense, compact terminal-style layout inspired by Jeff Terminal
-- [ ] Redesign: Smaller fonts, tighter spacing, information-dense panels
-- [ ] Redesign: Ticker bar with scrolling stock prices
-- [ ] Build and deploy v9.6
+- [x] Redesign: Dense, compact terminal-style layout inspired by Jeff Terminal
+- [x] Redesign: Smaller fonts, tighter spacing, information-dense panels
+- [x] Redesign: Ticker bar with scrolling stock prices
+- [ ] Build and deploy v9.7
+
+### Terminal-Style Redesign Details
+- [x] Replace sidebar with compact top navigation bar
+- [x] Add scrolling ticker bar with live stock prices
+- [x] Dense multi-panel grid layout on Dashboard
+- [x] Smaller fonts (10-12px base), tighter spacing across all pages
+- [x] Terminal-style dark theme with neon accents
+- [x] Compact Stock Detail page with dense panels
+- [x] Dense Screener, Heatmap, Calendar, News, Summary pages
+- [x] Compact Watchlist, Alerts, Notifications pages
+- [x] Mobile responsive compact layout
+- [x] Update version to v9.7

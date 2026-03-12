@@ -62,15 +62,15 @@ export default function Watchlist() {
 
   if (!isAuthenticated) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Watchlist</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track your favorite UAE stocks</p>
+          <h1 className="text-xs font-bold tracking-tight">Watchlist</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">Track your favorite UAE stocks</p>
         </div>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <EyeOff className="h-12 w-12 text-muted-foreground/60 mb-4" />
-            <p className="text-muted-foreground mb-4">Sign in to create and manage your watchlist</p>
+            <EyeOff className="h-12 w-12 text-muted-foreground/60 mb-1" />
+            <p className="text-muted-foreground mb-1">Sign in to create and manage your watchlist</p>
             <Button onClick={() => { window.location.href = getLoginUrl(); }}>
               Sign In
             </Button>
@@ -81,12 +81,12 @@ export default function Watchlist() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Watchlist</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xs font-bold tracking-tight">Watchlist</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">
             {watchlistStocks.length} stocks tracked
           </p>
         </div>
@@ -102,23 +102,23 @@ export default function Watchlist() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Stocks Tracked</p>
-            <p className="text-2xl font-bold mt-1">{watchlistStocks.length}</p>
+            <p className="text-xs font-bold mt-1">{watchlistStocks.length}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Market Cap</p>
-            <p className="text-2xl font-bold mt-1">{formatNumber(totalValue)}</p>
+            <p className="text-xs font-bold mt-1">{formatNumber(totalValue)}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Change</p>
-            <p className={`text-2xl font-bold mt-1 ${avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <p className={`text-xs font-bold mt-1 ${avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {avgChange >= 0 ? "+" : ""}{avgChange.toFixed(3)}%
             </p>
           </CardContent>
@@ -127,8 +127,8 @@ export default function Watchlist() {
 
       {/* Watchlist Table */}
       <Card className="bg-card/50 border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs flex items-center gap-2">
             <Star className="h-4 w-4 text-yellow-400" />
             Your Watchlist
           </CardTitle>
@@ -137,7 +137,7 @@ export default function Watchlist() {
           {watchlistStocks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Eye className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Your watchlist is empty</p>
+              <p className="text-[11px]">Your watchlist is empty</p>
               <p className="text-xs mt-1">Add stocks from the Dashboard or Stock Detail pages</p>
               <Link href="/">
                 <Button variant="outline" size="sm" className="mt-4">
@@ -147,7 +147,7 @@ export default function Watchlist() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-[11px]">
                 <thead>
                   <tr className="border-b border-border/50">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Stock</th>
@@ -163,19 +163,19 @@ export default function Watchlist() {
                 <tbody>
                   {watchlistStocks.map((stock: any) => (
                     <tr key={stock.symbol} className="border-b border-border/30 hover:bg-accent/5 transition-colors">
-                      <td className="py-3 px-3">
+                      <td className="py-1 px-3">
                         <Link href={`/stock/${stock.symbol}`} className="hover:text-primary transition-colors">
                           <p className="font-medium">{stock.name || stock.symbol}</p>
                           <p className="text-xs text-muted-foreground">{stock.symbol}</p>
                         </Link>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-1 px-3">
                         <Badge variant="outline" className="text-[10px]">{stock.exchange}</Badge>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono">
+                      <td className="py-1 px-3 text-right font-mono">
                         {stock.price ? stock.price.toFixed(3) : "—"}
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-1 px-3 text-right">
                         {stock.changePercent != null ? (
                           <div className="flex items-center gap-1 justify-end">
                             {stock.changePercent >= 0 ? (
@@ -189,16 +189,16 @@ export default function Watchlist() {
                           </div>
                         ) : "—"}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-xs">
+                      <td className="py-1 px-3 text-right font-mono text-xs">
                         {formatNumber(stock.volume)}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-xs">
+                      <td className="py-1 px-3 text-right font-mono text-xs">
                         {formatNumber(stock.marketCap)}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-xs">
+                      <td className="py-1 px-3 text-right font-mono text-xs">
                         {stock.pe ? stock.pe.toFixed(1) : "—"}
                       </td>
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-1 px-3 text-center">
                         <Button
                           variant="ghost"
                           size="sm"

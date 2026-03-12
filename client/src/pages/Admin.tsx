@@ -100,7 +100,7 @@ function getTypeLabel(type: string) {
 
 function TwelveDataLogo() {
   return (
-    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-sm shrink-0">
+    <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-[11px] shrink-0">
       12
     </div>
   );
@@ -108,7 +108,7 @@ function TwelveDataLogo() {
 
 function TradingViewLogo() {
   return (
-    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shrink-0">
+    <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shrink-0">
       <TrendingUp className="w-5 h-5 text-white" />
     </div>
   );
@@ -116,7 +116,7 @@ function TradingViewLogo() {
 
 function SimplyWallStLogo() {
   return (
-    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center shrink-0">
+    <div className="w-10 h-10 rounded bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center shrink-0">
       <BarChart3 className="w-5 h-5 text-white" />
     </div>
   );
@@ -124,7 +124,7 @@ function SimplyWallStLogo() {
 
 function YahooLogo() {
   return (
-    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-bold text-sm shrink-0">
+    <div className="w-10 h-10 rounded bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-bold text-[11px] shrink-0">
       Y!
     </div>
   );
@@ -136,7 +136,7 @@ function getSourceLogo(id: string) {
     case "tradingview": return <TradingViewLogo />;
     case "simplywall": return <SimplyWallStLogo />;
     case "yahoo": return <YahooLogo />;
-    default: return <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Database className="w-5 h-5" /></div>;
+    default: return <div className="w-10 h-10 rounded bg-muted flex items-center justify-center"><Database className="w-5 h-5" /></div>;
   }
 }
 
@@ -147,9 +147,9 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
 
   return (
     <Card className="bg-card/50 border-border/50 hover:border-border transition-colors">
-      <CardContent className="p-5">
+      <CardContent className="p-2">
         {/* Header */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-1.5">
           {getSourceLogo(source.id)}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -160,7 +160,7 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
                 {getTypeLabel(source.type)}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{source.description}</p>
+            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{source.description}</p>
           </div>
           <a
             href={source.website}
@@ -173,38 +173,38 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          <div className="bg-background/50 rounded-lg p-2.5 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mt-4">
+          <div className="bg-background/50 rounded p-2.5 text-center">
             <div className="text-xs text-muted-foreground">Stocks</div>
-            <div className="text-lg font-semibold text-foreground">{source.stocksCovered || "—"}</div>
+            <div className="text-[11px] font-semibold text-foreground">{source.stocksCovered || "—"}</div>
           </div>
-          <div className="bg-background/50 rounded-lg p-2.5 text-center">
+          <div className="bg-background/50 rounded p-2.5 text-center">
             <div className="text-xs text-muted-foreground">Requests</div>
-            <div className="text-lg font-semibold text-foreground">{source.totalRequests}</div>
+            <div className="text-[11px] font-semibold text-foreground">{source.totalRequests}</div>
           </div>
-          <div className="bg-background/50 rounded-lg p-2.5 text-center">
+          <div className="bg-background/50 rounded p-2.5 text-center">
             <div className="text-xs text-muted-foreground">Success</div>
-            <div className="text-lg font-semibold text-foreground">{source.successRate}</div>
+            <div className="text-[11px] font-semibold text-foreground">{source.successRate}</div>
           </div>
-          <div className="bg-background/50 rounded-lg p-2.5 text-center">
+          <div className="bg-background/50 rounded p-2.5 text-center">
             <div className="text-xs text-muted-foreground">Last Fetch</div>
-            <div className="text-sm font-medium text-foreground">{formatTimeAgo(source.lastSuccessfulFetch)}</div>
+            <div className="text-[11px] font-medium text-foreground">{formatTimeAgo(source.lastSuccessfulFetch)}</div>
           </div>
         </div>
 
         {/* API Key Warning */}
         {source.requiresApiKey && !source.apiKeyConfigured && (
-          <div className="mt-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
+          <div className="mt-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-sm text-amber-300">API key not configured. Add it in Settings &gt; Secrets.</span>
+            <span className="text-[11px] text-amber-300">API key not configured. Add it in Settings &gt; Secrets.</span>
           </div>
         )}
 
         {/* Error Message */}
         {source.statusMessage && source.status !== "connected" && (
-          <div className="mt-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+          <div className="mt-3 p-2.5 rounded bg-red-500/10 border border-red-500/20 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <span className="text-sm text-red-300 truncate">{source.statusMessage}</span>
+            <span className="text-[11px] text-red-300 truncate">{source.statusMessage}</span>
           </div>
         )}
 
@@ -259,7 +259,7 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
             )}
 
             {/* Timestamps */}
-            <div className="flex gap-4 text-xs text-muted-foreground pt-1 border-t border-border/30">
+            <div className="flex gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/30">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 Checked: {formatTimeAgo(source.lastChecked)}
@@ -288,10 +288,10 @@ export default function Admin() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-4">
+          <CardContent className="p-8 text-center space-y-1.5">
             <Shield className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-xl font-semibold">Access Denied</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-[11px] font-semibold">Access Denied</h2>
+            <p className="text-[11px] text-muted-foreground">
               This page is restricted to administrators only.
             </p>
             <Button onClick={() => setLocation("/")} variant="outline">Go to Dashboard</Button>
@@ -337,12 +337,12 @@ export default function Admin() {
     : "bg-red-500/10 border-red-500/20";
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-2 md:p-2 max-w-5xl mx-auto space-y-2">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">API Data Sources</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xs font-bold text-foreground">API Data Sources</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">
             Monitor and manage all connected data feeds powering the stock screener
           </p>
         </div>
@@ -360,12 +360,12 @@ export default function Admin() {
 
       {/* Overall Health Banner */}
       {isLoading ? (
-        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-md" />
       ) : data ? (
-        <div className={`rounded-xl border p-4 ${healthBg}`}>
+        <div className={`rounded-md border p-2 ${healthBg}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${healthBg}`}>
+            <div className="flex items-center gap-1">
+              <div className={`p-2 rounded ${healthBg}`}>
                 {data.overallHealth === "healthy" ? (
                   <Wifi className={`w-5 h-5 ${healthColor}`} />
                 ) : data.overallHealth === "degraded" ? (
@@ -380,7 +380,7 @@ export default function Admin() {
                    data.overallHealth === "degraded" ? "Partial Service Degradation" :
                    "Critical: Most Services Down"}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground">
                   {data.connectedSources} of {data.totalSources} data sources connected
                 </div>
               </div>
@@ -395,34 +395,34 @@ export default function Admin() {
 
       {/* Summary Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-md" />)}
         </div>
       ) : data ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
           <Card className="bg-card/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-3xl font-bold text-foreground">{data.totalSources}</div>
+            <CardContent className="p-2 text-center">
+              <div className="text-[11px] font-bold text-foreground">{data.totalSources}</div>
               <div className="text-xs text-muted-foreground mt-1">Total Sources</div>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-3xl font-bold text-emerald-400">{data.connectedSources}</div>
+            <CardContent className="p-2 text-center">
+              <div className="text-[11px] font-bold text-emerald-400">{data.connectedSources}</div>
               <div className="text-xs text-muted-foreground mt-1">Connected</div>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-3xl font-bold text-foreground">
+            <CardContent className="p-2 text-center">
+              <div className="text-[11px] font-bold text-foreground">
                 {data.sources.reduce((sum, s) => sum + s.totalRequests, 0)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Total Requests</div>
             </CardContent>
           </Card>
           <Card className="bg-card/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-3xl font-bold text-foreground">
+            <CardContent className="p-2 text-center">
+              <div className="text-[11px] font-bold text-foreground">
                 {Math.max(...data.sources.map(s => s.stocksCovered))}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Max Coverage</div>
@@ -435,7 +435,7 @@ export default function Admin() {
       <div className="space-y-3">
         {isLoading ? (
           [1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-xl" />
+            <Skeleton key={i} className="h-48 rounded-md" />
           ))
         ) : data ? (
           data.sources.map((source) => (
@@ -454,18 +454,18 @@ export default function Admin() {
       {/* Data Flow Diagram */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
-          <CardTitle className="text-base">Data Flow Architecture</CardTitle>
+          <CardTitle className="text-xs">Data Flow Architecture</CardTitle>
           <CardDescription>How data flows from sources to the application</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
             {/* Sources Column */}
             <div className="space-y-2">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Data Sources</div>
               {data?.sources.map((s) => (
-                <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg bg-background/50">
+                <div key={s.id} className="flex items-center gap-2 p-2 rounded bg-background/50">
                   <div className={`w-2 h-2 rounded-full ${s.status === "connected" ? "bg-emerald-400" : "bg-zinc-500"}`} />
-                  <span className="text-sm text-foreground">{s.name}</span>
+                  <span className="text-[11px] text-foreground">{s.name}</span>
                 </div>
               )) || [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-9" />)}
             </div>
@@ -473,15 +473,15 @@ export default function Admin() {
             {/* Processing Column */}
             <div className="space-y-2 flex flex-col items-center justify-center">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Processing</div>
-              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-center w-full">
+              <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center w-full">
                 <Server className="w-5 h-5 text-primary mx-auto mb-1" />
-                <div className="text-sm font-medium text-foreground">API Aggregator</div>
+                <div className="text-[11px] font-medium text-foreground">API Aggregator</div>
                 <div className="text-xs text-muted-foreground">Merge & Normalize</div>
               </div>
               <div className="text-muted-foreground">↓</div>
-              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-center w-full">
+              <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center w-full">
                 <Database className="w-5 h-5 text-primary mx-auto mb-1" />
-                <div className="text-sm font-medium text-foreground">Database</div>
+                <div className="text-[11px] font-medium text-foreground">Database</div>
                 <div className="text-xs text-muted-foreground">Persist & Cache</div>
               </div>
             </div>
@@ -490,9 +490,9 @@ export default function Admin() {
             <div className="space-y-2">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Application</div>
               {["Dashboard", "Screener", "Stock Profiles", "Volume Alerts", "Watchlist", "Heatmap"].map((item) => (
-                <div key={item} className="flex items-center gap-2 p-2 rounded-lg bg-background/50">
+                <div key={item} className="flex items-center gap-2 p-2 rounded bg-background/50">
                   <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-sm text-foreground">{item}</span>
+                  <span className="text-[11px] text-foreground">{item}</span>
                 </div>
               ))}
             </div>

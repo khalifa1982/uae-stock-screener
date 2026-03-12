@@ -152,12 +152,12 @@ export default function Alerts() {
   const criticalCount = activeAlerts.filter((a: any) => a.severity === "critical" || a.severity === "high").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Volume Alerts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xs font-bold tracking-tight">Volume Alerts</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">
             Real-time volume spike detection for DFM stocks during trading hours
           </p>
         </div>
@@ -197,19 +197,19 @@ export default function Alerts() {
       {/* Notification Settings Panel */}
       {showSettings && (
         <Card className="border-primary/20 bg-gradient-to-r from-card to-card/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs flex items-center gap-2">
               <BellRing className="h-4 w-4 text-primary" />
               Notification Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-1.5">
             {/* Browser Notifications */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <Bell className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Browser Notifications</span>
+                  <span className="text-[11px] font-medium">Browser Notifications</span>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6">
                   {permissionState === "unsupported"
@@ -235,7 +235,7 @@ export default function Alerts() {
                   ) : (
                     <VolumeX className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <span className="text-sm font-medium">Alert Sound</span>
+                  <span className="text-[11px] font-medium">Alert Sound</span>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6">
                   Play an audible alert when volume spikes are detected
@@ -266,7 +266,7 @@ export default function Alerts() {
             )}
 
             {/* Test Button */}
-            <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-1 pt-2 border-t border-border/50">
               <Button
                 variant="outline"
                 size="sm"
@@ -283,7 +283,7 @@ export default function Alerts() {
 
             {/* Permission Status */}
             {permissionState === "default" && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-1 p-3 rounded bg-primary/5 border border-primary/20">
                 <Bell className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1">
                   <p className="text-xs text-muted-foreground">
@@ -300,21 +300,21 @@ export default function Alerts() {
       )}
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
         {/* Market Status */}
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Market Status</p>
                 <div className="flex items-center gap-2">
                   <div className={`h-2.5 w-2.5 rounded-full ${tradingInfo?.isTrading ? "bg-green-500 animate-pulse" : "bg-zinc-500"}`} />
-                  <span className="text-sm font-medium">
+                  <span className="text-[11px] font-medium">
                     {tradingInfo?.isTrading ? "Market Open" : "Market Closed"}
                   </span>
                 </div>
               </div>
-              <Clock className="h-5 w-5 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             {!tradingInfo?.isTrading && tradingInfo?.nextSession && (
               <p className="text-[11px] text-muted-foreground mt-2">
@@ -326,18 +326,18 @@ export default function Alerts() {
 
         {/* Monitor Status */}
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Monitor</p>
                 <div className="flex items-center gap-2">
                   <div className={`h-2.5 w-2.5 rounded-full ${monitorStatus?.isRunning ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"}`} />
-                  <span className="text-sm font-medium">
+                  <span className="text-[11px] font-medium">
                     {monitorStatus?.isRunning ? "Active" : "Inactive"}
                   </span>
                 </div>
               </div>
-              <Activity className="h-5 w-5 text-muted-foreground" />
+              <Activity className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">
               {monitorStatus?.trackedStocks || 0} stocks tracked | {monitorStatus?.pollCount || 0} polls
@@ -347,13 +347,13 @@ export default function Alerts() {
 
         {/* Today's Alerts */}
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Today's Alerts</p>
-                <p className="text-2xl font-bold">{activeAlerts.length}</p>
+                <p className="text-xs font-bold">{activeAlerts.length}</p>
               </div>
-              <Bell className={`h-5 w-5 ${criticalCount > 0 ? "text-red-400 animate-bounce" : "text-muted-foreground"}`} />
+              <Bell className={`h-3.5 w-3.5 ${criticalCount > 0 ? "text-red-400 animate-bounce" : "text-muted-foreground"}`} />
             </div>
             {criticalCount > 0 && (
               <p className="text-[11px] text-red-400 mt-2 font-medium">
@@ -365,7 +365,7 @@ export default function Alerts() {
 
         {/* Notification Status */}
         <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
+          <CardContent className="p-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Notifications</p>
@@ -373,17 +373,17 @@ export default function Alerts() {
                   {prefs.browserNotifications || prefs.soundEnabled ? (
                     <>
                       <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-medium">Active</span>
+                      <span className="text-[11px] font-medium">Active</span>
                     </>
                   ) : (
                     <>
                       <div className="h-2.5 w-2.5 rounded-full bg-zinc-500" />
-                      <span className="text-sm font-medium">Disabled</span>
+                      <span className="text-[11px] font-medium">Disabled</span>
                     </>
                   )}
                 </div>
               </div>
-              <BellRing className="h-5 w-5 text-muted-foreground" />
+              <BellRing className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">
               {[
@@ -397,11 +397,11 @@ export default function Alerts() {
 
       {/* Trading Hours Banner */}
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <Volume2 className="h-5 w-5 text-primary shrink-0" />
+        <CardContent className="p-2">
+          <div className="flex items-center gap-1">
+            <Volume2 className="h-3.5 w-3.5 text-primary shrink-0" />
             <div>
-              <p className="text-sm font-medium">Volume Spike Monitor</p>
+              <p className="text-[11px] font-medium">Volume Spike Monitor</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Automatically monitors DFM stocks every 60 seconds during UAE trading hours ({tradingInfo?.tradingHours || "Sun-Thu 10:00-14:00 GST"}).
                 Detects stocks with volume exceeding 2x their average and sends instant notifications for high/critical spikes.
@@ -414,8 +414,8 @@ export default function Alerts() {
       {/* Scan Results */}
       {scanResults && scanResults.length > 0 && (
         <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs flex items-center gap-2">
               <Scan className="h-4 w-4 text-primary" />
               Manual Scan Results ({scanResults.length} spikes detected)
             </CardTitle>
@@ -423,28 +423,28 @@ export default function Alerts() {
           <CardContent>
             <div className="space-y-2">
               {scanResults.map((alert: any, i: number) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
-                  <div className="flex items-center gap-3">
+                <div key={i} className="flex items-center justify-between p-3 rounded bg-background/50 border border-border/50">
+                  <div className="flex items-center gap-1">
                     <SeverityBadge severity={alert.severity} />
                     <div>
-                      <Link href={`/stock/${alert.symbol}`} className="text-sm font-medium hover:text-primary transition-colors">
+                      <Link href={`/stock/${alert.symbol}`} className="text-[11px] font-medium hover:text-primary transition-colors">
                         {alert.stockName}
                       </Link>
                       <span className="text-xs text-muted-foreground ml-2">{alert.symbol}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-right">
+                  <div className="flex items-center gap-1.5 text-right">
                     <div>
-                      <p className="text-sm font-mono font-medium text-orange-400">{alert.volumeMultiplier}x</p>
+                      <p className="text-[11px] font-mono font-medium text-orange-400">{alert.volumeMultiplier}x</p>
                       <p className="text-[10px] text-muted-foreground">vs avg</p>
                     </div>
                     <div>
-                      <p className="text-sm font-mono">{formatVolume(alert.currentVolume)}</p>
+                      <p className="text-[11px] font-mono">{formatVolume(alert.currentVolume)}</p>
                       <p className="text-[10px] text-muted-foreground">volume</p>
                     </div>
                     {alert.price && (
                       <div>
-                        <p className="text-sm font-mono">{alert.price.toFixed(3)}</p>
+                        <p className="text-[11px] font-mono">{alert.price.toFixed(3)}</p>
                         <p className={`text-[10px] font-mono ${(alert.changePercent || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                           {(alert.changePercent || 0) >= 0 ? "+" : ""}{(alert.changePercent || 0).toFixed(3)}%
                         </p>
@@ -460,9 +460,9 @@ export default function Alerts() {
 
       {/* Today's Alerts */}
       <Card className="bg-card/50 border-border/50">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-1">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-xs flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-400" />
               Today's Volume Spikes
             </CardTitle>
@@ -473,7 +473,7 @@ export default function Alerts() {
           {activeAlerts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <BellOff className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No volume spikes detected today</p>
+              <p className="text-[11px]">No volume spikes detected today</p>
               <p className="text-xs mt-1">
                 {tradingInfo?.isTrading
                   ? "Monitor is actively scanning. Alerts will appear here."
@@ -483,12 +483,12 @@ export default function Alerts() {
           ) : (
             <div className="space-y-2">
               {activeAlerts.map((alert: any) => (
-                <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors">
-                  <div className="flex items-center gap-3">
+                <div key={alert.id} className="flex items-center justify-between p-3 rounded bg-background/50 border border-border/50 hover:border-border transition-colors">
+                  <div className="flex items-center gap-1">
                     <SeverityBadge severity={alert.severity} />
                     <div>
                       <div className="flex items-center gap-2">
-                        <Link href={`/stock/${alert.symbol}`} className="text-sm font-medium hover:text-primary transition-colors">
+                        <Link href={`/stock/${alert.symbol}`} className="text-[11px] font-medium hover:text-primary transition-colors">
                           {alert.stockName || alert.symbol}
                         </Link>
                         <span className="text-xs text-muted-foreground">{alert.exchange}</span>
@@ -498,16 +498,16 @@ export default function Alerts() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
                     <div className="text-right">
-                      <p className="text-sm font-mono font-bold text-orange-400">{alert.volumeMultiplier}x</p>
+                      <p className="text-[11px] font-mono font-bold text-orange-400">{alert.volumeMultiplier}x</p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatVolume(alert.currentVolume)} / {formatVolume(alert.avgVolume)}
                       </p>
                     </div>
                     {alert.price && (
                       <div className="text-right">
-                        <p className="text-sm font-mono">{alert.price.toFixed(3)}</p>
+                        <p className="text-[11px] font-mono">{alert.price.toFixed(3)}</p>
                         <div className="flex items-center gap-0.5 justify-end">
                           {(alert.changePercent || 0) >= 0 ? (
                             <TrendingUp className="h-3 w-3 text-emerald-400" />
@@ -540,18 +540,18 @@ export default function Alerts() {
 
       {/* Recent History */}
       <Card className="bg-card/50 border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             Alert History
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!recentAlerts || recentAlerts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No alert history yet</p>
+            <p className="text-[11px] text-muted-foreground text-center py-8">No alert history yet</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-[11px]">
                 <thead>
                   <tr className="border-b border-border/50">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Time</th>
@@ -570,7 +570,7 @@ export default function Alerts() {
                         {formatTimeAgo(alert.detectedAt)}
                       </td>
                       <td className="py-2 px-3">
-                        <Link href={`/stock/${alert.symbol}`} className="text-sm font-medium hover:text-primary transition-colors">
+                        <Link href={`/stock/${alert.symbol}`} className="text-[11px] font-medium hover:text-primary transition-colors">
                           {alert.stockName || alert.symbol}
                         </Link>
                       </td>

@@ -234,8 +234,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
     return (
       <Card className="glass-card">
         <CardContent className="py-8 text-center">
-          <BookOpen className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Order book data unavailable</p>
+          <BookOpen className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
+          <p className="text-[11px] text-muted-foreground">Order book data unavailable</p>
         </CardContent>
       </Card>
     );
@@ -259,8 +259,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
     return (
       <Card className="glass-card">
         <CardContent className="py-8 text-center">
-          <WifiOff className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Failed to load order book</p>
+          <WifiOff className="h-4 w-4 text-muted-foreground mx-auto mb-2" />
+          <p className="text-[11px] text-muted-foreground">Failed to load order book</p>
           <p className="text-xs text-muted-foreground/60 mt-1">{error?.message}</p>
         </CardContent>
       </Card>
@@ -277,7 +277,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Order Book — {symbol}</span>
+          <span className="text-[11px] font-semibold">Order Book — {symbol}</span>
           <Badge variant={orderBook.dataSource === "live" ? "default" : "secondary"} className="text-[9px]">
             {orderBook.dataSource === "live" ? <><Wifi className="h-2.5 w-2.5 mr-0.5" /> LIVE</> : <><WifiOff className="h-2.5 w-2.5 mr-0.5" /> Derived</>}
           </Badge>
@@ -305,20 +305,20 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
         </TabsList>
 
         {/* ═══════════ TAB 1: SUMMARY ═══════════ */}
-        <TabsContent value="summary" className="mt-3 space-y-4">
+        <TabsContent value="summary" className="mt-3 space-y-1.5">
           <Card className="glass-card">
-            <CardContent className="pt-4 space-y-4">
+            <CardContent className="pt-4 space-y-1.5">
               {/* Price Header */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <div>
-                  <div className={`text-2xl font-mono font-bold tracking-tight ${flashClass(priceFlash)} ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                  <div className={`text-xs font-mono font-bold tracking-tight ${flashClass(priceFlash)} ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
                     {fmtPrice(orderBook.lastPrice)}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-sm font-mono font-medium ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                    <span className={`text-[11px] font-mono font-medium ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
                       {(change ?? 0) >= 0 ? "+" : ""}{orderBook.change?.toFixed(3) ?? "0.000"}
                     </span>
-                    <span className={`text-sm font-mono ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
+                    <span className={`text-[11px] font-mono ${(change ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
                       ({(change ?? 0) >= 0 ? "+" : ""}{orderBook.changePercent?.toFixed(3) ?? "0.000"}%)
                     </span>
                   </div>
@@ -572,7 +572,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                 <span className="text-[10px] text-muted-foreground">
                   {timeSales.length} trades · 10:00 AM – 3:00 PM UAE
                 </span>
-                <div className="flex items-center gap-3 text-[10px]">
+                <div className="flex items-center gap-1 text-[10px]">
                   <span className="text-gain">▲ {timeSales.filter(t => t.direction === "up").length}</span>
                   <span className="text-loss">▼ {timeSales.filter(t => t.direction === "down").length}</span>
                   <span className="text-muted-foreground">— {timeSales.filter(t => t.direction === "neutral").length}</span>
@@ -656,7 +656,7 @@ export function PriceBook({ symbol, exchange, price, change, volume, high, low }
   const askPrice = orderBook?.askPrice ?? 0;
 
   return (
-    <div className="flex items-center gap-3 sm:gap-4 p-3 rounded-lg bg-secondary/20 border border-border/30 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 p-3 rounded bg-secondary/20 border border-border/30 flex-wrap">
       <div className="flex items-center gap-2">
         <Activity className="h-4 w-4 text-primary" />
         <span className="text-xs text-muted-foreground font-medium">Price Book</span>
@@ -664,7 +664,7 @@ export function PriceBook({ symbol, exchange, price, change, volume, high, low }
           <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" />
         )}
       </div>
-      <div className="flex items-center gap-2 sm:gap-3 text-xs font-mono flex-wrap">
+      <div className="flex items-center gap-2 sm:gap-1 text-xs font-mono flex-wrap">
         <div>
           <span className="text-muted-foreground mr-1">Bid:</span>
           <span className="text-gain font-medium">{bidPrice > 0 ? fmtPrice(bidPrice) : "—"}</span>

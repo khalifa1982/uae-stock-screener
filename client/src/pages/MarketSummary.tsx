@@ -118,16 +118,16 @@ export default function MarketSummary() {
   // ─── Render ─────────────────────────────────────────────────────
 
   return (
-    <div className={`space-y-6 ${isArabic ? "rtl" : "ltr"}`} dir={isArabic ? "rtl" : "ltr"}>
+    <div className={`space-y-2 ${isArabic ? "rtl" : "ltr"}`} dir={isArabic ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t.subtitle}</p>
+          <h1 className="text-xs font-bold tracking-tight">{t.title}</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">{t.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Language Toggle */}
-          <div className="flex items-center rounded-lg border border-border/40 overflow-hidden">
+          <div className="flex items-center rounded border border-border/40 overflow-hidden">
             <button
               onClick={() => setLanguage("en")}
               className={`px-3 py-1.5 text-xs font-medium transition-all ${
@@ -172,7 +172,7 @@ export default function MarketSummary() {
 
       {/* Date Navigation */}
       {availableDates.length > 0 && (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -182,9 +182,9 @@ export default function MarketSummary() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-accent/30 border border-border/30">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-accent/30 border border-border/30">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{currentDate}</span>
+            <span className="text-[11px] font-medium">{currentDate}</span>
           </div>
           <Button
             variant="ghost"
@@ -210,9 +210,9 @@ export default function MarketSummary() {
       {!isLoading && (!displaySummaries || displaySummaries.length === 0) && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <FileText className="h-12 w-12 text-muted-foreground/60 mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground">{t.noData}</h3>
-            <p className="text-sm text-muted-foreground/60 mt-1">{t.noDataSub}</p>
+            <FileText className="h-12 w-12 text-muted-foreground/60 mb-1" />
+            <h3 className="text-[11px] font-medium text-muted-foreground">{t.noData}</h3>
+            <p className="text-[11px] text-muted-foreground/60 mt-1">{t.noDataSub}</p>
             <Button
               variant="outline"
               size="sm"
@@ -243,7 +243,7 @@ export default function MarketSummary() {
             { key: "ADX", summary: adxSummary },
             { key: "DFM", summary: dfmSummary },
           ].map(({ key, summary }) => (
-            <TabsContent key={key} value={key} className="space-y-4 mt-4">
+            <TabsContent key={key} value={key} className="space-y-1.5 mt-4">
               {summary ? (
                 <ExchangeSummaryView summary={summary} t={t} isArabic={isArabic} />
               ) : (
@@ -280,9 +280,9 @@ function ExchangeSummaryView({
     : {};
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-1.5">
       {/* Key Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1">
         <StatCard
           label={t.volume}
           value={summary.totalVolume ? formatNumber(summary.totalVolume) : "—"}
@@ -321,23 +321,23 @@ function ExchangeSummaryView({
       {summary.narrative && (
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-xs flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               {t.narrative}
             </CardTitle>
           </CardHeader>
-          <CardContent className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+          <CardContent className="prose prose-sm dark:prose-invert max-w-none text-[11px] leading-relaxed">
             <Streamdown>{summary.narrative}</Streamdown>
           </CardContent>
         </Card>
       )}
 
       {/* Top Movers Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1.5">
         {/* Top Gainers */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-[11px] flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
               {t.topGainers}
             </CardTitle>
@@ -350,7 +350,7 @@ function ExchangeSummaryView({
         {/* Top Losers */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-[11px] flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-red-500" />
               {t.topLosers}
             </CardTitle>
@@ -363,7 +363,7 @@ function ExchangeSummaryView({
         {/* Most Active */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-[11px] flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-500" />
               {t.mostActive}
             </CardTitle>
@@ -378,7 +378,7 @@ function ExchangeSummaryView({
       {Object.keys(sectorPerf).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-[11px] flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
               {t.sectors}
             </CardTitle>
@@ -388,9 +388,9 @@ function ExchangeSummaryView({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border/30">
-                    <th className={`px-4 py-2 font-medium text-muted-foreground ${isArabic ? "text-right" : "text-left"}`}>{t.sector}</th>
-                    <th className={`px-4 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.avgChange}</th>
-                    <th className={`px-4 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.count}</th>
+                    <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-right" : "text-left"}`}>{t.sector}</th>
+                    <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.avgChange}</th>
+                    <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.count}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -398,13 +398,13 @@ function ExchangeSummaryView({
                     .sort((a, b) => b[1].avgChange - a[1].avgChange)
                     .map(([sector, data]) => (
                       <tr key={sector} className="border-b border-border/10 hover:bg-accent/20 transition-colors">
-                        <td className={`px-4 py-2 font-medium ${isArabic ? "text-right" : "text-left"}`}>{sector}</td>
-                        <td className={`px-4 py-2 font-mono ${isArabic ? "text-left" : "text-right"} ${
+                        <td className={`px-2 py-2 font-medium ${isArabic ? "text-right" : "text-left"}`}>{sector}</td>
+                        <td className={`px-2 py-2 font-mono ${isArabic ? "text-left" : "text-right"} ${
                           data.avgChange > 0 ? "text-emerald-500" : data.avgChange < 0 ? "text-red-500" : "text-muted-foreground"
                         }`}>
                           {data.avgChange > 0 ? "+" : ""}{data.avgChange.toFixed(2)}%
                         </td>
-                        <td className={`px-4 py-2 text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{data.count}</td>
+                        <td className={`px-2 py-2 text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{data.count}</td>
                       </tr>
                     ))}
                 </tbody>
@@ -436,7 +436,7 @@ function StatCard({
         <span className="text-muted-foreground">{icon}</span>
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
       </div>
-      <p className={`text-lg font-bold tracking-tight ${className}`}>{value}</p>
+      <p className={`text-[11px] font-bold tracking-tight ${className}`}>{value}</p>
     </Card>
   );
 }
@@ -453,7 +453,7 @@ function MoverTable({
   isArabic: boolean;
 }) {
   if (movers.length === 0) {
-    return <p className="text-xs text-muted-foreground text-center py-4">—</p>;
+    return <p className="text-xs text-muted-foreground text-center py-1.5">—</p>;
   }
 
   return (

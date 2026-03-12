@@ -111,12 +111,12 @@ export default function Heatmap() {
   }, [stocksWithData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Market Heatmap</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xs font-bold tracking-tight">Market Heatmap</h1>
+          <p className="text-[11px] text-muted-foreground mt-1">
             Visual overview of stock performance by sector &mdash; <span className="text-primary">live blinking</span>
           </p>
         </div>
@@ -132,35 +132,35 @@ export default function Heatmap() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-lg font-bold">{marketSummary.total}</p>
+            <p className="text-[11px] font-bold">{marketSummary.total}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-emerald-400">Gainers</p>
-            <p className="text-lg font-bold text-emerald-400">{marketSummary.gainers}</p>
+            <p className="text-[11px] font-bold text-emerald-400">{marketSummary.gainers}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-red-400">Losers</p>
-            <p className="text-lg font-bold text-red-400">{marketSummary.losers}</p>
+            <p className="text-[11px] font-bold text-red-400">{marketSummary.losers}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-zinc-400">Unchanged</p>
-            <p className="text-lg font-bold text-zinc-400">{marketSummary.unchanged}</p>
+            <p className="text-[11px] font-bold text-zinc-400">{marketSummary.unchanged}</p>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Avg Change</p>
-            <p className={`text-lg font-bold ${marketSummary.avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <p className={`text-[11px] font-bold ${marketSummary.avgChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {marketSummary.avgChange >= 0 ? "+" : ""}{marketSummary.avgChange.toFixed(3)}%
             </p>
           </CardContent>
@@ -168,7 +168,7 @@ export default function Heatmap() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-1">
         <Tabs value={exchange} onValueChange={(v) => setExchange(v as any)}>
           <TabsList className="bg-background/50">
             <TabsTrigger value="DFM" className="text-xs">DFM</TabsTrigger>
@@ -209,13 +209,13 @@ export default function Heatmap() {
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
           {Array.from({ length: 24 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-lg bg-zinc-800/30 animate-pulse" />
+            <div key={i} className="h-24 rounded bg-zinc-800/30 animate-pulse" />
           ))}
         </div>
       ) : stocksWithData.length === 0 ? (
         <Card className="bg-card/50 border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Grid3X3 className="h-12 w-12 text-muted-foreground/60 mb-4" />
+            <Grid3X3 className="h-12 w-12 text-muted-foreground/60 mb-1" />
             <p className="text-muted-foreground">No stock data available for this exchange</p>
             <p className="text-xs text-muted-foreground mt-1">
               Try refreshing or switching to DFM exchange
@@ -223,11 +223,11 @@ export default function Heatmap() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {sectorGroups.map(([sector, stocks]) => (
             <div key={sector}>
               <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-semibold">{sector}</h3>
+                <h3 className="text-[11px] font-semibold">{sector}</h3>
                 <Badge variant="outline" className="text-[10px]">{stocks.length}</Badge>
                 <span className={`text-xs font-mono ${
                   stocks.reduce((s, st) => s + (st.changePercent || 0), 0) / stocks.length >= 0
@@ -245,7 +245,7 @@ export default function Heatmap() {
                   return (
                     <Link key={stock.symbol} href={`/stock/${stock.symbol}`}>
                       <div
-                        className={`${getHeatColor(stock.changePercent ?? null)} ${getTextColor(stock.changePercent ?? null)} rounded-lg p-3 cursor-pointer hover:ring-1 hover:ring-white/20 transition-all group relative overflow-hidden ${flashClass}`}
+                        className={`${getHeatColor(stock.changePercent ?? null)} ${getTextColor(stock.changePercent ?? null)} rounded p-3 cursor-pointer hover:ring-1 hover:ring-white/20 transition-all group relative overflow-hidden ${flashClass}`}
                       >
                         {/* Flash overlay for visual emphasis */}
                         <div className="flex items-start justify-between">
@@ -255,7 +255,7 @@ export default function Heatmap() {
                           </div>
                         </div>
                         <div className="mt-2 flex items-end justify-between">
-                          <p className="text-sm font-mono font-bold">
+                          <p className="text-[11px] font-mono font-bold">
                             {stock.price?.toFixed(3) || "—"}
                           </p>
                           <div className="flex items-center gap-0.5">

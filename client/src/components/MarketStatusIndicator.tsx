@@ -143,7 +143,7 @@ export function MarketStatusBadge() {
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-1.5">
-            <p className="font-medium text-sm">{status.label}</p>
+            <p className="font-medium text-[11px]">{status.label}</p>
             <p className="text-xs text-muted-foreground">{status.description}</p>
             
             {/* Countdown Timer - prominent display */}
@@ -195,7 +195,7 @@ export function MarketStatusCard() {
   const countdownDesc = getCountdownDescription(status.phase, status.countdown, status.nextPhaseLabel);
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border ${config.color}`}>
+    <div className={`flex items-center gap-1 p-3 rounded border ${config.color}`}>
       <div className="flex items-center gap-2">
         <span className="relative flex h-2.5 w-2.5">
           {(status.phase === "open" || status.phase === "pre-open" || status.phase === "pre-close") && (
@@ -203,7 +203,7 @@ export function MarketStatusCard() {
           )}
           <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${config.dotColor}`} />
         </span>
-        <span className="font-semibold text-sm">{status.label}</span>
+        <span className="font-semibold text-[11px]">{status.label}</span>
       </div>
       {status.holiday && (
         <span className="text-xs opacity-80">{status.holiday.nameAr}</span>
