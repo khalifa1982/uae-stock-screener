@@ -255,7 +255,7 @@ export function LiveChat() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-[90] w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
       >
         <MessageCircle className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -269,7 +269,7 @@ export function LiveChat() {
 
   // Chat panel (when open)
   return (
-    <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-50 w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-md bg-background border border-border shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-[200] w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-md bg-background border border-border shadow-2xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-primary text-primary-foreground shrink-0">
         <div className="flex items-center gap-2">

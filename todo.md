@@ -844,3 +844,22 @@
 - [x] Add StockAnalysis.com as a web scraping data source
 - [x] Scrape company profiles, financials, dividends, board info
 - [x] Integrate scraped data into stock detail pages
+
+## Phase 34 - Mobile UI Fixes, Notification Design, Chat Fix
+
+### Mobile Top Bar
+- [x] Fix top bar overlapping with browser chrome on mobile
+- [x] Fix buttons crowded/mixed up in mobile top bar
+
+### Mobile Bottom Nav
+- [x] Fix bottom nav not sticking to bottom of screen
+- [x] Content scrolls behind/below bottom nav bar
+
+### Notification Dropdown
+- [x] Fix notification background overlapping other notifications
+- [x] Add proper scrolling to notification dropdown
+- [x] Fix notification design on both mobile and desktop
+
+### Chat Fix
+- [x] Debug and fix chat not working (rewrote useChat with ref-based mode tracking)
+- [x] Test chat functionality end-to-end (4 vitest tests passing)

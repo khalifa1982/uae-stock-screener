@@ -32,11 +32,9 @@ interface UseChatReturn {
   mode: "ws" | "http";
 }
 
-const MAX_RECONNECT_DELAY = 15000;
-const INITIAL_RECONNECT_DELAY = 2000;
-const HEARTBEAT_INTERVAL = 10000;
-const HTTP_POLL_INTERVAL = 3000; // Poll every 3 seconds
-const WS_FAIL_THRESHOLD = 3; // Switch to HTTP after 3 WS failures
+const HTTP_POLL_INTERVAL = 3000;
+const WS_CONNECT_TIMEOUT = 5000;
+const WS_MAX_RETRIES = 2; // Try WS only twice before falling back to HTTP
 
 export function useChat(): UseChatReturn {
   const { user, isAuthenticated } = useAuth();
@@ -45,16 +43,17 @@ export function useChat(): UseChatReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [mode, setMode] = useState<"ws" | "http">("ws");
+
+  // Use refs to avoid stale closure issues
+  const modeRef = useRef<"ws" | "http">("ws");
   const wsRef = useRef<WebSocket | null>(null);
+  const mountedRef = useRef(true);
+  const wsRetryCount = useRef(0);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttempts = useRef(0);
-  const wsFailCount = useRef(0);
-  const mountedRef = useRef(true);
-  const connectingRef = useRef(false);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastMessageIdRef = useRef(0);
+  const connectingRef = useRef(false);
 
   // tRPC mutations for HTTP mode
   const sendMutation = trpc.chat.send.useMutation();
@@ -62,7 +61,8 @@ export function useChat(): UseChatReturn {
   const clearMutation = trpc.chat.clearAll.useMutation();
   const utils = trpc.useUtils();
 
-  const cleanup = useCallback(() => {
+  // ─── Cleanup ──────────────────────────────────────────────────────
+  const cleanupAll = useCallback(() => {
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
@@ -71,58 +71,55 @@ export function useChat(): UseChatReturn {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
-    if (reconnectRef.current) {
-      clearTimeout(reconnectRef.current);
-      reconnectRef.current = null;
-    }
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
     }
+    if (wsRef.current) {
+      try {
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.close();
+      } catch {}
+      wsRef.current = null;
+    }
   }, []);
 
-  // ─── HTTP Polling Mode ─────────────────────────────────────────────
+  // ─── HTTP Polling Mode ────────────────────────────────────────────
   const startHttpPolling = useCallback(() => {
     if (pollTimerRef.current) return; // Already polling
-    console.log("[Chat] Switching to HTTP polling mode");
+    console.log("[Chat] Starting HTTP polling mode");
+    modeRef.current = "http";
     setMode("http");
-    setIsConnected(true); // HTTP mode is always "connected"
+    setIsConnected(true);
 
-    // Initial full fetch
     const fetchMessages = async () => {
       if (!mountedRef.current || !isAuthenticated) return;
       try {
-        const msgs = await utils.chat.messages.fetch({ sinceId: lastMessageIdRef.current > 0 ? lastMessageIdRef.current : undefined });
-        if (!mountedRef.current) return;
-        if (msgs && msgs.length > 0) {
+        const msgs = await utils.chat.messages.fetch(
+          { sinceId: lastMessageIdRef.current > 0 ? lastMessageIdRef.current : undefined },
+          { staleTime: 0 }
+        );
+        if (!mountedRef.current || !msgs) return;
+        if (msgs.length > 0) {
+          const mapped = msgs.map((m: any) => ({
+            id: m.id,
+            type: (m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message") as "message" | "image" | "system",
+            userId: m.userId,
+            userName: m.userName,
+            userColor: m.userColor,
+            content: m.content,
+            imageUrl: m.imageUrl,
+            timestamp: m.timestamp,
+          }));
+
           if (lastMessageIdRef.current === 0) {
-            // First load - replace all
-            setMessages(msgs.map((m: any) => ({
-              id: m.id,
-              type: m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message",
-              userId: m.userId,
-              userName: m.userName,
-              userColor: m.userColor,
-              content: m.content,
-              imageUrl: m.imageUrl,
-              timestamp: m.timestamp,
-            })));
+            setMessages(mapped);
           } else {
-            // Incremental - append new
             setMessages(prev => {
-              const existingIds = new Set(prev.map(m => m.id));
-              const newMsgs = msgs
-                .filter((m: any) => !existingIds.has(m.id))
-                .map((m: any) => ({
-                  id: m.id,
-                  type: m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message" as const,
-                  userId: m.userId,
-                  userName: m.userName,
-                  userColor: m.userColor,
-                  content: m.content,
-                  imageUrl: m.imageUrl,
-                  timestamp: m.timestamp,
-                }));
+              const existingIds = new Set(prev.map(p => p.id));
+              const newMsgs = mapped.filter((m: any) => !existingIds.has(m.id));
               return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
             });
           }
@@ -132,15 +129,15 @@ export function useChat(): UseChatReturn {
           }
         }
       } catch (err) {
-        console.error("[Chat] HTTP poll error:", err);
+        // Silently handle - will retry on next poll
+        console.debug("[Chat] Poll error:", err);
       }
     };
 
-    // Fetch online users
     const fetchOnlineUsers = async () => {
       if (!mountedRef.current || !isAuthenticated) return;
       try {
-        const users = await utils.chat.onlineUsers.fetch();
+        const users = await utils.chat.onlineUsers.fetch(undefined, { staleTime: 0 });
         if (mountedRef.current && users) {
           setOnlineUsers(users);
         }
@@ -158,45 +155,11 @@ export function useChat(): UseChatReturn {
     }, HTTP_POLL_INTERVAL);
   }, [isAuthenticated, utils]);
 
-  // ─── WebSocket Mode ────────────────────────────────────────────────
-  const scheduleReconnect = useCallback(() => {
-    if (!mountedRef.current || !isAuthenticated || !user) return;
-    if (reconnectRef.current) clearTimeout(reconnectRef.current);
-
-    // If too many WS failures, switch to HTTP
-    if (wsFailCount.current >= WS_FAIL_THRESHOLD) {
-      console.log("[Chat] Too many WS failures, switching to HTTP polling");
-      startHttpPolling();
-      return;
-    }
-
-    const delay = Math.min(
-      INITIAL_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts.current),
-      MAX_RECONNECT_DELAY
-    );
-    reconnectAttempts.current++;
-    console.log(`[Chat] Reconnecting in ${Math.round(delay / 1000)}s (attempt ${reconnectAttempts.current})`);
-    reconnectRef.current = setTimeout(() => {
-      if (mountedRef.current) connect();
-    }, delay);
-  }, [isAuthenticated, user, startHttpPolling]);
-
-  const connect = useCallback(() => {
+  // ─── WebSocket Mode ───────────────────────────────────────────────
+  const connectWebSocket = useCallback(() => {
     if (!isAuthenticated || !user || !mountedRef.current) return;
     if (connectingRef.current) return;
-    // Don't try WS if already in HTTP mode
-    if (mode === "http") return;
-
-    // Close existing connection cleanly
-    if (wsRef.current) {
-      try {
-        wsRef.current.onclose = null;
-        wsRef.current.onerror = null;
-        wsRef.current.onmessage = null;
-        wsRef.current.close();
-      } catch {}
-      wsRef.current = null;
-    }
+    if (modeRef.current === "http") return; // Already switched to HTTP
 
     connectingRef.current = true;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -208,19 +171,32 @@ export function useChat(): UseChatReturn {
 
       const connectionTimeout = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
-          console.log("[Chat] Connection timeout, closing...");
-          wsFailCount.current++;
+          console.log("[Chat] WS connection timeout");
+          connectingRef.current = false;
+          wsRetryCount.current++;
           try { ws.close(); } catch {}
+          
+          if (wsRetryCount.current >= WS_MAX_RETRIES) {
+            console.log("[Chat] WS failed after retries, switching to HTTP");
+            startHttpPolling();
+          } else {
+            // Try again after a short delay
+            setTimeout(() => {
+              if (mountedRef.current && modeRef.current === "ws") {
+                connectWebSocket();
+              }
+            }, 2000);
+          }
         }
-      }, 8000);
+      }, WS_CONNECT_TIMEOUT);
 
       ws.onopen = () => {
         clearTimeout(connectionTimeout);
         connectingRef.current = false;
-        setIsConnected(true);
+        wsRetryCount.current = 0;
+        modeRef.current = "ws";
         setMode("ws");
-        reconnectAttempts.current = 0;
-        wsFailCount.current = 0;
+        setIsConnected(true);
         console.log("[Chat] WebSocket connected");
 
         if (heartbeatRef.current) clearInterval(heartbeatRef.current);
@@ -228,19 +204,18 @@ export function useChat(): UseChatReturn {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "heartbeat" }));
           }
-        }, HEARTBEAT_INTERVAL);
+        }, 10000);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-
           switch (data.type) {
             case "history":
               if (data.messages) {
                 setMessages(data.messages.map((m: any) => ({
                   id: m.id,
-                  type: m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message",
+                  type: (m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message") as "message" | "image" | "system",
                   userId: m.userId,
                   userName: m.userName,
                   userColor: m.userColor,
@@ -250,7 +225,6 @@ export function useChat(): UseChatReturn {
                 })));
               }
               break;
-
             case "message":
             case "image":
             case "system":
@@ -265,21 +239,16 @@ export function useChat(): UseChatReturn {
                 timestamp: data.timestamp,
               }]);
               break;
-
             case "presence":
-              if (data.onlineUsers) {
-                setOnlineUsers(data.onlineUsers);
-              }
+              if (data.onlineUsers) setOnlineUsers(data.onlineUsers);
               break;
-
             case "typing":
-              if (data.typingUser && data.userId !== user.id) {
+              if (data.typingUser && data.userId !== user?.id) {
                 setTypingUser(data.typingUser);
                 if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
                 typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
               }
               break;
-
             case "cleared":
               setMessages([]);
               break;
@@ -289,7 +258,7 @@ export function useChat(): UseChatReturn {
         }
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = () => {
         clearTimeout(connectionTimeout);
         connectingRef.current = false;
         setIsConnected(false);
@@ -298,109 +267,97 @@ export function useChat(): UseChatReturn {
           heartbeatRef.current = null;
         }
 
-        if (mountedRef.current && isAuthenticated) {
-          wsFailCount.current++;
-          console.log(`[Chat] Disconnected (code: ${event.code}), fail count: ${wsFailCount.current}`);
-          scheduleReconnect();
+        if (mountedRef.current && isAuthenticated && modeRef.current === "ws") {
+          wsRetryCount.current++;
+          console.log(`[Chat] WS disconnected, retry count: ${wsRetryCount.current}`);
+          if (wsRetryCount.current >= WS_MAX_RETRIES) {
+            startHttpPolling();
+          } else {
+            setTimeout(() => {
+              if (mountedRef.current && modeRef.current === "ws") {
+                connectWebSocket();
+              }
+            }, 2000);
+          }
         }
       };
 
       ws.onerror = () => {
         clearTimeout(connectionTimeout);
         connectingRef.current = false;
-        wsFailCount.current++;
-        // onclose will handle reconnection
+        // onclose will handle the retry/fallback logic
       };
     } catch (err) {
       connectingRef.current = false;
-      wsFailCount.current++;
-      console.error("[Chat] Connection error:", err);
-      if (mountedRef.current) scheduleReconnect();
+      wsRetryCount.current++;
+      console.error("[Chat] WS connection error:", err);
+      if (wsRetryCount.current >= WS_MAX_RETRIES) {
+        startHttpPolling();
+      }
     }
-  }, [isAuthenticated, user, scheduleReconnect, mode]);
+  }, [isAuthenticated, user, startHttpPolling]);
 
-  // Reconnect on visibility change
+  // ─── Initialize connection ────────────────────────────────────────
+  useEffect(() => {
+    mountedRef.current = true;
+    if (isAuthenticated && user) {
+      // Reset state
+      wsRetryCount.current = 0;
+      modeRef.current = "ws";
+      connectWebSocket();
+    }
+    return () => {
+      mountedRef.current = false;
+      cleanupAll();
+    };
+  }, [isAuthenticated, user, connectWebSocket, cleanupAll]);
+
+  // ─── Reconnect on visibility change ───────────────────────────────
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible" && mountedRef.current && isAuthenticated) {
-        if (mode === "ws" && (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)) {
-          reconnectAttempts.current = 0;
-          connect();
-        }
-      }
-    };
-
-    const handleOnline = () => {
-      if (mountedRef.current && isAuthenticated) {
-        if (mode === "ws") {
-          reconnectAttempts.current = 0;
-          connect();
+        if (modeRef.current === "http") {
+          // In HTTP mode, just make sure polling is running
+          if (!pollTimerRef.current) {
+            startHttpPolling();
+          }
+        } else if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          wsRetryCount.current = 0;
+          connectWebSocket();
         }
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("online", handleOnline);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("online", handleOnline);
-    };
-  }, [connect, isAuthenticated, mode]);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [isAuthenticated, connectWebSocket, startHttpPolling]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    if (isAuthenticated && user) {
-      connect();
-    }
-    return () => {
-      mountedRef.current = false;
-      cleanup();
-      if (wsRef.current) {
-        try {
-          wsRef.current.onclose = null;
-          wsRef.current.close(1000, "Component unmounted");
-        } catch {}
-      }
-    };
-  }, [connect, cleanup, isAuthenticated, user]);
-
-  // ─── Send functions (work in both modes) ───────────────────────────
+  // ─── Send functions ───────────────────────────────────────────────
   const sendMessage = useCallback((content: string) => {
     if (!content.trim()) return;
-    if (mode === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
+    if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "message", content }));
     } else {
-      // HTTP fallback
-      sendMutation.mutate({ content }, {
-        onSuccess: () => {
-          // Messages will appear on next poll
-        },
-      });
+      sendMutation.mutate({ content });
     }
-  }, [mode, sendMutation]);
+  }, [sendMutation]);
 
   const sendImage = useCallback((base64Data: string, mime: string, caption?: string) => {
-    if (mode === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: "image",
-        imageData: base64Data,
-        imageMime: mime,
-        content: caption,
-      }));
+    if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "image", imageData: base64Data, imageMime: mime, content: caption }));
     } else {
       sendImageMutation.mutate({ base64Data, mime, caption });
     }
-  }, [mode, sendImageMutation]);
+  }, [sendImageMutation]);
 
   const sendTyping = useCallback(() => {
-    if (mode === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
+    if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "typing" }));
     }
-    // No typing indicator in HTTP mode
-  }, [mode]);
+  }, []);
 
   const clearMessages = useCallback(() => {
-    if (mode === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
+    if (modeRef.current === "ws" && wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "clear_all" }));
     } else {
       clearMutation.mutate(undefined, {
@@ -410,7 +367,7 @@ export function useChat(): UseChatReturn {
         },
       });
     }
-  }, [mode, clearMutation]);
+  }, [clearMutation]);
 
   return {
     messages,
