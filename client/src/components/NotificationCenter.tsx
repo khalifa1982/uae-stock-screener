@@ -171,21 +171,36 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown panel - uses explicit inline background to guarantee opacity */}
       {open && (
         <div
-          className={`absolute z-[200] bg-card border border-border rounded-lg shadow-2xl overflow-hidden ${
+          className={`absolute z-[200] border border-border rounded-lg shadow-2xl overflow-hidden ${
             isMobile
               ? "fixed inset-x-2 top-12 max-h-[calc(100vh-8rem)]"
               : "right-0 top-full mt-2 w-[380px] max-h-[500px]"
           }`}
-          style={isMobile ? { position: "fixed", left: "0.5rem", right: "0.5rem", top: "3.5rem" } : {}}
+          style={
+            isMobile
+              ? {
+                  position: "fixed",
+                  left: "0.5rem",
+                  right: "0.5rem",
+                  top: "3.5rem",
+                  background: "oklch(0.08 0.014 260)",
+                }
+              : {
+                  background: "oklch(0.08 0.014 260)",
+                }
+          }
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50 bg-card sticky top-0 z-10">
+          <div
+            className="flex items-center justify-between px-3 py-2.5 border-b border-border/50 sticky top-0 z-10"
+            style={{ background: "oklch(0.10 0.014 260)" }}
+          >
             <div className="flex items-center gap-2">
               <Bell className="h-3.5 w-3.5 text-primary" />
-              <span className="text-sm font-semibold">Notifications</span>
+              <span className="text-sm font-semibold text-foreground">Notifications</span>
               {count > 0 && (
                 <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
                   {count} new
@@ -226,9 +241,14 @@ export default function NotificationCenter() {
                 {notificationList.map((notif: any, idx: number) => (
                   <div
                     key={notif.id}
-                    className={`group relative flex gap-3 px-3 py-3 transition-colors hover:bg-accent/50 ${
-                      !notif.isRead ? "bg-primary/5" : ""
-                    } ${idx < notificationList.length - 1 ? "border-b border-border/20" : ""}`}
+                    className={`group relative flex gap-3 px-3 py-3 transition-colors hover:bg-white/5 ${
+                      idx < notificationList.length - 1 ? "border-b border-border/20" : ""
+                    }`}
+                    style={
+                      !notif.isRead
+                        ? { background: "oklch(0.12 0.02 260)" }
+                        : undefined
+                    }
                   >
                     {/* Unread indicator */}
                     {!notif.isRead && (
@@ -294,7 +314,10 @@ export default function NotificationCenter() {
 
           {/* Footer */}
           {notificationList && notificationList.length > 0 && (
-            <div className="border-t border-border/50 px-3 py-2 bg-card sticky bottom-0">
+            <div
+              className="border-t border-border/50 px-3 py-2 sticky bottom-0"
+              style={{ background: "oklch(0.10 0.014 260)" }}
+            >
               <Link
                 href="/notifications"
                 onClick={() => setOpen(false)}

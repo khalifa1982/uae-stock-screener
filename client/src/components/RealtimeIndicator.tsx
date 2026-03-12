@@ -3,8 +3,9 @@
  * Displays a subtle indicator showing if live data is streaming
  */
 
-import { Wifi, WifiOff } from "lucide-react";
+import { Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMarketStatus } from "@/hooks/useMarketStatus";
 
 interface RealtimeIndicatorProps {
   isConnected: boolean;
@@ -40,6 +41,66 @@ export function RealtimeIndicator({ isConnected, subscribedCount, className = ""
           <span>Real-time data streaming via TwelveData WebSocket{subscribedCount ? ` (${subscribedCount} symbols)` : ""}</span>
         ) : (
           <span>WebSocket disconnected. Data updates via polling.</span>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * DataConnectionIndicator - Shows data feed connection status on stock detail pages
+ * 
+ * When connected (WebSocket active): green wifi icon + "Synced" label
+ * When disconnected: red wifi-off icon + "Disconnected" label  
+ * Designed to NOT duplicate the LIVE indicator in the main header bar.
+ */
+interface DataConnectionIndicatorProps {
+  isConnected: boolean;
+  className?: string;
+}
+
+export function DataConnectionIndicator({ isConnected, className = "" }: DataConnectionIndicatorProps) {
+  const status = useMarketStatus();
+  const isMarketActive = status.phase === "open" || status.phase === "pre-open" || status.phase === "pre-close";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className={`flex items-center gap-1 ${className}`}>
+          {isConnected ? (
+            <>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+              </span>
+              <Wifi className="h-3 w-3 text-emerald-400" />
+              <span className="text-[9px] font-medium text-emerald-400 uppercase tracking-wider">Synced</span>
+            </>
+          ) : isMarketActive ? (
+            <>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+              </span>
+              <RefreshCw className="h-3 w-3 text-amber-400 animate-spin" style={{ animationDuration: "3s" }} />
+              <span className="text-[9px] font-medium text-amber-400 uppercase tracking-wider">Polling</span>
+            </>
+          ) : (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400/70" />
+              <WifiOff className="h-3 w-3 text-red-400/70" />
+              <span className="text-[9px] font-medium text-red-400/70 uppercase tracking-wider">Offline</span>
+            </>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs bg-popover text-popover-foreground">
+        {isConnected ? (
+          <span className="text-popover-foreground">Real-time data streaming via WebSocket</span>
+        ) : isMarketActive ? (
+          <span className="text-popover-foreground">WebSocket unavailable. Data refreshing via API polling.</span>
+        ) : (
+          <span className="text-popover-foreground">Market closed. Data will sync when market reopens.</span>
         )}
       </TooltipContent>
     </Tooltip>

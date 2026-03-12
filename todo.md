@@ -884,3 +884,19 @@
 - [x] Severity threshold filter (low/medium/high/critical) with toggle badges
 - [x] Save/load user preferences from database via tRPC
 - [x] Apply settings when generating notifications (server-side enforcement)
+
+## Phase 36 - Bug Fixes: Notifications, LIVE Indicator, Connection Status
+
+### Notification Dropdown
+- [x] Fix transparent background on notification dropdown (content behind visible through panel)
+- [x] Ensure notification dropdown has solid dark background
+
+### Duplicate LIVE Indicator
+- [x] Remove duplicate LIVE indicator (showing in both header bar AND stock detail page)
+- [x] Keep only one LIVE indicator in the main header bar
+
+### Connection Status Icons
+- [x] Add proper connection status icons (wifi connected = green, wifi disconnected = red)
+- [x] Show syncing/connected state during trading hours
+- [x] Show disconnected/offline state after trading hours
+- [x] Replace duplicate LIVE text with meaningful connection status indicators

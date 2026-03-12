@@ -14,9 +14,8 @@ import { AnalystConsensus } from "@/components/AnalystConsensus";
 import { EarningsTranscripts } from "@/components/EarningsTranscripts";
 import { SADataCard } from "@/components/SADataCard";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
-import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { useRealtimePrice } from "@/hooks/useRealtimePrices";
-import { RealtimeIndicator } from "@/components/RealtimeIndicator";
+import { DataConnectionIndicator } from "@/components/RealtimeIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -359,8 +358,7 @@ export default function StockDetail() {
                 </Badge>
                 <Badge variant="secondary" className="text-xs">{stockInfo.sector}</Badge>
                 {profile?.industry && <Badge variant="outline" className="text-xs text-muted-foreground">{profile.industry}</Badge>}
-                <MarketStatusBadge />
-                <RealtimeIndicator isConnected={wsConnected} />
+                <DataConnectionIndicator isConnected={wsConnected} />
               </div>
               <p className="text-muted-foreground text-[11px]">{stockInfo.name}</p>
               {profile?.website && (

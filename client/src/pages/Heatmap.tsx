@@ -363,9 +363,6 @@ export default function Heatmap() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-bold">Market Heatmap</h1>
-          <Badge variant="outline" className="text-[9px] border-primary/30 text-primary animate-pulse h-5">
-            LIVE
-          </Badge>
           <div className="flex items-center gap-2 text-[10px] font-mono">
             <span className="text-white/60">{marketSummary.total} stocks</span>
             <span className="text-emerald-400">{marketSummary.gainers} up</span>

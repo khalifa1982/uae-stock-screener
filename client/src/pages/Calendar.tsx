@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
+
 import {
   CalendarDays,
   ChevronLeft,
@@ -599,7 +599,6 @@ export default function Calendar() {
         <div>
           <div className="flex items-center gap-1 flex-wrap">
             <h1 className="text-xs font-bold tracking-tight">Market Calendar</h1>
-            <MarketStatusBadge />
           </div>
           <p className="text-muted-foreground/70 text-[11px] mt-1.5">
             UAE holidays, earnings releases & dividend dates
