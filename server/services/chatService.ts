@@ -81,6 +81,8 @@ const onlineUsers = new Map<number, ChatUser>();
 // Track HTTP polling users (userId -> last seen timestamp)
 const pollingUsers = new Map<number, { userName: string; userColor: string; lastSeen: number }>();
 let wss: WebSocketServer | null = null;
+// Track when chat was last cleared (for HTTP polling users to detect clears)
+let chatClearedAt: number = 0;
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function getUAEDate(): string {
@@ -507,8 +509,13 @@ export async function clearAllChatMessages(userId: number, userName: string): Pr
   if (userRecord?.role !== "admin") return false;
   const today = getUAEDate();
   await db.delete(chatMessages).where(eq(chatMessages.chatDate, today));
+  chatClearedAt = Date.now();
   broadcast({ type: "cleared", content: `Chat history cleared by ${userName}`, timestamp: getUAETimestamp() });
   return true;
+}
+
+export function getChatClearedAt(): number {
+  return chatClearedAt;
 }
 
 export function registerPollingUser(userId: number, userName: string): void {

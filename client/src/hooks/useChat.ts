@@ -54,6 +54,8 @@ export function useChat(): UseChatReturn {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMessageIdRef = useRef(0);
   const connectingRef = useRef(false);
+  // Track last known clearedAt timestamp to detect server-side clears
+  const lastClearedAtRef = useRef(0);
 
   // tRPC mutations for HTTP mode
   const sendMutation = trpc.chat.send.useMutation();
@@ -97,36 +99,33 @@ export function useChat(): UseChatReturn {
     const fetchMessages = async () => {
       if (!mountedRef.current || !isAuthenticated) return;
       try {
+        // Always do a full fetch (no sinceId) so we can detect clears
         const msgs = await utils.chat.messages.fetch(
-          { sinceId: lastMessageIdRef.current > 0 ? lastMessageIdRef.current : undefined },
+          { sinceId: undefined },
           { staleTime: 0 }
         );
         if (!mountedRef.current || !msgs) return;
-        if (msgs.length > 0) {
-          const mapped = msgs.map((m: any) => ({
-            id: m.id,
-            type: (m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message") as "message" | "image" | "system",
-            userId: m.userId,
-            userName: m.userName,
-            userColor: m.userColor,
-            content: m.content,
-            imageUrl: m.imageUrl,
-            timestamp: m.timestamp,
-          }));
 
-          if (lastMessageIdRef.current === 0) {
-            setMessages(mapped);
-          } else {
-            setMessages(prev => {
-              const existingIds = new Set(prev.map(p => p.id));
-              const newMsgs = mapped.filter((m: any) => !existingIds.has(m.id));
-              return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev;
-            });
-          }
+        const mapped = msgs.map((m: any) => ({
+          id: m.id,
+          type: (m.messageType === "image" ? "image" : m.messageType === "system" ? "system" : "message") as "message" | "image" | "system",
+          userId: m.userId,
+          userName: m.userName,
+          userColor: m.userColor,
+          content: m.content,
+          imageUrl: m.imageUrl,
+          timestamp: m.timestamp,
+        }));
+
+        // Replace entire messages array with server truth
+        // This handles both new messages AND cleared messages
+        setMessages(mapped);
+
+        if (msgs.length > 0) {
           const maxId = Math.max(...msgs.map((m: any) => m.id || 0));
-          if (maxId > lastMessageIdRef.current) {
-            lastMessageIdRef.current = maxId;
-          }
+          lastMessageIdRef.current = maxId;
+        } else {
+          lastMessageIdRef.current = 0;
         }
       } catch (err) {
         // Silently handle - will retry on next poll
@@ -144,6 +143,22 @@ export function useChat(): UseChatReturn {
       } catch {}
     };
 
+    // Check for chat clears via the clearedAt endpoint
+    const checkChatCleared = async () => {
+      if (!mountedRef.current || !isAuthenticated) return;
+      try {
+        const result = await utils.chat.clearedAt.fetch(undefined, { staleTime: 0 });
+        if (!mountedRef.current || !result) return;
+        if (result.clearedAt > lastClearedAtRef.current) {
+          lastClearedAtRef.current = result.clearedAt;
+          // Chat was cleared on server - reset local state
+          setMessages([]);
+          lastMessageIdRef.current = 0;
+          console.log("[Chat] Detected server-side clear, resetting messages");
+        }
+      } catch {}
+    };
+
     // Initial fetch
     fetchMessages();
     fetchOnlineUsers();
@@ -152,6 +167,7 @@ export function useChat(): UseChatReturn {
     pollTimerRef.current = setInterval(() => {
       fetchMessages();
       fetchOnlineUsers();
+      checkChatCleared();
     }, HTTP_POLL_INTERVAL);
   }, [isAuthenticated, utils]);
 
@@ -250,7 +266,9 @@ export function useChat(): UseChatReturn {
               }
               break;
             case "cleared":
+              // Server broadcast that chat was cleared - reset everything
               setMessages([]);
+              lastMessageIdRef.current = 0;
               break;
           }
         } catch (err) {

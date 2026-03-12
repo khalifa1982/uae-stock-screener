@@ -19,7 +19,7 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
-import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser } from "./services/chatService";
+import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt } from "./services/chatService";
 import { fetchSAOverview, fetchSAFinancials, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
 import { getEarningsTranscript } from "./services/earningsTranscriptService";
@@ -1556,6 +1556,11 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
     onlineUsers: protectedProcedure
       .query(() => {
         return getOnlineUsersList();
+      }),
+
+    clearedAt: protectedProcedure
+      .query(() => {
+        return { clearedAt: getChatClearedAt() };
       }),
 
     clearAll: protectedProcedure

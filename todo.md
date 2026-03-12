@@ -926,3 +926,6 @@
 - [ ] Keep only TradingView and TwelveData as data sources
 - [ ] Update admin page to reflect only 2 data sources
 - [ ] Clean up any references to removed services
+
+## Phase 38 - Bug Fix: Admin Erase Chat History
+- [x] Fix admin "erase chat history" to delete messages from database for all users (not just clear admin's local screen)
