@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Bell, BellOff, BellRing, Check, CheckCircle2,
-  Clock, Info, Loader2,
+  Clock, Info, Loader2, BarChart3, TrendingUp, Calendar, DollarSign, Newspaper,
   Monitor, Moon, Play, Save, Shield,
   Volume2, VolumeX, Zap
 } from "lucide-react";
@@ -26,6 +26,14 @@ const severityConfig: Record<string, { label: string; color: string; description
   high: { label: "High", color: "bg-orange-500/20 text-orange-400 border-orange-500/30", description: "Volume 5-8x average" },
   critical: { label: "Critical", color: "bg-red-500/20 text-red-400 border-red-500/30", description: "Volume 8x+ average" },
 };
+
+const ALERT_TYPES = [
+  { key: "volume_spike", label: "Volume Spikes", icon: BarChart3, description: "Unusual trading volume detected", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+  { key: "price_alert", label: "Price Alerts", icon: TrendingUp, description: "Price target or threshold reached", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+  { key: "earnings", label: "Earnings", icon: Calendar, description: "Earnings releases and reports", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  { key: "dividend", label: "Dividends", icon: DollarSign, description: "Dividend announcements and ex-dates", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+  { key: "news", label: "Market News", icon: Newspaper, description: "Breaking news and market updates", color: "bg-rose-500/20 text-rose-400 border-rose-500/30" },
+] as const;
 
 export default function NotificationSettings() {
   const { isAuthenticated, user } = useAuth();
@@ -61,6 +69,7 @@ export default function NotificationSettings() {
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
   const [quietHoursEnd, setQuietHoursEnd] = useState("07:00");
   const [soundVolume, setSoundVolume] = useState(0.7);
+  const [alertTypes, setAlertTypes] = useState<string[]>(["volume_spike", "price_alert", "earnings", "dividend", "news"]);
   const [minInterval, setMinInterval] = useState(5);
 
   // Sync from server prefs when loaded
@@ -74,6 +83,7 @@ export default function NotificationSettings() {
       setQuietHoursStart(serverPrefs.quietHoursStart);
       setQuietHoursEnd(serverPrefs.quietHoursEnd);
       setSoundVolume(serverPrefs.soundVolume);
+      setAlertTypes(serverPrefs.alertTypes.split(",").filter(Boolean));
       setMinInterval(serverPrefs.minIntervalMinutes);
     }
   }, [serverPrefs]);
@@ -90,12 +100,12 @@ export default function NotificationSettings() {
       quietHoursStart !== serverPrefs.quietHoursStart ||
       quietHoursEnd !== serverPrefs.quietHoursEnd ||
       soundVolume !== serverPrefs.soundVolume ||
+      alertTypes.join(",") !== serverPrefs.alertTypes ||
       minInterval !== serverPrefs.minIntervalMinutes
     );
-  }, [serverPrefs, browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval]);
+  }, [serverPrefs, browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, alertTypes, minInterval]);
 
   const handleSave = useCallback(() => {
-    // Save to server — email fields sent as disabled defaults
     updateMutation.mutate({
       emailEnabled: false,
       browserEnabled,
@@ -108,14 +118,14 @@ export default function NotificationSettings() {
       quietHoursStart,
       quietHoursEnd,
       soundVolume,
+      alertTypes: alertTypes.join(","),
       minIntervalMinutes: minInterval,
     });
 
-    // Also sync to localStorage for the useAlertNotifications hook
     toggleLocalBrowser(browserEnabled);
     toggleLocalSound(soundEnabled);
     setLocalVolume(soundVolume);
-  }, [browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, minInterval, updateMutation, toggleLocalBrowser, toggleLocalSound, setLocalVolume]);
+  }, [browserEnabled, soundEnabled, inAppEnabled, browserSeverities, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundVolume, alertTypes, minInterval, updateMutation, toggleLocalBrowser, toggleLocalSound, setLocalVolume]);
 
   const toggleSeverity = (list: string[], setList: (v: string[]) => void, severity: string) => {
     if (list.includes(severity)) {
@@ -125,14 +135,27 @@ export default function NotificationSettings() {
     }
   };
 
+  const toggleAlertType = (key: string) => {
+    if (alertTypes.includes(key)) {
+      // Don't allow disabling all types
+      if (alertTypes.length <= 1) {
+        toast.warning("At least one alert type must be enabled");
+        return;
+      }
+      setAlertTypes(alertTypes.filter(t => t !== key));
+    } else {
+      setAlertTypes([...alertTypes, key]);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="max-w-md w-full glass-card">
           <CardContent className="p-8 text-center space-y-1.5">
             <BellOff className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-[11px] font-semibold">Sign In Required</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <h2 className="text-sm font-semibold">Sign In Required</h2>
+            <p className="text-xs text-muted-foreground">
               Please sign in to configure your notification preferences.
             </p>
           </CardContent>
@@ -150,16 +173,16 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="space-y-2 max-w-4xl mx-auto">
+    <div className="space-y-3 max-w-4xl mx-auto pb-24">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xs font-bold tracking-tight flex items-center gap-2">
-            <BellRing className="h-4 w-4 text-primary" />
+          <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
+            <BellRing className="h-5 w-5 text-primary" />
             Notification Settings
           </h1>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Customize how and when you receive volume spike alerts
+          <p className="text-xs text-muted-foreground mt-1">
+            Customize how and when you receive alerts
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -184,33 +207,69 @@ export default function NotificationSettings() {
         </div>
       </div>
 
-      {/* Notification Channels */}
+      {/* Alert Types */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-[11px] flex items-center gap-2">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            Notification Channels
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            Alert Types
           </CardTitle>
-          <CardDescription>
-            Choose how you want to be notified when volume spikes are detected
+          <CardDescription className="text-xs">
+            Choose which types of alerts you want to receive
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
+          {ALERT_TYPES.map((at) => {
+            const active = alertTypes.includes(at.key);
+            const Icon = at.icon;
+            return (
+              <div key={at.key} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${active ? at.color : "bg-muted/30 text-muted-foreground"} transition-colors`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium">{at.label}</Label>
+                    <p className="text-[11px] text-muted-foreground">{at.description}</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={active}
+                  onCheckedChange={() => toggleAlertType(at.key)}
+                />
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Notification Channels */}
+      <Card className="glass-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Monitor className="h-4 w-4 text-primary" />
+            Notification Channels
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Choose how you want to be notified
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
           {/* Browser Push Notifications */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <div className={`p-2 rounded ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <Monitor className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <Monitor className="h-4 w-4" />
                 </div>
                 <div>
-                  <Label className="text-[11px] font-medium">Browser Push Notifications</Label>
-                  <p className="text-xs text-muted-foreground">
+                  <Label className="text-xs font-medium">Browser Push Notifications</Label>
+                  <p className="text-[11px] text-muted-foreground">
                     {permissionState === "unsupported"
                       ? "Your browser does not support push notifications"
                       : permissionState === "denied"
                         ? "Notifications blocked. Please enable in browser settings."
-                        : "Get desktop notifications even when the tab is in the background"}
+                        : "Desktop notifications even when the tab is in the background"}
                   </p>
                 </div>
               </div>
@@ -227,7 +286,7 @@ export default function NotificationSettings() {
             </div>
             {browserEnabled && (
               <div className="ml-12 space-y-2 animate-in slide-in-from-top-2 duration-200">
-                <Label className="text-xs text-muted-foreground">Browser alert severity levels</Label>
+                <Label className="text-[11px] text-muted-foreground">Browser alert severity levels</Label>
                 <div className="flex flex-wrap gap-2">
                   {SEVERITIES.map(sev => {
                     const cfg = severityConfig[sev];
@@ -270,16 +329,16 @@ export default function NotificationSettings() {
           <Separator className="bg-border/30" />
 
           {/* Sound Alerts */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <div className={`p-2 rounded ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 </div>
                 <div>
-                  <Label className="text-[11px] font-medium">Alert Sound</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Play an audible alert when volume spikes are detected
+                  <Label className="text-xs font-medium">Alert Sound</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Play an audible alert when spikes are detected
                   </p>
                 </div>
               </div>
@@ -290,7 +349,7 @@ export default function NotificationSettings() {
             </div>
             {soundEnabled && (
               <div className="ml-12 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <VolumeX className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <Slider
                     value={[soundVolume * 100]}
@@ -310,14 +369,14 @@ export default function NotificationSettings() {
           <Separator className="bg-border/30" />
 
           {/* In-App Notifications */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <div className={`p-2 rounded ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <Bell className="h-3.5 w-3.5" />
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <Bell className="h-4 w-4" />
               </div>
               <div>
-                <Label className="text-[11px] font-medium">In-App Notifications</Label>
-                <p className="text-xs text-muted-foreground">
+                <Label className="text-xs font-medium">In-App Notifications</Label>
+                <p className="text-[11px] text-muted-foreground">
                   Show alerts in the notification center within the app
                 </p>
               </div>
@@ -333,25 +392,25 @@ export default function NotificationSettings() {
       {/* Advanced Settings */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-[11px] flex items-center gap-2">
-            <Shield className="h-3.5 w-3.5 text-primary" />
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
             Advanced Settings
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             Fine-tune notification behavior and frequency
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {/* Quiet Hours */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <div className={`p-2 rounded ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  <Moon className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <Moon className="h-4 w-4" />
                 </div>
                 <div>
-                  <Label className="text-[11px] font-medium">Quiet Hours</Label>
-                  <p className="text-xs text-muted-foreground">
+                  <Label className="text-xs font-medium">Quiet Hours</Label>
+                  <p className="text-[11px] text-muted-foreground">
                     Suppress notifications during specified hours (UAE time)
                   </p>
                 </div>
@@ -362,9 +421,9 @@ export default function NotificationSettings() {
               />
             </div>
             {quietHoursEnabled && (
-              <div className="ml-12 flex items-center gap-1 animate-in slide-in-from-top-2 duration-200">
+              <div className="ml-12 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">From</Label>
+                  <Label className="text-[11px] text-muted-foreground">From</Label>
                   <Input
                     type="time"
                     value={quietHoursStart}
@@ -374,7 +433,7 @@ export default function NotificationSettings() {
                 </div>
                 <span className="text-muted-foreground mt-5">to</span>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Until</Label>
+                  <Label className="text-[11px] text-muted-foreground">Until</Label>
                   <Input
                     type="time"
                     value={quietHoursEnd}
@@ -390,14 +449,14 @@ export default function NotificationSettings() {
 
           {/* Minimum Interval */}
           <div className="space-y-3">
-            <div className="flex items-center gap-1">
-              <div className="p-2 rounded bg-muted text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                <Clock className="h-4 w-4" />
               </div>
               <div className="flex-1">
-                <Label className="text-[11px] font-medium">Minimum Alert Interval</Label>
-                <p className="text-xs text-muted-foreground">
-                  Minimum time between notifications for the same stock
+                <Label className="text-xs font-medium">Deduplication Interval</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Minimum time between notifications for the same stock (prevents alert spam)
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -412,6 +471,10 @@ export default function NotificationSettings() {
                 <span className="text-xs text-muted-foreground">min</span>
               </div>
             </div>
+            <div className="ml-12 text-[11px] text-muted-foreground">
+              Currently set to <span className="text-foreground font-medium">{minInterval} minutes</span>. 
+              If a stock triggers multiple alerts within this window, only the first will be shown.
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -419,23 +482,23 @@ export default function NotificationSettings() {
       {/* Test & Preview */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-[11px] flex items-center gap-2">
-            <Play className="h-3.5 w-3.5 text-primary" />
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Play className="h-4 w-4 text-primary" />
             Test Notifications
           </CardTitle>
-          <CardDescription>
-            Send test notifications to verify your setup is working correctly
+          <CardDescription className="text-xs">
+            Send test notifications to verify your setup
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button
               variant="outline"
               onClick={testNotification}
-              className="gap-2 h-auto py-1 flex-col"
+              className="gap-2 h-auto py-3 flex-col"
               disabled={!browserEnabled && !soundEnabled}
             >
-              <Monitor className="h-3.5 w-3.5 text-primary" />
+              <Monitor className="h-4 w-4 text-primary" />
               <span className="text-xs">Test Browser + Sound</span>
             </Button>
             <Button
@@ -446,10 +509,10 @@ export default function NotificationSettings() {
                   duration: 5000,
                 });
               }}
-              className="gap-2 h-auto py-1 flex-col"
+              className="gap-2 h-auto py-3 flex-col"
               disabled={!inAppEnabled}
             >
-              <Bell className="h-3.5 w-3.5 text-primary" />
+              <Bell className="h-4 w-4 text-primary" />
               <span className="text-xs">Test In-App</span>
             </Button>
           </div>
@@ -459,17 +522,17 @@ export default function NotificationSettings() {
       {/* Severity Reference */}
       <Card className="glass-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-[11px] flex items-center gap-2">
-            <Info className="h-3.5 w-3.5 text-primary" />
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Info className="h-4 w-4 text-primary" />
             Severity Levels Reference
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {SEVERITIES.map(sev => {
               const cfg = severityConfig[sev];
               return (
-                <div key={sev} className={`flex items-center gap-1 p-3 rounded border ${cfg.color}`}>
+                <div key={sev} className={`flex items-center gap-2 p-3 rounded-lg border ${cfg.color}`}>
                   <Badge variant="outline" className={`text-[10px] uppercase tracking-wider font-semibold ${cfg.color}`}>
                     {cfg.label}
                   </Badge>

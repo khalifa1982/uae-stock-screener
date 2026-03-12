@@ -1,0 +1,1 @@
+ALTER TABLE `notification_preferences` ADD `alertTypes` varchar(256) DEFAULT 'volume_spike,price_alert,earnings,dividend,news' NOT NULL;

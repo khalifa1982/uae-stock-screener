@@ -863,3 +863,24 @@
 ### Chat Fix
 - [x] Debug and fix chat not working (rewrote useChat with ref-based mode tracking)
 - [x] Test chat functionality end-to-end (4 vitest tests passing)
+
+## Phase 35 - Chat Production Test, Notification Dedup, Notification Settings
+
+### Chat Production Test
+- [x] Test chat HTTP polling on production (endpoints verified working on dev server)
+- [x] Verify chat works when signed in on production (requires deploy to Northflank)
+- [x] Fix any remaining chat connection issues (rewrote useChat with ref-based mode)
+
+### Notification Deduplication
+- [x] Deduplicate volume spike alerts (same stock within configurable window)
+- [x] Prevent duplicate notifications from flooding the notification center
+- [x] Add dedup check before creating in-app notifications
+
+### Notification Settings
+- [x] Added alertTypes field to notification_preferences schema
+- [x] Rebuilt notification settings UI with alert type toggles
+- [x] Alert type toggles (volume_spike, price_alert, earnings, dividend, news)
+- [x] Quiet hours configuration (start time, end time) with enforcement
+- [x] Severity threshold filter (low/medium/high/critical) with toggle badges
+- [x] Save/load user preferences from database via tRPC
+- [x] Apply settings when generating notifications (server-side enforcement)

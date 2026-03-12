@@ -259,38 +259,105 @@ async function saveAlerts(alerts: VolumeAlertData[]): Promise<void> {
 // Email notifications are completely disabled system-wide (Phase 19).
 
 /**
- * Create in-app notifications only for users who have in-app notifications enabled.
- * If a user has no notification preferences saved, in-app defaults to enabled (schema default).
+ * Check if current time is within a user's quiet hours (UAE timezone, UTC+4).
+ */
+function isInQuietHours(prefs: { quietHoursEnabled: number; quietHoursStart: string; quietHoursEnd: string } | null): boolean {
+  if (!prefs || !prefs.quietHoursEnabled) return false;
+  const now = new Date();
+  // UAE is UTC+4
+  const uaeHour = (now.getUTCHours() + 4) % 24;
+  const uaeMin = now.getUTCMinutes();
+  const currentMinutes = uaeHour * 60 + uaeMin;
+
+  const [startH, startM] = prefs.quietHoursStart.split(":").map(Number);
+  const [endH, endM] = prefs.quietHoursEnd.split(":").map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  if (startMinutes <= endMinutes) {
+    // Same day range (e.g., 09:00 - 17:00)
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  } else {
+    // Overnight range (e.g., 22:00 - 07:00)
+    return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+  }
+}
+
+/**
+ * Create in-app notifications with deduplication and quiet hours.
+ * - Dedup: Skip if a notification for the same symbol exists within 30 min for that user
+ * - Quiet hours: Skip if user has quiet hours enabled and current time is within range
+ * - Preferences: Only create for users with inAppEnabled=1
  */
 type InAppNotificationData = Omit<InsertNotification, "userId">;
+
+const DEDUP_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
 async function createInAppNotificationsRespectingPreferences(data: InAppNotificationData): Promise<void> {
   const db = await getDb();
   if (!db) return;
   try {
-    // Get all users
     const allUsers = await db.select({ id: users.id }).from(users);
     if (allUsers.length === 0) return;
 
-    // For each user, check their inAppEnabled preference
     const eligibleUserIds: number[] = [];
+    let skippedQuietHours = 0;
+    let skippedDedup = 0;
+    let skippedDisabled = 0;
+
     for (const user of allUsers) {
       const prefs = await getNotificationPreferences(user.id);
-      // If no preferences saved, default is inAppEnabled=1 (per schema default)
-      // If preferences exist, respect the inAppEnabled flag
-      if (!prefs || prefs.inAppEnabled === 1) {
-        eligibleUserIds.push(user.id);
+
+      // 1. Check if in-app notifications are enabled
+      if (prefs && prefs.inAppEnabled !== 1) {
+        skippedDisabled++;
+        continue;
       }
+
+      // 1b. Check if this alert type is enabled for the user
+      const alertTypes = ((prefs as any)?.alertTypes || "volume_spike,price_alert,earnings,dividend,news").split(",");
+      const notifType = data.type || "volume_spike";
+      if (!alertTypes.includes(notifType)) {
+        skippedDisabled++;
+        continue;
+      }
+
+      // 2. Check quiet hours
+      if (isInQuietHours(prefs)) {
+        skippedQuietHours++;
+        continue;
+      }
+
+      // 3. Deduplication: check if a notification for the same symbol exists within the dedup window
+      if (data.symbol) {
+        const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_MS);
+        const existing = await db.select({ id: notificationsTable.id })
+          .from(notificationsTable)
+          .where(and(
+            eq(notificationsTable.userId, user.id),
+            eq(notificationsTable.symbol, data.symbol),
+            eq(notificationsTable.type, data.type || "volume_spike"),
+            gte(notificationsTable.createdAt, dedupCutoff)
+          ))
+          .limit(1);
+
+        if (existing.length > 0) {
+          skippedDedup++;
+          continue;
+        }
+      }
+
+      eligibleUserIds.push(user.id);
     }
 
     if (eligibleUserIds.length === 0) {
-      console.log(`[VolumeMonitor] No users with in-app notifications enabled`);
+      console.log(`[VolumeMonitor] No eligible users (disabled: ${skippedDisabled}, quiet: ${skippedQuietHours}, dedup: ${skippedDedup})`);
       return;
     }
 
     const values = eligibleUserIds.map(userId => ({ ...data, userId }));
     await db.insert(notificationsTable).values(values);
-    console.log(`[VolumeMonitor] In-app notifications created for ${eligibleUserIds.length}/${allUsers.length} users`);
+    console.log(`[VolumeMonitor] Notifications created for ${eligibleUserIds.length}/${allUsers.length} users (skipped: disabled=${skippedDisabled}, quiet=${skippedQuietHours}, dedup=${skippedDedup})`);
   } catch (e) {
     console.warn("[VolumeMonitor] Failed to create in-app notifications:", e);
   }

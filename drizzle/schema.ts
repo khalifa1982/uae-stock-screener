@@ -162,6 +162,8 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
   quietHoursEnd: varchar("quietHoursEnd", { length: 5 }).notNull().default("07:00"),
   // Sound settings
   soundVolume: float("soundVolume").notNull().default(0.7),
+  // Alert type filters (comma-separated list of enabled alert types)
+  alertTypes: varchar("alertTypes", { length: 256 }).notNull().default("volume_spike,price_alert,earnings,dividend,news"),
   // Frequency control
   minIntervalMinutes: int("minIntervalMinutes").notNull().default(5),
   // Timestamps

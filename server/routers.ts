@@ -1287,6 +1287,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
           quietHoursStart: "22:00",
           quietHoursEnd: "07:00",
           soundVolume: 0.7,
+          alertTypes: "volume_spike,price_alert,earnings,dividend,news",
           minIntervalMinutes: 5,
         };
       }
@@ -1302,6 +1303,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         quietHoursStart: prefs.quietHoursStart || "22:00",
         quietHoursEnd: prefs.quietHoursEnd || "07:00",
         soundVolume: prefs.soundVolume ?? 0.7,
+        alertTypes: (prefs as any).alertTypes || "volume_spike,price_alert,earnings,dividend,news",
         minIntervalMinutes: prefs.minIntervalMinutes ?? 5,
       };
     }),
@@ -1319,6 +1321,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         quietHoursStart: z.string().optional(),
         quietHoursEnd: z.string().optional(),
         soundVolume: z.number().min(0).max(1).optional(),
+        alertTypes: z.string().optional(),
         minIntervalMinutes: z.number().min(1).max(60).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1334,6 +1337,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         if (input.quietHoursStart !== undefined) dbPrefs.quietHoursStart = input.quietHoursStart;
         if (input.quietHoursEnd !== undefined) dbPrefs.quietHoursEnd = input.quietHoursEnd;
         if (input.soundVolume !== undefined) dbPrefs.soundVolume = input.soundVolume;
+        if (input.alertTypes !== undefined) dbPrefs.alertTypes = input.alertTypes;
         if (input.minIntervalMinutes !== undefined) dbPrefs.minIntervalMinutes = input.minIntervalMinutes;
         
         const result = await upsertNotificationPreferences(ctx.user.id, dbPrefs as any);
