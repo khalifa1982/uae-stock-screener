@@ -26,13 +26,14 @@ import { BarChart3, TrendingUp, Activity, Layers, Eye, EyeOff } from "lucide-rea
 interface AdvancedChartProps {
   symbol: string;
   exchange: "ADX" | "DFM";
-  chartData: Array<{ date: string; close: number; volume: number; open?: number; high?: number; low?: number }>;
+  chartData: Array<{ date: string; isoDate?: string; close: number; volume: number; open?: number; high?: number; low?: number }>;
   chartRange: string;
   onRangeChange: (range: string) => void;
   chartLoading: boolean;
 }
 
 const chartRanges = [
+  { label: "1D", value: "1d" },
   { label: "1M", value: "1mo" },
   { label: "3M", value: "3mo" },
   { label: "6M", value: "6mo" },
@@ -98,10 +99,11 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   const mergedData = useMemo(() => {
     if (!chartData || chartData.length === 0) return [];
 
-    // Build lookup maps by date
+    // Build lookup maps by ISO date (e.g. "2026-03-12")
     const bbMap = new Map<string, { upper: number; middle: number; lower: number }>();
     if (bbData?.bands) {
       for (const b of bbData.bands) {
+        // TwelveData returns dates like "2026-03-12" - use as-is
         bbMap.set(b.datetime, b);
       }
     }
@@ -143,9 +145,11 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     }
 
     return chartData.map((d, i) => {
-      const bb = bbMap.get(d.date);
-      const macd = macdMap.get(d.date);
-      const rsi = rsiMap.get(d.date);
+      // Use isoDate for indicator matching (TwelveData uses ISO format)
+      const lookupKey = d.isoDate || d.date;
+      const bb = bbMap.get(lookupKey);
+      const macd = macdMap.get(lookupKey);
+      const rsi = rsiMap.get(lookupKey);
       const isUp = d.close >= (d.open ?? d.close);
 
       return {

@@ -293,8 +293,8 @@ export const appRouter = router({
     chart: publicProcedure
       .input(z.object({
         symbol: z.string(),
-        range: z.enum(["1mo", "3mo", "6mo", "1y", "2y", "5y"]).optional().default("3mo"),
-        interval: z.enum(["1d", "1wk", "1mo"]).optional().default("1d"),
+        range: z.enum(["1d", "1mo", "3mo", "6mo", "1y", "2y", "5y"]).optional().default("3mo"),
+        interval: z.enum(["1d", "1wk", "1mo", "15min", "5min", "1h"]).optional().default("1d"),
       }))
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);

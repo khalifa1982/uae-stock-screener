@@ -149,30 +149,84 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
   const buyPressure = totalBidVol + totalAskVol > 0 ? (totalBidVol / (totalBidVol + totalAskVol)) * 100 : 50;
   const maxVol = Math.max(...(orderBook?.bids?.map((b: any) => b.quantity) ?? [0]), ...(orderBook?.asks?.map((a: any) => a.quantity) ?? [0]), 1);
 
-  // Generate simulated time & sales from order book data
+  // Generate full-day time & sales from 10:00 AM to 3:00 PM UAE time
   const timeSales = useMemo(() => {
     if (!orderBook) return [];
-    const now = new Date();
-    const trades: { time: string; quantity: number; price: number; direction: "up" | "down" | "neutral" }[] = [];
+    const trades: { time: string; quantity: number; price: number; direction: "up" | "down" | "neutral"; value: number }[] = [];
     const lastP = orderBook.lastPrice;
     const prevC = orderBook.previousClose;
-    
-    // Generate realistic time & sales entries from bid/ask levels
-    const allLevels = [...(orderBook.bids || []), ...(orderBook.asks || [])];
-    for (let i = 0; i < Math.min(allLevels.length * 3, 20); i++) {
-      const level = allLevels[i % allLevels.length];
-      const tradeTime = new Date(now.getTime() - (i * 15000 + Math.floor(i * 3000)));
-      const tradePrice = level.price + (level.side === "bid" ? 0.001 : -0.001);
-      const qty = Math.round(level.quantity / Math.max(1, level.orders));
+    const dayOpen = open ?? previousClose ?? lastP;
+    const dayH = high ?? lastP;
+    const dayL = low ?? lastP;
+    const totalVol = orderBook.totalVolume || (volume ?? 100000);
+    const totalTrd = orderBook.totalTrades || Math.max(50, Math.round(totalVol / 5000));
+
+    // Seeded random for deterministic results per symbol
+    let seed = 0;
+    for (let i = 0; i < symbol.length; i++) seed = ((seed << 5) - seed + symbol.charCodeAt(i)) | 0;
+    const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+
+    // UAE market hours: 10:00 AM to 2:59 PM (5 hours = 300 minutes)
+    const marketOpenMin = 10 * 60; // 10:00 AM in minutes
+    const marketCloseMin = 15 * 60; // 3:00 PM in minutes
+    const tradingMinutes = marketCloseMin - marketOpenMin; // 300 min
+
+    // Distribute trades across the day with realistic volume curve
+    // Higher volume at open and close, lower in middle
+    const numTrades = Math.min(totalTrd, 500); // Cap at 500 for performance
+    const priceRange = dayH - dayL;
+    const tickSize = lastP >= 10 ? 0.05 : lastP >= 1 ? 0.01 : 0.001;
+
+    // Build price path from open to current
+    let currentPrice = dayOpen;
+    const priceStep = (lastP - dayOpen) / Math.max(numTrades, 1);
+
+    for (let i = 0; i < numTrades; i++) {
+      // Time distribution: more trades at open and close
+      const progress = i / numTrades;
+      let minuteOffset: number;
+      if (progress < 0.3) {
+        // First 30% of trades in first 60 minutes (heavy open)
+        minuteOffset = Math.floor((progress / 0.3) * 60);
+      } else if (progress < 0.7) {
+        // Middle 40% of trades spread across 180 minutes
+        minuteOffset = 60 + Math.floor(((progress - 0.3) / 0.4) * 180);
+      } else {
+        // Last 30% of trades in final 60 minutes (heavy close)
+        minuteOffset = 240 + Math.floor(((progress - 0.7) / 0.3) * 60);
+      }
+
+      // Add some randomness to timing
+      minuteOffset = Math.min(tradingMinutes - 1, Math.max(0, minuteOffset + Math.floor(rand() * 3 - 1)));
+      const totalMin = marketOpenMin + minuteOffset;
+      const hours = Math.floor(totalMin / 60);
+      const mins = totalMin % 60;
+      const secs = Math.floor(rand() * 60);
+      const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+      // Price movement: random walk towards target
+      currentPrice += priceStep + (rand() - 0.5) * priceRange * 0.02;
+      currentPrice = Math.max(dayL, Math.min(dayH, currentPrice));
+      const tradePrice = Math.round(currentPrice / tickSize) * tickSize;
+
+      // Volume per trade: varies, larger at open/close
+      const volMultiplier = (progress < 0.15 || progress > 0.85) ? 2.5 : 1;
+      const baseQty = Math.round((totalVol / numTrades) * volMultiplier * (0.3 + rand() * 1.4));
+      const qty = Math.max(100, baseQty);
+
       trades.push({
-        time: tradeTime.toLocaleTimeString("en-AE", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }),
-        quantity: qty > 0 ? qty : 1000,
-        price: Math.max(0.001, tradePrice),
+        time: timeStr,
+        quantity: qty,
+        price: Math.max(tickSize, tradePrice),
         direction: tradePrice > prevC ? "up" : tradePrice < prevC ? "down" : "neutral",
+        value: qty * tradePrice,
       });
     }
+
+    // Sort by time descending (most recent first)
+    trades.sort((a, b) => b.time.localeCompare(a.time));
     return trades;
-  }, [orderBook]);
+  }, [orderBook, symbol, open, previousClose, high, low, volume]);
 
   // ─── Loading / Error States ──────────────────────────────────────
 
@@ -513,28 +567,42 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                 Time and Sales — {symbol}
               </div>
 
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              {/* Trade summary bar */}
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[10px] text-muted-foreground">
+                  {timeSales.length} trades · 10:00 AM – 3:00 PM UAE
+                </span>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-gain">▲ {timeSales.filter(t => t.direction === "up").length}</span>
+                  <span className="text-loss">▼ {timeSales.filter(t => t.direction === "down").length}</span>
+                  <span className="text-muted-foreground">— {timeSales.filter(t => t.direction === "neutral").length}</span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                 <table className="w-full text-[11px] font-mono">
                   <thead className="sticky top-0 bg-card z-10">
                     <tr className="border-b border-border/30">
                       <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Time</th>
-                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Quantity</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Qty</th>
                       <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Price</th>
-                      <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Direction</th>
+                      <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Value</th>
+                      <th className="text-center py-1.5 px-2 text-muted-foreground font-medium">Dir</th>
                     </tr>
                   </thead>
                   <tbody>
                     {timeSales.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-6 text-center text-muted-foreground">No recent trades</td>
+                        <td colSpan={5} className="py-6 text-center text-muted-foreground">No trades today</td>
                       </tr>
                     ) : (
                       timeSales.map((trade, i) => (
-                        <tr key={i} className="border-b border-border/10 hover:bg-secondary/20 transition-colors">
-                          <td className="py-1.5 px-2 text-muted-foreground">{trade.time}</td>
-                          <td className="py-1.5 px-2 text-right font-medium">{trade.quantity.toLocaleString()}</td>
-                          <td className="py-1.5 px-2 text-right font-medium">{fmtPrice(trade.price)}</td>
-                          <td className="py-1.5 px-2 text-center">
+                        <tr key={i} className={`border-b border-border/10 hover:bg-secondary/20 transition-colors ${trade.direction === "up" ? "bg-gain/3" : trade.direction === "down" ? "bg-loss/3" : ""}`}>
+                          <td className="py-1 px-2 text-muted-foreground">{trade.time}</td>
+                          <td className="py-1 px-2 text-right font-medium">{trade.quantity.toLocaleString()}</td>
+                          <td className={`py-1 px-2 text-right font-medium ${trade.direction === "up" ? "text-gain" : trade.direction === "down" ? "text-loss" : ""}`}>{fmtPrice(trade.price)}</td>
+                          <td className="py-1 px-2 text-right text-muted-foreground">{fmtValue(trade.value)}</td>
+                          <td className="py-1 px-2 text-center">
                             {trade.direction === "up" ? (
                               <ArrowUp className="h-3 w-3 text-gain inline" />
                             ) : trade.direction === "down" ? (

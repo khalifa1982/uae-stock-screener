@@ -220,6 +220,7 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
 }
 
 const chartRanges = [
+  { value: "1d", label: "1D" },
   { value: "1mo", label: "1M" },
   { value: "3mo", label: "3M" },
   { value: "6mo", label: "6M" },
@@ -251,7 +252,7 @@ export default function StockDetail() {
   const params = useParams<{ symbol: string }>();
   const [, setLocation] = useLocation();
   const symbol = params.symbol || "";
-  const [chartRange, setChartRange] = useState<"1mo" | "3mo" | "6mo" | "1y" | "2y">("3mo");
+  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y">("3mo");
   const [activeTab, setActiveTab] = useState("overview");
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
@@ -264,8 +265,9 @@ export default function StockDetail() {
     { enabled: !!symbol, staleTime: autoRefreshInterval ? 3_000 : 300_000, refetchInterval: autoRefreshInterval ? 5_000 : undefined, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
+  const chartInterval = chartRange === "1d" ? "15min" : "1d";
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
-    { symbol, range: chartRange, interval: "1d" },
+    { symbol, range: chartRange, interval: chartInterval },
     { enabled: !!symbol, staleTime: 300_000, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
@@ -284,14 +286,23 @@ export default function StockDetail() {
 
   const chartPoints = useMemo(() => {
     if (!chartData || !chartData.timestamps) return [];
-    return chartData.timestamps.map((t: number, i: number) => ({
-      date: new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      close: chartData.close[i],
-      volume: chartData.volume[i],
-      high: chartData.high[i],
-      low: chartData.low[i],
-    })).filter((p: any) => p.close != null);
-  }, [chartData]);
+    return chartData.timestamps.map((t: number, i: number) => {
+      const d = new Date(t);
+      const isoDate = d.toISOString().split("T")[0]; // "2026-03-12" for indicator matching
+      const displayDate = chartRange === "1d"
+        ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+        : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return {
+        date: displayDate,
+        isoDate,
+        close: chartData.close[i],
+        open: chartData.open?.[i] ?? chartData.close[i],
+        volume: chartData.volume[i],
+        high: chartData.high[i],
+        low: chartData.low[i],
+      };
+    }).filter((p: any) => p.close != null);
+  }, [chartData, chartRange]);
 
   const priceChange = detail?.price && detail?.previousClose
     ? ((detail.price - detail.previousClose) / detail.previousClose) * 100
@@ -446,24 +457,78 @@ export default function StockDetail() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 20</span>
-                        <span className="font-mono text-xs font-medium">{detail.sma20 != null ? formatNumber(detail.sma20, 3) : "—"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-medium">{detail.sma20 != null ? formatNumber(detail.sma20, 3) : "—"}</span>
+                          {detail.price != null && detail.sma20 != null && (
+                            <span className={`text-[10px] font-medium ${detail.price > detail.sma20 ? "text-gain" : "text-loss"}`}>
+                              {detail.price > detail.sma20 ? "Above" : "Below"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
                         <span className="text-xs text-muted-foreground">SMA 50</span>
-                        <span className="font-mono text-xs font-medium">{detail.sma50 != null ? formatNumber(detail.sma50, 3) : "—"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-medium">{detail.sma50 != null ? formatNumber(detail.sma50, 3) : "—"}</span>
+                          {detail.price != null && detail.sma50 != null && (
+                            <span className={`text-[10px] font-medium ${detail.price > detail.sma50 ? "text-gain" : "text-loss"}`}>
+                              {detail.price > detail.sma50 ? "Above" : "Below"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                        <span className="text-xs text-muted-foreground">SMA 200</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-medium">{(detail as any).sma200 != null ? formatNumber((detail as any).sma200, 3) : (profile?.tvSMA200 != null ? formatNumber(profile.tvSMA200, 3) : "—")}</span>
+                          {detail.price != null && ((detail as any).sma200 != null || profile?.tvSMA200 != null) && (
+                            <span className={`text-[10px] font-medium ${detail.price > ((detail as any).sma200 ?? profile?.tvSMA200 ?? 0) ? "text-gain" : "text-loss"}`}>
+                              {detail.price > ((detail as any).sma200 ?? profile?.tvSMA200 ?? 0) ? "Above" : "Below"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
                         <span className="text-xs text-muted-foreground">MACD</span>
-                        <span className="font-mono text-xs font-medium">{profile?.tvMACD != null ? formatNumber(profile.tvMACD, 4) : "—"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-medium">{(detail as any).macdValue != null ? formatNumber((detail as any).macdValue, 4) : (profile?.tvMACD != null ? formatNumber(profile.tvMACD, 4) : "—")}</span>
+                          {((detail as any).macdValue != null || profile?.tvMACD != null) && ((detail as any).macdSignal != null || profile?.tvMACDSignal != null) && (
+                            <span className={`text-[10px] font-medium ${
+                              ((detail as any).macdValue ?? profile?.tvMACD ?? 0) > ((detail as any).macdSignal ?? profile?.tvMACDSignal ?? 0) ? "text-gain" : "text-loss"
+                            }`}>
+                              {((detail as any).macdValue ?? profile?.tvMACD ?? 0) > ((detail as any).macdSignal ?? profile?.tvMACDSignal ?? 0) ? "Bullish" : "Bearish"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/30">
+                        <span className="text-xs text-muted-foreground">MACD Signal</span>
+                        <span className="font-mono text-xs font-medium">{(detail as any).macdSignal != null ? formatNumber((detail as any).macdSignal, 4) : (profile?.tvMACDSignal != null ? formatNumber(profile.tvMACDSignal, 4) : "—")}</span>
                       </div>
                       {detail.price != null && detail.sma50 != null && (
                         <div className={`p-2.5 rounded-lg border ${detail.price > detail.sma50 ? "border-[oklch(0.72_0.17_155/30%)] bg-[oklch(0.72_0.17_155/5%)]" : "border-[oklch(0.65_0.22_25/30%)] bg-[oklch(0.65_0.22_25/5%)]"}`}>
                           <div className="flex items-center gap-2">
                             {detail.price > detail.sma50 ? <TrendingUp className="h-3.5 w-3.5 text-gain" /> : <TrendingDown className="h-3.5 w-3.5 text-loss" />}
                             <span className={`text-xs font-medium ${detail.price > detail.sma50 ? "text-gain" : "text-loss"}`}>
-                              Price is {detail.price > detail.sma50 ? "above" : "below"} SMA 50
+                              Price ({formatNumber(detail.price, 3)}) is {detail.price > detail.sma50 ? "above" : "below"} SMA 50 ({formatNumber(detail.sma50, 3)})
                             </span>
                           </div>
+                          {detail.sma20 != null && (
+                            <div className="flex items-center gap-2 mt-1">
+                              {detail.price > detail.sma20 ? <TrendingUp className="h-3.5 w-3.5 text-gain" /> : <TrendingDown className="h-3.5 w-3.5 text-loss" />}
+                              <span className={`text-xs font-medium ${detail.price > detail.sma20 ? "text-gain" : "text-loss"}`}>
+                                Price is {detail.price > detail.sma20 ? "above" : "below"} SMA 20 ({formatNumber(detail.sma20, 3)})
+                              </span>
+                            </div>
+                          )}
+                          {((detail as any).sma200 != null || profile?.tvSMA200 != null) && (
+                            <div className="flex items-center gap-2 mt-1">
+                              {detail.price! > ((detail as any).sma200 ?? profile?.tvSMA200 ?? 0) ? <TrendingUp className="h-3.5 w-3.5 text-gain" /> : <TrendingDown className="h-3.5 w-3.5 text-loss" />}
+                              <span className={`text-xs font-medium ${detail.price! > ((detail as any).sma200 ?? profile?.tvSMA200 ?? 0) ? "text-gain" : "text-loss"}`}>
+                                Price is {detail.price! > ((detail as any).sma200 ?? profile?.tvSMA200 ?? 0) ? "above" : "below"} SMA 200 ({formatNumber((detail as any).sma200 ?? profile?.tvSMA200, 3)})
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

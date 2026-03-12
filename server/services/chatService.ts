@@ -14,7 +14,7 @@ import type { Server as HTTPServer } from "http";
 import type { IncomingMessage } from "http";
 import { getDb } from "../db";
 import { chatMessages } from "../../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { storagePut } from "../storage";
 import crypto from "crypto";
 
@@ -28,14 +28,14 @@ interface ChatUser {
 }
 
 interface IncomingChatMessage {
-  type: "message" | "image" | "heartbeat" | "typing";
+  type: "message" | "image" | "heartbeat" | "typing" | "clear_all";
   content?: string;
   imageData?: string; // base64 encoded image
   imageMime?: string; // e.g. "image/png"
 }
 
 interface OutgoingChatMessage {
-  type: "message" | "image" | "system" | "presence" | "history" | "typing";
+  type: "message" | "image" | "system" | "presence" | "history" | "typing" | "cleared";
   id?: number;
   userId?: number;
   userName?: string;
@@ -301,6 +301,44 @@ export function initChatWebSocket(server: HTTPServer): void {
                 content: "Failed to upload image. Please try again.",
                 timestamp: getUAETimestamp(),
               }));
+            }
+            break;
+
+          case "clear_all":
+            // Admin-only: clear all chat messages for today
+            try {
+              const db = await getDb();
+              if (!db) break;
+              // Check if user is admin by looking up role in DB
+              const { users } = await import("../../drizzle/schema");
+              const [userRecord] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+              if (userRecord?.role !== "admin") {
+                ws.send(JSON.stringify({
+                  type: "system",
+                  content: "Only admins can clear chat history.",
+                  timestamp: getUAETimestamp(),
+                }));
+                break;
+              }
+              const today = getUAEDate();
+              await db.delete(chatMessages).where(eq(chatMessages.chatDate, today));
+              console.log(`[Chat] Admin ${userName} cleared all messages for ${today}`);
+              // Broadcast cleared event to all clients
+              broadcast({
+                type: "cleared",
+                content: `Chat history cleared by ${userName}`,
+                timestamp: getUAETimestamp(),
+              });
+              // Also send a system message so it shows in chat
+              const clearMsgId = await saveMessage(userId, userName, userColor, "system", `${userName} cleared the chat history`, null).catch(() => 0);
+              broadcast({
+                type: "system",
+                id: clearMsgId,
+                content: `${userName} cleared the chat history`,
+                timestamp: getUAETimestamp(),
+              });
+            } catch (err) {
+              console.error("[Chat] Clear all failed:", err);
             }
             break;
         }

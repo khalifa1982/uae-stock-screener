@@ -747,4 +747,20 @@
 - [x] Fix: Footer text barely readable (disclaimer, credits, Brain AI text)
 - [x] Fix: Improve text contrast in both light and dark themes
 - [x] Add: Live countdown to market open in market status indicator tooltip
-- [ ] Build and deploy v9.5
+- [x] Build and deploy v9.5
+
+## Phase 28 - Bug Fixes
+
+- [x] Fix: Chat WebSocket reconnect not working (stuck on "Reconnecting...")
+- [x] Add: Admin (khalifa@uae.net) can reset/clear all chat history
+- [x] Fix: Advanced chart indicators (SMA, BB, MACD, RSI) not rendering on the chart drawing
+- [x] Fix: Add 1D (1 Day) timeframe to the advanced chart (currently only 1M/3M/6M/1Y/2Y)
+- [x] Fix: Technical Snapshot "Price is below SMA 50" text gets cut off - show full analysis
+- [x] Fix: Order Book / Time & Sales only showing last 10-15 trades - expand to full day (10am-3pm)
+
+## Phase 29 - Terminal-Style Redesign
+
+- [ ] Redesign: Dense, compact terminal-style layout inspired by Jeff Terminal
+- [ ] Redesign: Smaller fonts, tighter spacing, information-dense panels
+- [ ] Redesign: Ticker bar with scrolling stock prices
+- [ ] Build and deploy v9.6
