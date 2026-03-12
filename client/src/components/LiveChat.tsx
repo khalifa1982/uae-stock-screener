@@ -149,7 +149,7 @@ function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: ()
 // ─── Main LiveChat Component ───────────────────────────────────────
 export function LiveChat() {
   const { user, isAuthenticated } = useAuth();
-  const { messages, onlineUsers, isConnected, typingUser, sendMessage, sendImage, sendTyping, clearMessages } = useChat();
+  const { messages, onlineUsers, isConnected, typingUser, sendMessage, sendImage, sendTyping, clearMessages, mode } = useChat();
   const isAdmin = user?.role === "admin";
 
   const [isOpen, setIsOpen] = useState(false);
@@ -279,12 +279,12 @@ export function LiveChat() {
             {isConnected ? (
               <>
                 <Wifi className="w-3 h-3" />
-                <span>Connected</span>
+                <span>{mode === "http" ? "Connected (HTTP)" : "Connected"}</span>
               </>
             ) : (
               <>
-                <WifiOff className="w-3 h-3" />
-                <span>Reconnecting...</span>
+                <WifiOff className="w-3 h-3 animate-pulse" />
+                <span>Connecting...</span>
               </>
             )}
           </span>
@@ -413,7 +413,7 @@ export function LiveChat() {
             size="icon"
             variant="ghost"
             onClick={handleSend}
-            disabled={!inputText.trim() || !isConnected}
+            disabled={!inputText.trim()}
             className="rounded-full w-8 h-8 shrink-0"
           >
             <Send className="w-4 h-4" />

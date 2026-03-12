@@ -8,6 +8,7 @@
  * - Daily auto-cleanup of old messages
  * - Image upload via S3 storage
  * - System messages for join/leave events
+ * - HTTP polling fallback via tRPC for when WebSocket is blocked
  */
 import WebSocket, { WebSocketServer } from "ws";
 import type { Server as HTTPServer } from "http";
@@ -30,8 +31,8 @@ interface ChatUser {
 interface IncomingChatMessage {
   type: "message" | "image" | "heartbeat" | "typing" | "clear_all";
   content?: string;
-  imageData?: string; // base64 encoded image
-  imageMime?: string; // e.g. "image/png"
+  imageData?: string;
+  imageMime?: string;
 }
 
 interface OutgoingChatMessage {
@@ -66,8 +67,8 @@ interface HistoryMessage {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────
-const HEARTBEAT_INTERVAL = 15000; // 15s
-const HEARTBEAT_TIMEOUT = 45000; // 45s - disconnect if no heartbeat
+const HEARTBEAT_INTERVAL = 15000;
+const HEARTBEAT_TIMEOUT = 45000;
 const AVATAR_COLORS = [
   "#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6",
   "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#6366F1",
@@ -77,12 +78,13 @@ const AVATAR_COLORS = [
 
 // ─── State ─────────────────────────────────────────────────────────
 const onlineUsers = new Map<number, ChatUser>();
+// Track HTTP polling users (userId -> last seen timestamp)
+const pollingUsers = new Map<number, { userName: string; userColor: string; lastSeen: number }>();
 let wss: WebSocketServer | null = null;
 
 // ─── Helpers ───────────────────────────────────────────────────────
 function getUAEDate(): string {
   const now = new Date();
-  // UAE is UTC+4
   const uaeTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
   return uaeTime.toISOString().split("T")[0];
 }
@@ -98,11 +100,19 @@ function getColorForUser(userId: number): string {
 }
 
 function getOnlineUserList(): OnlineUserInfo[] {
-  return Array.from(onlineUsers.values()).map(u => ({
-    userId: u.userId,
-    userName: u.userName,
-    userColor: u.userColor,
-  }));
+  // Combine WebSocket users and recent polling users
+  const allUsers = new Map<number, OnlineUserInfo>();
+  onlineUsers.forEach(u => {
+    allUsers.set(u.userId, { userId: u.userId, userName: u.userName, userColor: u.userColor });
+  });
+  const now = Date.now();
+  pollingUsers.forEach((u, userId) => {
+    // Consider polling user online if seen in last 30 seconds
+    if (now - u.lastSeen < 30000) {
+      allUsers.set(userId, { userId, userName: u.userName, userColor: u.userColor });
+    }
+  });
+  return Array.from(allUsers.values());
 }
 
 function broadcast(message: OutgoingChatMessage, excludeUserId?: number): void {
@@ -196,13 +206,12 @@ export function initChatWebSocket(server: HTTPServer): void {
     const { userId, userName } = auth;
     const userColor = getColorForUser(userId);
 
-    // Close existing connection for same user (prevent duplicates)
+    // Close existing connection for same user
     const existing = onlineUsers.get(userId);
     if (existing) {
       existing.ws.close(4002, "Connected from another tab");
     }
 
-    // Register user
     const chatUser: ChatUser = {
       userId,
       userName,
@@ -234,7 +243,6 @@ export function initChatWebSocket(server: HTTPServer): void {
       console.error("[Chat] Failed to load history:", err);
     }
 
-    // Broadcast join
     broadcastPresence();
     const joinId = await saveMessage(userId, userName, userColor, "system", `${userName} joined the chat`, null).catch(() => 0);
     broadcast({
@@ -244,7 +252,6 @@ export function initChatWebSocket(server: HTTPServer): void {
       timestamp: getUAETimestamp(),
     });
 
-    // Handle messages
     ws.on("message", async (raw: Buffer) => {
       try {
         const msg: IncomingChatMessage = JSON.parse(raw.toString());
@@ -252,11 +259,9 @@ export function initChatWebSocket(server: HTTPServer): void {
 
         switch (msg.type) {
           case "heartbeat":
-            // Just update lastHeartbeat (already done above)
             break;
 
           case "typing":
-            // Broadcast typing indicator to others
             broadcast({
               type: "typing",
               typingUser: userName,
@@ -266,7 +271,7 @@ export function initChatWebSocket(server: HTTPServer): void {
 
           case "message":
             if (!msg.content?.trim()) break;
-            const textContent = msg.content.trim().substring(0, 2000); // limit length
+            const textContent = msg.content.trim().substring(0, 2000);
             const msgId = await saveMessage(userId, userName, userColor, "text", textContent, null);
             broadcast({
               type: "message",
@@ -305,11 +310,9 @@ export function initChatWebSocket(server: HTTPServer): void {
             break;
 
           case "clear_all":
-            // Admin-only: clear all chat messages for today
             try {
               const db = await getDb();
               if (!db) break;
-              // Check if user is admin by looking up role in DB
               const { users } = await import("../../drizzle/schema");
               const [userRecord] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
               if (userRecord?.role !== "admin") {
@@ -323,13 +326,11 @@ export function initChatWebSocket(server: HTTPServer): void {
               const today = getUAEDate();
               await db.delete(chatMessages).where(eq(chatMessages.chatDate, today));
               console.log(`[Chat] Admin ${userName} cleared all messages for ${today}`);
-              // Broadcast cleared event to all clients
               broadcast({
                 type: "cleared",
                 content: `Chat history cleared by ${userName}`,
                 timestamp: getUAETimestamp(),
               });
-              // Also send a system message so it shows in chat
               const clearMsgId = await saveMessage(userId, userName, userColor, "system", `${userName} cleared the chat history`, null).catch(() => 0);
               broadcast({
                 type: "system",
@@ -347,7 +348,6 @@ export function initChatWebSocket(server: HTTPServer): void {
       }
     });
 
-    // Handle disconnect
     ws.on("close", async () => {
       onlineUsers.delete(userId);
       console.log(`[Chat] ${userName} (${userId}) disconnected. Online: ${onlineUsers.size}`);
@@ -365,7 +365,7 @@ export function initChatWebSocket(server: HTTPServer): void {
     });
   });
 
-  // Heartbeat checker - disconnect stale connections
+  // Heartbeat checker
   setInterval(() => {
     const now = Date.now();
     onlineUsers.forEach((user, userId) => {
@@ -375,20 +375,24 @@ export function initChatWebSocket(server: HTTPServer): void {
         onlineUsers.delete(userId);
       }
     });
+    // Clean up stale polling users
+    pollingUsers.forEach((u, userId) => {
+      if (now - u.lastSeen > 60000) {
+        pollingUsers.delete(userId);
+      }
+    });
   }, HEARTBEAT_INTERVAL);
 
-  // Daily cleanup - remove old messages at midnight UAE time
+  // Daily cleanup
   scheduleCleanup();
 }
 
 function scheduleCleanup(): void {
-  // Calculate time until next midnight UAE (UTC+4)
   const now = new Date();
   const uaeNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
   const tomorrow = new Date(uaeNow);
   tomorrow.setUTCHours(0, 0, 0, 0);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  // Convert back to UTC
   const midnightUAE = new Date(tomorrow.getTime() - 4 * 60 * 60 * 1000);
   const msUntilMidnight = midnightUAE.getTime() - now.getTime();
 
@@ -397,7 +401,6 @@ function scheduleCleanup(): void {
       const db = await getDb();
       if (!db) return;
       const today = getUAEDate();
-      // Delete all messages NOT from today
       const { sql } = await import("drizzle-orm");
       await db.delete(chatMessages).where(
         sql`${chatMessages.chatDate} != ${today}`
@@ -406,18 +409,112 @@ function scheduleCleanup(): void {
     } catch (err) {
       console.error("[Chat] Cleanup failed:", err);
     }
-    // Schedule next cleanup
     scheduleCleanup();
   }, msUntilMidnight);
 
   console.log(`[Chat] Next cleanup in ${Math.round(msUntilMidnight / 1000 / 60)} minutes`);
 }
 
-// ─── Exports for tRPC ──────────────────────────────────────────────
+// ─── Exports for tRPC (HTTP polling fallback) ─────────────────────
 export function getOnlineUsersCount(): number {
   return onlineUsers.size;
 }
 
 export function getOnlineUsersList(): OnlineUserInfo[] {
   return getOnlineUserList();
+}
+
+export async function getChatMessages(sinceId?: number): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const today = getUAEDate();
+  let query;
+  if (sinceId && sinceId > 0) {
+    query = await db
+      .select()
+      .from(chatMessages)
+      .where(and(eq(chatMessages.chatDate, today), sql`${chatMessages.id} > ${sinceId}`))
+      .orderBy(chatMessages.id);
+  } else {
+    query = await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.chatDate, today))
+      .orderBy(chatMessages.id);
+  }
+  return query.map(m => ({
+    id: m.id,
+    userId: m.userId,
+    userName: m.userName,
+    userColor: m.userColor,
+    messageType: m.messageType,
+    content: m.content,
+    imageUrl: m.imageUrl,
+    timestamp: m.createdAt?.toISOString?.() || new Date().toISOString(),
+  }));
+}
+
+export async function postChatMessage(
+  userId: number,
+  userName: string,
+  content: string
+): Promise<{ id: number; timestamp: string }> {
+  const userColor = getColorForUser(userId);
+  const textContent = content.trim().substring(0, 2000);
+  const msgId = await saveMessage(userId, userName, userColor, "text", textContent, null);
+  const timestamp = getUAETimestamp();
+  broadcast({
+    type: "message",
+    id: msgId,
+    userId,
+    userName,
+    userColor,
+    content: textContent,
+    timestamp,
+  });
+  return { id: msgId, timestamp };
+}
+
+export async function postChatImage(
+  userId: number,
+  userName: string,
+  base64Data: string,
+  mime: string,
+  caption?: string
+): Promise<{ id: number; imageUrl: string; timestamp: string }> {
+  const userColor = getColorForUser(userId);
+  const imageUrl = await uploadChatImage(base64Data, mime, userId);
+  const imgId = await saveMessage(userId, userName, userColor, "image", caption || null, imageUrl);
+  const timestamp = getUAETimestamp();
+  broadcast({
+    type: "image",
+    id: imgId,
+    userId,
+    userName,
+    userColor,
+    content: caption || undefined,
+    imageUrl,
+    timestamp,
+  });
+  return { id: imgId, imageUrl, timestamp };
+}
+
+export async function clearAllChatMessages(userId: number, userName: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const { users } = await import("../../drizzle/schema");
+  const [userRecord] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  if (userRecord?.role !== "admin") return false;
+  const today = getUAEDate();
+  await db.delete(chatMessages).where(eq(chatMessages.chatDate, today));
+  broadcast({ type: "cleared", content: `Chat history cleared by ${userName}`, timestamp: getUAETimestamp() });
+  return true;
+}
+
+export function registerPollingUser(userId: number, userName: string): void {
+  pollingUsers.set(userId, {
+    userName,
+    userColor: getColorForUser(userId),
+    lastSeen: Date.now(),
+  });
 }

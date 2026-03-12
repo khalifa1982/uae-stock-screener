@@ -828,3 +828,19 @@
 ### Build & Deploy
 - [ ] Update APP_VERSION to v9.9
 - [ ] Build and deploy Docker v9.9 to Northflank
+
+## Phase 33 - Heatmap Fixes, Chat Fix, StockAnalysis Scraping
+
+### Heatmap Fixes
+- [x] Add company logos at top of each heatmap tile
+- [x] Make all text white on both red and green tiles for visibility
+- [x] Increase font size to be more visible/readable
+- [x] Fix change percentage text color (currently hard to read on red)
+
+### Live Chat Fix
+- [x] Fix Live Chat "Reconnecting..." issue - added HTTP polling fallback
+
+### StockAnalysis.com Web Scraping
+- [x] Add StockAnalysis.com as a web scraping data source
+- [x] Scrape company profiles, financials, dividends, board info
+- [x] Integrate scraped data into stock detail pages

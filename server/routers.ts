@@ -20,6 +20,8 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
+import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser } from "./services/chatService";
+import { fetchSAOverview, fetchSAFinancials, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
 import { getEarningsTranscript } from "./services/earningsTranscriptService";
 
@@ -1515,6 +1517,59 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
     status: publicProcedure
       .query(() => {
         return getMarketSummaryStatus();
+      }),
+  }),
+
+  // ─── StockAnalysis.com data ───────────────────────────────────
+  sa: router({
+    overview: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSAOverview(input.symbol, input.exchange);
+      }),
+
+    financials: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSAFinancials(input.symbol, input.exchange);
+      }),
+
+    stats: publicProcedure.query(() => getSAStats()),
+
+    clearCache: protectedProcedure.mutation(() => clearSACache()),
+  }),
+
+  // ─── Chat HTTP polling fallback ─────────────────────────────────
+  chat: router({
+    messages: protectedProcedure
+      .input(z.object({ sinceId: z.number().optional() }))
+      .query(async ({ input, ctx }) => {
+        // Register as polling user
+        registerPollingUser(ctx.user.id, ctx.user.name || "User");
+        return getChatMessages(input.sinceId);
+      }),
+
+    send: protectedProcedure
+      .input(z.object({ content: z.string().min(1).max(2000) }))
+      .mutation(async ({ input, ctx }) => {
+        registerPollingUser(ctx.user.id, ctx.user.name || "User");
+        return postChatMessage(ctx.user.id, ctx.user.name || "User", input.content);
+      }),
+
+    sendImage: protectedProcedure
+      .input(z.object({ base64Data: z.string(), mime: z.string(), caption: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        return postChatImage(ctx.user.id, ctx.user.name || "User", input.base64Data, input.mime, input.caption);
+      }),
+
+    onlineUsers: protectedProcedure
+      .query(() => {
+        return getOnlineUsersList();
+      }),
+
+    clearAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        return clearAllChatMessages(ctx.user.id, ctx.user.name || "User");
       }),
   }),
 });

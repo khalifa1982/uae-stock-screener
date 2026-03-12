@@ -12,6 +12,7 @@ import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
 import { AnalystConsensus } from "@/components/AnalystConsensus";
 import { EarningsTranscripts } from "@/components/EarningsTranscripts";
+import { SADataCard } from "@/components/SADataCard";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { useRealtimePrice } from "@/hooks/useRealtimePrices";
@@ -276,6 +277,12 @@ export default function StockDetail() {
   const { data: profileData, isLoading: profileLoading } = trpc.stocks.profile.useQuery(
     { symbol },
     { enabled: !!symbol, staleTime: 600_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
+
+  // StockAnalysis.com data
+  const { data: saData } = trpc.sa.overview.useQuery(
+    { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
+    { enabled: !!symbol, staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
   );
 
   const sentimentMutation = trpc.stocks.sentiment.useMutation();
@@ -604,6 +611,9 @@ export default function StockDetail() {
               </CardContent>
             </Card>
           )}
+
+          {/* StockAnalysis.com Data */}
+          <SADataCard data={saData} />
 
           {/* Key Statistics */}
           {profile && (

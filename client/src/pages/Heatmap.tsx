@@ -11,28 +11,18 @@ import { usePriceFlashes, getFlashClass } from "@/hooks/usePriceFlash";
 function getHeatBg(change: number | null): string {
   if (change == null) return "rgba(63,63,70,0.5)";
   const abs = Math.abs(change);
-  // Intensity scales with magnitude
-  const intensity = Math.min(abs / 5, 1); // 0-1 scale, max at 5%
+  const intensity = Math.min(abs / 5, 1);
   if (change >= 0.05) {
-    // Green shades - from dark to bright
     const r = Math.round(10 + (20 - 10) * (1 - intensity));
     const g = Math.round(60 + (160 - 60) * intensity);
     const b = Math.round(30 + (60 - 30) * intensity);
     return `rgb(${r},${g},${b})`;
   }
   if (change > -0.05) return "rgba(63,63,70,0.6)";
-  // Red shades - from dark to bright
   const r = Math.round(80 + (200 - 80) * intensity);
   const g = Math.round(15 + (30 - 15) * (1 - intensity));
   const b = Math.round(15 + (30 - 15) * (1 - intensity));
   return `rgb(${r},${g},${b})`;
-}
-
-function getChangeColor(change: number | null): string {
-  if (change == null) return "#a1a1aa";
-  if (change >= 0.05) return "#4ade80";
-  if (change > -0.05) return "#a1a1aa";
-  return "#f87171";
 }
 
 function formatMarketCap(n: number | null): string {
@@ -51,6 +41,7 @@ interface StockData {
   changePercent?: number | null | undefined;
   marketCap?: number | null | undefined;
   volume?: number | null | undefined;
+  logoUrl?: string | null | undefined;
 }
 
 /* ── Squarified Treemap Algorithm ── */
@@ -71,7 +62,6 @@ function squarify(
   const total = items.reduce((s, i) => s + i.value, 0);
   if (total <= 0) return [];
 
-  // Sort descending by value
   const sorted = [...items].sort((a, b) => b.value - a.value);
   const rects: TreemapRect[] = [];
 
@@ -82,7 +72,6 @@ function squarify(
     const remTotal = remaining.reduce((s, i) => s + i.value, 0);
     const isWide = cw >= ch;
 
-    // Find the best split
     let row: typeof remaining = [];
     let bestAspect = Infinity;
 
@@ -93,7 +82,6 @@ function squarify(
       const rowSize = isWide ? cw * rowFraction : ch * rowFraction;
       const crossSize = isWide ? ch : cw;
 
-      // Calculate worst aspect ratio in this row
       let worstAspect = 0;
       for (const item of row) {
         const itemFraction = item.value / rowTotal;
@@ -105,13 +93,11 @@ function squarify(
       if (worstAspect <= bestAspect) {
         bestAspect = worstAspect;
       } else {
-        // Previous row was better
         row = remaining.slice(0, i - 1);
         break;
       }
     }
 
-    // Layout this row
     const rowTotal = row.reduce((s, it) => s + it.value, 0);
     const rowFraction = rowTotal / remTotal;
     let rx = cx, ry = cy;
@@ -142,17 +128,48 @@ function squarify(
   return rects;
 }
 
+/* ── Company Logo Component ── */
+function CompanyLogo({ logoUrl, symbol, size }: { logoUrl?: string | null; symbol: string; size: number }) {
+  if (logoUrl) {
+    return (
+      <div
+        className="rounded bg-white/15 border border-white/20 flex items-center justify-center overflow-hidden shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={logoUrl}
+          alt=""
+          className="object-contain"
+          style={{ width: size * 0.75, height: size * 0.75 }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      </div>
+    );
+  }
+  // Fallback: first letter of symbol in a circle
+  return (
+    <div
+      className="rounded bg-white/10 border border-white/15 flex items-center justify-center shrink-0"
+      style={{ width: size, height: size }}
+    >
+      <span className="text-white/70 font-bold" style={{ fontSize: size * 0.55 }}>
+        {symbol.charAt(0)}
+      </span>
+    </div>
+  );
+}
+
 /* ── Treemap Tile Component ── */
 function TreemapTile({ rect, flash }: { rect: TreemapRect; flash: string }) {
   const { stock, w, h } = rect;
   const change = stock.changePercent ?? null;
   const bg = getHeatBg(change);
-  const color = getChangeColor(change);
 
   // Determine content size based on tile dimensions
-  const isLarge = w > 120 && h > 80;
-  const isMedium = w > 70 && h > 50;
-  const isSmall = w > 40 && h > 30;
+  const isXL = w > 150 && h > 100;
+  const isLarge = w > 100 && h > 70;
+  const isMedium = w > 60 && h > 45;
+  const isSmall = w > 35 && h > 28;
 
   return (
     <Link href={`/stock/${stock.symbol}`}>
@@ -166,39 +183,54 @@ function TreemapTile({ rect, flash }: { rect: TreemapRect; flash: string }) {
           backgroundColor: bg,
         }}
       >
-        <div className="w-full h-full flex flex-col items-center justify-center p-0.5 text-center">
-          {isLarge ? (
+        <div className="w-full h-full flex flex-col items-center justify-center p-1 text-center gap-0.5">
+          {isXL ? (
             <>
-              <span className="text-white font-bold text-sm leading-tight truncate max-w-full">
+              <CompanyLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size={24} />
+              <span className="text-white font-bold text-base leading-tight truncate max-w-full drop-shadow-md">
                 {stock.symbol}
               </span>
-              <span className="font-mono font-bold text-base leading-tight" style={{ color }}>
+              <span className="font-mono font-bold text-lg leading-tight text-white drop-shadow-md">
                 {change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` : "—"}
               </span>
-              <span className="text-white/60 text-[9px] leading-tight truncate max-w-full mt-0.5">
+              <span className="text-white/80 text-xs leading-tight truncate max-w-full">
+                {stock.price?.toFixed(2)} AED
+              </span>
+            </>
+          ) : isLarge ? (
+            <>
+              <CompanyLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size={20} />
+              <span className="text-white font-bold text-sm leading-tight truncate max-w-full drop-shadow-md">
+                {stock.symbol}
+              </span>
+              <span className="font-mono font-bold text-base leading-tight text-white drop-shadow-md">
+                {change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` : "—"}
+              </span>
+              <span className="text-white/70 text-[10px] leading-tight truncate max-w-full">
                 {stock.price?.toFixed(2)} AED
               </span>
             </>
           ) : isMedium ? (
             <>
-              <span className="text-white font-bold text-xs leading-tight truncate max-w-full">
+              <CompanyLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size={16} />
+              <span className="text-white font-bold text-xs leading-tight truncate max-w-full drop-shadow-md">
                 {stock.symbol}
               </span>
-              <span className="font-mono font-bold text-[11px] leading-tight" style={{ color }}>
+              <span className="font-mono font-bold text-[12px] leading-tight text-white drop-shadow-md">
                 {change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` : "—"}
               </span>
             </>
           ) : isSmall ? (
             <>
-              <span className="text-white font-bold text-[9px] leading-tight truncate max-w-full">
+              <span className="text-white font-bold text-[10px] leading-tight truncate max-w-full drop-shadow-md">
                 {stock.symbol}
               </span>
-              <span className="font-mono text-[8px] leading-tight" style={{ color }}>
+              <span className="font-mono font-bold text-[9px] leading-tight text-white drop-shadow-md">
                 {change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}%` : ""}
               </span>
             </>
           ) : (
-            <span className="text-white/80 text-[7px] font-bold truncate">
+            <span className="text-white font-bold text-[8px] truncate drop-shadow-md">
               {stock.symbol.slice(0, 4)}
             </span>
           )}
