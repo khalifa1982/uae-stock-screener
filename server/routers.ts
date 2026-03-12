@@ -21,6 +21,7 @@ import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
+import { getEarningsTranscript } from "./services/earningsTranscriptService";
 
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
@@ -1088,6 +1089,15 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         })).filter((p: any) => p.close > 0);
         return computeSeasonality(chartData);
       }),
+    // ─── Earnings Transcript ─────────────────────────────────────
+    earningsTranscript: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) throw new Error("Stock not found");
+        return getEarningsTranscript(input.symbol);
+      }),
+
     // Corporate events calendar (earnings & dividends from TradingView)
     corporateEvents: publicProcedure
       .query(async () => {

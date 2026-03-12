@@ -10,6 +10,8 @@ import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
+import { AnalystConsensus } from "@/components/AnalystConsensus";
+import { EarningsTranscripts } from "@/components/EarningsTranscripts";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { useRealtimePrice } from "@/hooks/useRealtimePrices";
@@ -252,7 +254,7 @@ export default function StockDetail() {
   const params = useParams<{ symbol: string }>();
   const [, setLocation] = useLocation();
   const symbol = params.symbol || "";
-  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y">("3mo");
+  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("3mo");
   const [activeTab, setActiveTab] = useState("overview");
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
@@ -267,7 +269,7 @@ export default function StockDetail() {
 
   const chartInterval = chartRange === "1d" ? "15min" : "1d";
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
-    { symbol, range: chartRange, interval: chartInterval },
+    { symbol, range: chartRange, interval: chartInterval } as any,
     { enabled: !!symbol, staleTime: 300_000, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
@@ -387,6 +389,7 @@ export default function StockDetail() {
           <TabsTrigger value="forecasts" className="text-xs gap-1.5"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
           <TabsTrigger value="seasonals" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
+          <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
           <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> AI Analysis</TabsTrigger>
         </TabsList>
 
@@ -402,7 +405,29 @@ export default function StockDetail() {
             chartLoading={chartLoading}
           />
 
-          {/* Key Metrics + Quick Technical */}
+          {/* Analyst Consensus + Key Metrics + Quick Technical */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+            {/* Analyst Consensus Widget */}
+            {profile && (profile.targetMeanPrice != null || profile.recommendationKey != null || profile.tvRecommendation != null) && (
+              <div className="lg:col-span-3">
+                <AnalystConsensus
+                  recommendation={profile.tvRecommendation ?? (profile.recommendationMean != null ? ((5 - profile.recommendationMean) / 2 - 1) : null)}
+                  totalAnalysts={profile.numberOfAnalystOpinions ?? null}
+                  strongBuy={profile.recommendations?.[0]?.strongBuy ?? null}
+                  buy={profile.recommendations?.[0]?.buy ?? null}
+                  hold={profile.recommendations?.[0]?.hold ?? null}
+                  sell={profile.recommendations?.[0]?.sell ?? null}
+                  strongSell={profile.recommendations?.[0]?.strongSell ?? null}
+                  targetLow={profile.targetLowPrice ?? null}
+                  targetHigh={profile.targetHighPrice ?? null}
+                  targetMean={profile.targetMeanPrice ?? profile.targetMedianPrice ?? null}
+                  targetMedian={profile.targetMedianPrice ?? null}
+                  currentPrice={price}
+                  symbol={symbol}
+                />
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
             <Card className="border-border/50 lg:col-span-2">
               <CardHeader className="pb-1">
@@ -923,8 +948,26 @@ export default function StockDetail() {
             <div className="space-y-1.5"><Skeleton className="h-48 rounded" /><Skeleton className="h-32 rounded" /></div>
           ) : profile ? (
             <>
+              {/* Quick Nav for Profile Sections */}
+              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20 rounded-lg border border-border/30">
+                {["About", "Financials", "Officers", "Analysts", "Holdings"].map(section => (
+                  <Button
+                    key={section}
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-2 text-[9px] text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      const el = document.getElementById(`profile-${section.toLowerCase()}`);
+                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
+                    {section}
+                  </Button>
+                ))}
+              </div>
+
               {/* Company Info */}
-              <Card className="border-border/50">
+              <Card id="profile-about" className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-primary" /> About {stockInfo.name}
@@ -947,10 +990,17 @@ export default function StockDetail() {
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Exchange</p><p className="font-medium">{stockInfo.exchange}</p></div>
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Symbol</p><p className="font-medium">{symbol}</p></div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {/* Key Financial Summary in Profile */}
-                  <Separator className="my-4" />
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financial Snapshot</h4>
+              {/* Financial Snapshot */}
+              <Card id="profile-financials" className="border-border/50">
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" /> Financial Snapshot
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
                     {profile.marketCap && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Market Cap</p><p className="text-[11px] font-bold font-mono">{formatLargeNumber(profile.marketCap)}</p></div>}
                     {profile.trailingPE && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">P/E Ratio</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.trailingPE, 1)}</p></div>}
@@ -961,12 +1011,27 @@ export default function StockDetail() {
                     {profile.currentRatio && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Current Ratio</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.currentRatio, 2)}</p></div>}
                     {profile.beta && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Beta</p><p className="text-[11px] font-bold font-mono">{formatNumber(profile.beta, 2)}</p></div>}
                   </div>
+                  {/* Profitability Metrics */}
+                  {(profile.tvGrossMargin != null || profile.tvOperatingMargin != null || profile.tvNetMargin != null) && (
+                    <>
+                      <Separator className="my-3" />
+                      <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Profitability</h4>
+                      <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
+                        {profile.tvGrossMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Gross Margin</p><p className="text-[11px] font-bold font-mono">{(profile.tvGrossMargin * 100).toFixed(1)}%</p></div>}
+                        {profile.tvOperatingMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Op. Margin</p><p className="text-[11px] font-bold font-mono">{(profile.tvOperatingMargin * 100).toFixed(1)}%</p></div>}
+                        {profile.tvNetMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Net Margin</p><p className="text-[11px] font-bold font-mono">{(profile.tvNetMargin * 100).toFixed(1)}%</p></div>}
+                        {profile.tvROA != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">ROA</p><p className="text-[11px] font-bold font-mono">{(profile.tvROA * 100).toFixed(1)}%</p></div>}
+                        {profile.tvROE != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">ROE</p><p className="text-[11px] font-bold font-mono">{(profile.tvROE * 100).toFixed(1)}%</p></div>}
+                        {profile.tvROIC != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">ROIC</p><p className="text-[11px] font-bold font-mono">{(profile.tvROIC * 100).toFixed(1)}%</p></div>}
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Officers */}
               {profile.officers && profile.officers.length > 0 && (
-                <Card className="border-border/50">
+                <Card id="profile-officers" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Users className="h-4 w-4 text-primary" /> Key Officers & Board
@@ -994,7 +1059,7 @@ export default function StockDetail() {
 
               {/* Analyst Recommendations */}
               {profile.recommendations && profile.recommendations.length > 0 && (
-                <Card className="border-border/50">
+                <Card id="profile-analysts" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" /> Analyst Recommendations
@@ -1044,7 +1109,7 @@ export default function StockDetail() {
 
               {/* Insider Holdings */}
               {profile.insiderHolders && profile.insiderHolders.length > 0 && (
-                <Card className="border-border/50">
+                <Card id="profile-holdings" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" /> Insider Holdings
@@ -1098,6 +1163,11 @@ export default function StockDetail() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ═══════════════ TRANSCRIPTS TAB ═══════════════ */}
+        <TabsContent value="transcripts" className="space-y-2 mt-4">
+          <EarningsTranscripts symbol={symbol} companyName={stockInfo?.name} />
         </TabsContent>
 
         {/* ═══════════════ AI ANALYSIS TAB ═══════════════ */}

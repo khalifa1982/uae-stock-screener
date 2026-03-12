@@ -141,16 +141,16 @@ export function MarketStatusBadge() {
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs">
+        <TooltipContent side="bottom" className="max-w-xs bg-popover text-popover-foreground">
           <div className="space-y-1.5">
-            <p className="font-medium text-[11px]">{status.label}</p>
-            <p className="text-xs text-muted-foreground">{status.description}</p>
+            <p className="font-medium text-[11px] text-popover-foreground">{status.label}</p>
+            <p className="text-xs text-popover-foreground/80">{status.description}</p>
             
             {/* Countdown Timer - prominent display */}
             {status.countdown && (
               <div className="flex items-center gap-2 text-xs pt-1 border-t border-border/50">
                 <Timer className="h-3.5 w-3.5 text-primary" />
-                <span className="font-semibold text-foreground">{countdownDesc}</span>
+                <span className="font-semibold text-popover-foreground">{countdownDesc}</span>
               </div>
             )}
             
@@ -160,7 +160,7 @@ export function MarketStatusBadge() {
                 <span>{status.holiday.name}{status.holiday.nameAr ? ` — ${status.holiday.nameAr}` : ""}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
+            <div className="flex items-center gap-2 text-xs text-popover-foreground/80 pt-1 border-t border-border/50">
               <Clock className="h-3 w-3" />
               <span>{status.uaeDayStr}, {status.uaeTimeStr} UAE (GMT+4)</span>
             </div>
@@ -171,11 +171,11 @@ export function MarketStatusBadge() {
               </div>
             )}
             {status.countdown && (
-              <p className="text-xs text-muted-foreground">
-                Next: <span className="font-medium text-foreground">{status.nextPhaseLabel}</span>
+              <p className="text-xs text-popover-foreground/80">
+                Next: <span className="font-medium text-popover-foreground">{status.nextPhaseLabel}</span>
               </p>
             )}
-            <div className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/50">
+            <div className="text-[10px] text-popover-foreground/70 pt-1 border-t border-border/50">
               <p>Mon-Fri: Pre-Open 9:00 · Open 9:30 · Pre-Close 2:50 · Close 3:00</p>
             </div>
           </div>

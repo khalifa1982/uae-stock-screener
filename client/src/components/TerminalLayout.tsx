@@ -11,6 +11,7 @@ import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
+import { QuickSearch } from "@/components/QuickSearch";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -202,8 +203,9 @@ export default function TerminalLayout({
           )}
         </div>
 
-        {/* Right side: Market Status + Controls */}
+        {/* Right side: Search + Market Status + Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
+          <QuickSearch />
           <MarketStatusBadge />
 
           {toggleTheme && (

@@ -782,5 +782,49 @@
 - [x] Fix: TwelveData API key error - symbol mapping issue (EMAAR→EMAR) fixed in twelveDataService.ts
 - [x] Fix: TwelveData API key updated and verified working
 - [x] Redesign: Market Heatmap as treemap layout with proportional tiles, green/red intensity by % change
-- [ ] Fix: Verify terminal redesign is deployed (old sidebar still showing on production)
-- [ ] Build and deploy v9.8
+- [x] Fix: Verify terminal redesign is deployed - Northflank project ID corrected
+- [x] Build and deploy v9.8
+
+## Phase 31 - Tooltip Contrast & Domain Fix
+
+- [ ] Fix: Market status tooltip text barely visible in dark mode (faint text on dark background)
+- [ ] Fix: Non-www domain (uae.market) shows error or downloads file instead of loading site
+- [ ] Build and deploy v9.8.1
+
+## Phase 32 - Analyst Consensus, Earnings Transcripts, Chart Enhancements, Search
+
+### Analyst Consensus Widget
+- [x] Build Analyst Consensus component with bearish/neutral/bullish breakdown bar
+- [x] Price target slider (Low, Current, Average, High) with gradient
+- [x] Consensus rating label (Strong Buy/Buy/Hold/Sell/Strong Sell) with analyst count
+- [x] Integrate into stock detail page under a dedicated section
+- [x] Generate consensus data from available analyst/financial data
+
+### Earnings Transcripts
+- [x] Build Earnings Transcripts page/section for each stock symbol
+- [x] Chapter and section headers for structured navigation
+- [x] Inline speaker info (CEO, CFO, analyst names with titles)
+- [x] Outline/table of contents sidebar to jump between sections
+- [x] Collapsible sections for easy reading
+- [x] Fetch/generate earnings call transcript data
+
+### Enhanced Chart Toolbar
+- [x] Add drawing tools to chart (trendlines, horizontal lines, fibonacci)
+- [x] Chart crosshair with price/date tooltip
+- [x] Proactive chart annotations (earnings dates, dividend dates on chart)
+- [x] Improved chart interaction and zoom controls
+
+### Improved Symbol Profile Page
+- [x] Redesign stock detail page with professional sectioned layout
+- [x] Compact, information-dense sections with clear headers
+- [x] Better organization of financial data, technicals, and company info
+
+### Instant Search with Autosuggest
+- [x] Search triggers after first letter typed (not waiting for multiple chars)
+- [x] Show symbol short names in search results
+- [x] Quick access autosuggest dropdown with categorized results
+- [x] Keyboard navigation support in search results
+
+### Build & Deploy
+- [ ] Update APP_VERSION to v9.9
+- [ ] Build and deploy Docker v9.9 to Northflank

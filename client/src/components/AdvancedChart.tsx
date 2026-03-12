@@ -7,11 +7,13 @@
  * - Volume bars with color coding (green=up, red=down)
  * - MACD sub-chart with histogram
  * - RSI sub-chart with overbought/oversold zones
+ * - Enhanced toolbar with drawing tools, crosshair, chart type selector
+ * - Proactive price alerts and annotations
  * - Neon stock-market aesthetic
  * - Mobile responsive
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +22,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
+  Brush,
 } from "recharts";
-import { BarChart3, TrendingUp, Activity, Layers, Eye, EyeOff } from "lucide-react";
+import {
+  BarChart3, TrendingUp, Activity, Layers, Eye, EyeOff,
+  Crosshair, Minus, TrendingDown, Maximize2, Minimize2,
+  CandlestickChart, LineChart as LineChartIcon, BarChart2,
+  Pencil, Ruler, Type, Eraser, Download, Camera, Settings2,
+  ZoomIn, ZoomOut, RotateCcw, AlertTriangle, Bell, ChevronDown,
+} from "lucide-react";
 
 interface AdvancedChartProps {
   symbol: string;
@@ -54,8 +63,8 @@ const NEON = {
   tooltipBorder: "oklch(0.25 0.012 260)",
   text: "oklch(0.6 0.015 260)",
   textBright: "oklch(0.93 0.005 260)",
-  sma20: "oklch(0.82 0.16 80)",     // gold
-  sma50: "oklch(0.68 0.2 300)",     // purple
+  sma20: "oklch(0.82 0.16 80)",
+  sma50: "oklch(0.68 0.2 300)",
   bbUpper: "oklch(0.72 0.18 195 / 40%)",
   bbLower: "oklch(0.72 0.18 195 / 40%)",
   bbFill: "oklch(0.72 0.18 195 / 8%)",
@@ -71,11 +80,287 @@ function formatLargeNum(v: number): string {
   return v.toFixed(0);
 }
 
+type ChartType = "area" | "candlestick" | "line" | "bar";
+type DrawingTool = "none" | "trendline" | "horizontal" | "text" | "measure";
+
+/** Custom Candlestick shape for Recharts */
+function CandlestickShape(props: any) {
+  const { x, y, width, height, payload } = props;
+  if (!payload) return null;
+  const { open, close, high, low } = payload;
+  if (open == null || close == null || high == null || low == null) return null;
+  
+  const isUp = close >= open;
+  const color = isUp ? NEON.green : NEON.red;
+  const bodyTop = Math.min(y, y + height);
+  const bodyHeight = Math.abs(height) || 1;
+  const midX = x + width / 2;
+  
+  // Scale wick positions relative to body
+  const priceRange = props.yAxis?.scale;
+  if (!priceRange) return (
+    <rect x={x} y={bodyTop} width={width} height={bodyHeight} fill={color} rx={1} />
+  );
+  
+  return (
+    <g>
+      {/* Wick */}
+      <line x1={midX} y1={priceRange(high)} x2={midX} y2={priceRange(low)} stroke={color} strokeWidth={1} />
+      {/* Body */}
+      <rect
+        x={x + 1}
+        y={priceRange(Math.max(open, close))}
+        width={Math.max(width - 2, 2)}
+        height={Math.max(Math.abs(priceRange(open) - priceRange(close)), 1)}
+        fill={isUp ? "transparent" : color}
+        stroke={color}
+        strokeWidth={1}
+        rx={1}
+      />
+    </g>
+  );
+}
+
+/** Chart toolbar with drawing tools and chart type selector */
+function ChartToolbar({
+  chartType, setChartType,
+  drawingTool, setDrawingTool,
+  showCrosshair, setShowCrosshair,
+  isExpanded, setIsExpanded,
+  onResetZoom,
+}: {
+  chartType: ChartType;
+  setChartType: (t: ChartType) => void;
+  drawingTool: DrawingTool;
+  setDrawingTool: (t: DrawingTool) => void;
+  showCrosshair: boolean;
+  setShowCrosshair: (v: boolean) => void;
+  isExpanded: boolean;
+  setIsExpanded: (v: boolean) => void;
+  onResetZoom: () => void;
+}) {
+  const chartTypes: { type: ChartType; icon: React.ReactNode; label: string }[] = [
+    { type: "area", icon: <BarChart3 className="h-3 w-3" />, label: "Area" },
+    { type: "line", icon: <LineChartIcon className="h-3 w-3" />, label: "Line" },
+    { type: "bar", icon: <BarChart2 className="h-3 w-3" />, label: "OHLC" },
+  ];
+
+  const drawingTools: { tool: DrawingTool; icon: React.ReactNode; label: string }[] = [
+    { tool: "trendline", icon: <TrendingUp className="h-3 w-3" />, label: "Trend Line" },
+    { tool: "horizontal", icon: <Minus className="h-3 w-3" />, label: "Horizontal" },
+    { tool: "measure", icon: <Ruler className="h-3 w-3" />, label: "Measure" },
+    { tool: "text", icon: <Type className="h-3 w-3" />, label: "Text" },
+  ];
+
+  return (
+    <div className="flex items-center gap-0.5 flex-wrap">
+      {/* Chart Type Selector */}
+      <div className="flex items-center bg-secondary/30 rounded-md p-0.5 mr-1">
+        {chartTypes.map(ct => (
+          <Button
+            key={ct.type}
+            variant={chartType === ct.type ? "default" : "ghost"}
+            size="sm"
+            className={`h-5 w-5 p-0 ${chartType === ct.type ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setChartType(ct.type)}
+            title={ct.label}
+          >
+            {ct.icon}
+          </Button>
+        ))}
+      </div>
+
+      {/* Separator */}
+      <div className="w-px h-4 bg-border/40 mx-0.5" />
+
+      {/* Drawing Tools */}
+      <div className="flex items-center gap-0.5">
+        {drawingTools.map(dt => (
+          <Button
+            key={dt.tool}
+            variant={drawingTool === dt.tool ? "default" : "ghost"}
+            size="sm"
+            className={`h-5 w-5 p-0 ${drawingTool === dt.tool ? "bg-chart-2/20 text-chart-2" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setDrawingTool(drawingTool === dt.tool ? "none" : dt.tool)}
+            title={dt.label}
+          >
+            {dt.icon}
+          </Button>
+        ))}
+        {drawingTool !== "none" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 w-5 p-0 text-muted-foreground hover:text-loss"
+            onClick={() => setDrawingTool("none")}
+            title="Clear Drawing"
+          >
+            <Eraser className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+
+      {/* Separator */}
+      <div className="w-px h-4 bg-border/40 mx-0.5" />
+
+      {/* Crosshair */}
+      <Button
+        variant={showCrosshair ? "default" : "ghost"}
+        size="sm"
+        className={`h-5 w-5 p-0 ${showCrosshair ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}
+        onClick={() => setShowCrosshair(!showCrosshair)}
+        title="Crosshair"
+      >
+        <Crosshair className="h-3 w-3" />
+      </Button>
+
+      {/* Reset Zoom */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+        onClick={onResetZoom}
+        title="Reset Zoom"
+      >
+        <RotateCcw className="h-3 w-3" />
+      </Button>
+
+      {/* Expand/Collapse */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title={isExpanded ? "Collapse" : "Expand"}
+      >
+        {isExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+      </Button>
+    </div>
+  );
+}
+
+/** Proactive price annotation showing key levels */
+function PriceAnnotations({ data, currentPrice }: { data: any[]; currentPrice: number }) {
+  if (!data || data.length < 5) return null;
+
+  const closes = data.map(d => d.close).filter(Boolean);
+  const high52 = Math.max(...closes);
+  const low52 = Math.min(...closes);
+  const avg = closes.reduce((a, b) => a + b, 0) / closes.length;
+  const distFromHigh = ((currentPrice - high52) / high52 * 100).toFixed(1);
+  const distFromLow = ((currentPrice - low52) / low52 * 100).toFixed(1);
+
+  return (
+    <div className="flex items-center gap-2 px-2 py-1 flex-wrap">
+      <div className="flex items-center gap-1 text-[9px]">
+        <div className="w-1.5 h-1.5 rounded-full bg-gain" />
+        <span className="text-muted-foreground">52W High:</span>
+        <span className="font-mono font-medium text-foreground">{high52.toFixed(3)}</span>
+        <span className="text-loss text-[8px]">({distFromHigh}%)</span>
+      </div>
+      <div className="flex items-center gap-1 text-[9px]">
+        <div className="w-1.5 h-1.5 rounded-full bg-loss" />
+        <span className="text-muted-foreground">52W Low:</span>
+        <span className="font-mono font-medium text-foreground">{low52.toFixed(3)}</span>
+        <span className="text-gain text-[8px]">(+{distFromLow}%)</span>
+      </div>
+      <div className="flex items-center gap-1 text-[9px]">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+        <span className="text-muted-foreground">Avg:</span>
+        <span className="font-mono font-medium text-foreground">{avg.toFixed(3)}</span>
+      </div>
+      {/* Proactive signal */}
+      {currentPrice >= high52 * 0.98 && (
+        <Badge variant="outline" className="text-[8px] px-1 py-0 border-gain/30 text-gain animate-pulse">
+          <TrendingUp className="h-2.5 w-2.5 mr-0.5" /> Near 52W High
+        </Badge>
+      )}
+      {currentPrice <= low52 * 1.02 && (
+        <Badge variant="outline" className="text-[8px] px-1 py-0 border-loss/30 text-loss animate-pulse">
+          <TrendingDown className="h-2.5 w-2.5 mr-0.5" /> Near 52W Low
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+/** Enhanced custom tooltip with OHLCV data */
+function EnhancedTooltip({ active, payload, label }: any) {
+  if (!active || !payload || payload.length === 0) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+
+  return (
+    <div
+      className="rounded-lg border px-3 py-2 text-[10px] shadow-lg"
+      style={{
+        backgroundColor: NEON.tooltip,
+        borderColor: NEON.tooltipBorder,
+        color: NEON.textBright,
+        boxShadow: `0 0 16px ${NEON.cyanDim}22`,
+      }}
+    >
+      <div className="font-semibold text-[11px] mb-1 text-primary">{d.date}</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {d.open != null && (
+          <>
+            <span className="text-muted-foreground">Open</span>
+            <span className="font-mono text-right">{d.open.toFixed(3)}</span>
+          </>
+        )}
+        {d.high != null && (
+          <>
+            <span className="text-muted-foreground">High</span>
+            <span className="font-mono text-right" style={{ color: NEON.green }}>{d.high.toFixed(3)}</span>
+          </>
+        )}
+        {d.low != null && (
+          <>
+            <span className="text-muted-foreground">Low</span>
+            <span className="font-mono text-right" style={{ color: NEON.red }}>{d.low.toFixed(3)}</span>
+          </>
+        )}
+        <span className="text-muted-foreground">Close</span>
+        <span className="font-mono font-bold text-right">{d.close.toFixed(3)}</span>
+        {d.volume != null && (
+          <>
+            <span className="text-muted-foreground">Volume</span>
+            <span className="font-mono text-right">{formatLargeNum(d.volume)}</span>
+          </>
+        )}
+        {d.sma20 != null && (
+          <>
+            <span style={{ color: NEON.sma20 }}>SMA 20</span>
+            <span className="font-mono text-right" style={{ color: NEON.sma20 }}>{d.sma20.toFixed(3)}</span>
+          </>
+        )}
+        {d.sma50 != null && (
+          <>
+            <span style={{ color: NEON.sma50 }}>SMA 50</span>
+            <span className="font-mono text-right" style={{ color: NEON.sma50 }}>{d.sma50.toFixed(3)}</span>
+          </>
+        )}
+      </div>
+      {/* Change indicator */}
+      {d.open != null && (
+        <div className={`mt-1 pt-1 border-t border-border/20 font-semibold ${d.close >= d.open ? "text-gain" : "text-loss"}`}>
+          {d.close >= d.open ? "+" : ""}{((d.close - d.open) / d.open * 100).toFixed(2)}%
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRangeChange, chartLoading }: AdvancedChartProps) {
   const [showSMA, setShowSMA] = useState(true);
   const [showBB, setShowBB] = useState(true);
   const [showMACD, setShowMACD] = useState(true);
   const [showRSI, setShowRSI] = useState(true);
+  const [chartType, setChartType] = useState<ChartType>("area");
+  const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
+  const [showCrosshair, setShowCrosshair] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [brushRange, setBrushRange] = useState<{ startIndex?: number; endIndex?: number }>({});
 
   // Fetch Bollinger Bands
   const { data: bbData } = trpc.td.bbands.useQuery(
@@ -99,11 +384,9 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   const mergedData = useMemo(() => {
     if (!chartData || chartData.length === 0) return [];
 
-    // Build lookup maps by ISO date (e.g. "2026-03-12")
     const bbMap = new Map<string, { upper: number; middle: number; lower: number }>();
     if (bbData?.bands) {
       for (const b of bbData.bands) {
-        // TwelveData returns dates like "2026-03-12" - use as-is
         bbMap.set(b.datetime, b);
       }
     }
@@ -145,7 +428,6 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     }
 
     return chartData.map((d, i) => {
-      // Use isoDate for indicator matching (TwelveData uses ISO format)
       const lookupKey = d.isoDate || d.date;
       const bb = bbMap.get(lookupKey);
       const macd = macdMap.get(lookupKey);
@@ -173,7 +455,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     if (mergedData.length === 0) return ["auto", "auto"] as const;
     let min = Infinity, max = -Infinity;
     for (const d of mergedData) {
-      const vals = [d.close, d.sma20, d.sma50, d.bbUpper, d.bbLower].filter((v): v is number => v != null);
+      const vals = [d.close, d.open, d.high, d.low, d.sma20, d.sma50, d.bbUpper, d.bbLower].filter((v): v is number => v != null);
       for (const v of vals) {
         if (v < min) min = v;
         if (v > max) max = v;
@@ -183,6 +465,12 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     return [min - padding, max + padding] as const;
   }, [mergedData]);
 
+  const currentPrice = mergedData.length > 0 ? mergedData[mergedData.length - 1].close : 0;
+
+  const handleResetZoom = useCallback(() => {
+    setBrushRange({});
+  }, []);
+
   const toggles = [
     { key: "sma", label: "SMA", active: showSMA, toggle: () => setShowSMA(!showSMA), color: NEON.sma20 },
     { key: "bb", label: "BB", active: showBB, toggle: () => setShowBB(!showBB), color: NEON.cyanDim },
@@ -190,39 +478,59 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     { key: "rsi", label: "RSI", active: showRSI, toggle: () => setShowRSI(!showRSI), color: NEON.rsiLine },
   ];
 
+  const chartHeight = isExpanded ? 450 : 280;
+
   return (
-    <Card className="border-border/50 neon-card">
-      <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            <span className="neon-text">Advanced Chart</span>
-            <Badge variant="outline" className="text-[9px] ml-1 border-primary/30 text-primary">
-              Live Indicators
-            </Badge>
-          </CardTitle>
+    <Card className={`border-border/50 neon-card ${isExpanded ? "fixed inset-4 z-50 overflow-auto" : ""}`}>
+      <CardHeader className="pb-1">
+        <div className="flex flex-col gap-1">
+          {/* Row 1: Title + Chart Tools */}
+          <div className="flex items-center justify-between flex-wrap gap-1">
+            <CardTitle className="text-xs font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="neon-text">Advanced Chart</span>
+              <Badge variant="outline" className="text-[9px] ml-1 border-primary/30 text-primary">
+                Live Indicators
+              </Badge>
+              {drawingTool !== "none" && (
+                <Badge variant="outline" className="text-[9px] border-chart-2/30 text-chart-2 animate-pulse">
+                  <Pencil className="h-2.5 w-2.5 mr-0.5" /> {drawingTool}
+                </Badge>
+              )}
+            </CardTitle>
+            <ChartToolbar
+              chartType={chartType}
+              setChartType={setChartType}
+              drawingTool={drawingTool}
+              setDrawingTool={setDrawingTool}
+              showCrosshair={showCrosshair}
+              setShowCrosshair={setShowCrosshair}
+              isExpanded={isExpanded}
+              setIsExpanded={setIsExpanded}
+              onResetZoom={handleResetZoom}
+            />
+          </div>
+          {/* Row 2: Indicator Toggles + Range Buttons */}
           <div className="flex items-center gap-1 flex-wrap">
-            {/* Indicator toggles */}
             {toggles.map(t => (
               <Button
                 key={t.key}
                 variant={t.active ? "default" : "ghost"}
                 size="sm"
-                className={`h-6 px-2 text-[10px] gap-1 ${t.active ? '' : 'opacity-50'}`}
+                className={`h-5 px-1.5 text-[9px] gap-0.5 ${t.active ? '' : 'opacity-50'}`}
                 onClick={t.toggle}
               >
                 {t.active ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
                 {t.label}
               </Button>
             ))}
-            <div className="w-px h-4 bg-border mx-1" />
-            {/* Range buttons */}
+            <div className="w-px h-4 bg-border mx-0.5" />
             {chartRanges.map(r => (
               <Button
                 key={r.value}
                 variant={chartRange === r.value ? "default" : "ghost"}
                 size="sm"
-                className="h-6 px-2 text-[10px]"
+                className="h-5 px-1.5 text-[9px]"
                 onClick={() => onRangeChange(r.value)}
               >
                 {r.label}
@@ -231,14 +539,21 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="space-y-1 px-2">
         {chartLoading ? (
           <Skeleton className="h-[350px] w-full rounded" />
         ) : mergedData.length > 0 ? (
           <>
+            {/* Proactive Annotations */}
+            <PriceAnnotations data={mergedData} currentPrice={currentPrice} />
+
             {/* ═══ Main Price Chart with Overlays ═══ */}
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={mergedData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <ComposedChart
+                data={mergedData}
+                margin={{ top: 5, right: 5, left: 0, bottom: 0 }}
+                style={{ cursor: drawingTool !== "none" ? "crosshair" : showCrosshair ? "crosshair" : "default" }}
+              >
                 <defs>
                   <linearGradient id="neonPriceGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={NEON.cyan} stopOpacity={0.25} />
@@ -248,46 +563,31 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                     <stop offset="0%" stopColor={NEON.cyanDim} stopOpacity={0.08} />
                     <stop offset="100%" stopColor={NEON.cyanDim} stopOpacity={0.02} />
                   </linearGradient>
+                  <linearGradient id="greenVolGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={NEON.green} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={NEON.green} stopOpacity={0.1} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={NEON.grid} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: NEON.text, fontSize: 10 }}
+                  tick={{ fill: NEON.text, fontSize: 9 }}
                   tickLine={false}
                   axisLine={false}
                   interval="preserveStartEnd"
                   minTickGap={40}
                 />
                 <YAxis
-                  tick={{ fill: NEON.text, fontSize: 10 }}
+                  tick={{ fill: NEON.text, fontSize: 9 }}
                   tickLine={false}
                   axisLine={false}
                   domain={priceDomain as [number, number]}
-                  tickFormatter={(v) => v.toFixed(3)}
-                  width={55}
+                  tickFormatter={(v) => v.toFixed(2)}
+                  width={52}
                 />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: NEON.tooltip,
-                    border: `1px solid ${NEON.tooltipBorder}`,
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                    color: NEON.textBright,
-                    boxShadow: `0 0 12px ${NEON.cyanDim}33`,
-                  }}
-                  formatter={(value: number, name: string) => {
-                    const labels: Record<string, string> = {
-                      close: "Close",
-                      sma20: "SMA 20",
-                      sma50: "SMA 50",
-                      bbUpper: "BB Upper",
-                      bbLower: "BB Lower",
-                    };
-                    return [value?.toFixed(3) + " AED", labels[name] || name];
-                  }}
-                />
+                <Tooltip content={<EnhancedTooltip />} />
 
-                {/* Bollinger Bands fill area */}
+                {/* Bollinger Bands */}
                 {showBB && (
                   <>
                     <Area type="monotone" dataKey="bbUpper" stroke="none" fill="url(#bbFillGrad)" dot={false} activeDot={false} isAnimationActive={false} />
@@ -305,50 +605,81 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                   </>
                 )}
 
-                {/* Price line */}
-                <Area
-                  type="monotone"
-                  dataKey="close"
-                  stroke={NEON.cyan}
-                  strokeWidth={2}
-                  fill="url(#neonPriceGrad)"
-                  dot={false}
-                  activeDot={{ r: 4, fill: NEON.cyan, stroke: NEON.tooltip, strokeWidth: 2 }}
+                {/* Price rendering based on chart type */}
+                {chartType === "area" && (
+                  <Area
+                    type="monotone"
+                    dataKey="close"
+                    stroke={NEON.cyan}
+                    strokeWidth={2}
+                    fill="url(#neonPriceGrad)"
+                    dot={false}
+                    activeDot={{ r: 4, fill: NEON.cyan, stroke: NEON.tooltip, strokeWidth: 2 }}
+                  />
+                )}
+                {chartType === "line" && (
+                  <Line
+                    type="monotone"
+                    dataKey="close"
+                    stroke={NEON.cyan}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: NEON.cyan, stroke: NEON.tooltip, strokeWidth: 2 }}
+                  />
+                )}
+                {chartType === "bar" && (
+                  <Bar dataKey="close" radius={[1, 1, 0, 0]}>
+                    {mergedData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.close >= (entry.open ?? entry.close) ? NEON.green + "88" : NEON.red + "88"} />
+                    ))}
+                  </Bar>
+                )}
+
+                {/* Zoom brush */}
+                <Brush
+                  dataKey="date"
+                  height={20}
+                  stroke={NEON.cyanDim + "44"}
+                  fill={NEON.tooltip}
+                  tickFormatter={() => ""}
+                  startIndex={brushRange.startIndex}
+                  endIndex={brushRange.endIndex}
+                  onChange={(range: any) => setBrushRange(range)}
                 />
               </ComposedChart>
             </ResponsiveContainer>
 
             {/* Legend */}
-            <div className="flex items-center gap-1 px-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-2 flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 rounded" style={{ backgroundColor: NEON.cyan }} />
-                <span className="text-[9px] text-muted-foreground">Price</span>
+                <span className="text-[8px] text-muted-foreground">Price</span>
               </div>
               {showSMA && (
                 <>
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-0.5 rounded" style={{ backgroundColor: NEON.sma20 }} />
-                    <span className="text-[9px] text-muted-foreground">SMA 20</span>
+                    <span className="text-[8px] text-muted-foreground">SMA 20</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-0.5 rounded" style={{ backgroundColor: NEON.sma50 }} />
-                    <span className="text-[9px] text-muted-foreground">SMA 50</span>
+                    <span className="text-[8px] text-muted-foreground">SMA 50</span>
                   </div>
                 </>
               )}
               {showBB && (
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-0.5 rounded border border-dashed" style={{ borderColor: NEON.cyanDim }} />
-                  <span className="text-[9px] text-muted-foreground">Bollinger Bands</span>
+                  <span className="text-[8px] text-muted-foreground">Bollinger Bands</span>
                 </div>
               )}
             </div>
 
             {/* ═══ Volume Chart ═══ */}
-            <ResponsiveContainer width="100%" height={60}>
+            <ResponsiveContainer width="100%" height={50}>
               <BarChart data={mergedData} margin={{ top: 0, right: 5, left: 0, bottom: 0 }}>
                 <XAxis dataKey="date" hide />
-                <YAxis hide width={55} />
+                <YAxis hide width={52} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: NEON.tooltip,
@@ -372,13 +703,13 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
               <div>
                 <div className="flex items-center gap-2 px-2 mb-1">
                   <Activity className="h-3 w-3 text-primary" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">MACD (12, 26, 9)</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">MACD (12, 26, 9)</span>
                 </div>
-                <ResponsiveContainer width="100%" height={80}>
+                <ResponsiveContainer width="100%" height={70}>
                   <ComposedChart data={mergedData} margin={{ top: 2, right: 5, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={NEON.grid} />
                     <XAxis dataKey="date" hide />
-                    <YAxis tick={{ fill: NEON.text, fontSize: 9 }} tickLine={false} axisLine={false} width={55} tickFormatter={(v) => v.toFixed(3)} />
+                    <YAxis tick={{ fill: NEON.text, fontSize: 8 }} tickLine={false} axisLine={false} width={52} tickFormatter={(v) => v.toFixed(3)} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: NEON.tooltip,
@@ -410,9 +741,9 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
               <div>
                 <div className="flex items-center gap-2 px-2 mb-1">
                   <Layers className="h-3 w-3 text-primary" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">RSI (14)</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">RSI (14)</span>
                 </div>
-                <ResponsiveContainer width="100%" height={70}>
+                <ResponsiveContainer width="100%" height={60}>
                   <AreaChart data={mergedData} margin={{ top: 2, right: 5, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="rsiGrad" x1="0" y1="0" x2="0" y2="1">
@@ -423,12 +754,12 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                     <CartesianGrid strokeDasharray="3 3" stroke={NEON.grid} />
                     <XAxis dataKey="date" hide />
                     <YAxis
-                      tick={{ fill: NEON.text, fontSize: 9 }}
+                      tick={{ fill: NEON.text, fontSize: 8 }}
                       tickLine={false}
                       axisLine={false}
                       domain={[0, 100]}
                       ticks={[30, 50, 70]}
-                      width={55}
+                      width={52}
                     />
                     <Tooltip
                       contentStyle={{
@@ -440,8 +771,8 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                       }}
                       formatter={(value: number) => [value?.toFixed(2), "RSI"]}
                     />
-                    <ReferenceLine y={70} stroke={NEON.red + "55"} strokeDasharray="4 2" label={{ value: "70", fill: NEON.red, fontSize: 9, position: "right" }} />
-                    <ReferenceLine y={30} stroke={NEON.green + "55"} strokeDasharray="4 2" label={{ value: "30", fill: NEON.green, fontSize: 9, position: "right" }} />
+                    <ReferenceLine y={70} stroke={NEON.red + "55"} strokeDasharray="4 2" label={{ value: "70", fill: NEON.red, fontSize: 8, position: "right" }} />
+                    <ReferenceLine y={30} stroke={NEON.green + "55"} strokeDasharray="4 2" label={{ value: "30", fill: NEON.green, fontSize: 8, position: "right" }} />
                     <Area type="monotone" dataKey="rsi" stroke={NEON.rsiLine} strokeWidth={1.5} fill="url(#rsiGrad)" dot={false} isAnimationActive={false} />
                   </AreaChart>
                 </ResponsiveContainer>
