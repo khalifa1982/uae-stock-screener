@@ -996,14 +996,14 @@
 - [x] Push to GitHub for Northflank auto-deploy
 
 ## Phase 45 - Improve Abboud AI Overlay Visuals
-- [ ] Make Fibonacci level lines thicker and more visible with price labels on right edge
-- [ ] Make entry zone rectangle more prominent (bolder border, semi-transparent fill like TradingView)
-- [ ] Make stop-loss line bold red with price label box on right edge
-- [ ] Make target lines bold green with TP1/TP2/TP3 price label boxes on right edge
-- [ ] Add price projection arrows (blue zigzag path showing predicted price trajectory)
-- [ ] Add swing high/low labels directly on the chart
-- [ ] Ensure overlay works well on both light and dark themes
-- [ ] Test overlay on multiple stocks to verify visual quality
+- [x] Make Fibonacci level lines thicker (1.8px) with glow effects and price labels
+- [x] Make entry zone rectangle more prominent (gradient fill, pulsing border, glow effects)
+- [x] Make stop-loss line bold red (3px) with glow and larger label box
+- [x] Make target lines bold green (2.5px) with glow and larger label boxes
+- [x] Add price projection with gradient stroke, bezier curves, and animated dots
+- [x] Add swing high/low labels with triangle markers and glow effects
+- [x] Ensure overlay works well on both light and dark themes
+- [x] Test overlay on multiple stocks to verify visual quality
 
 ## Phase 42 - v10.4: Scrapfly.io Integration, Live Ticker Bar, Aboood.AI Rename
 
@@ -1044,5 +1044,5 @@
 - [x] Verify all references are updated in deployed version
 
 ### Chart Data Fields
-- [ ] Ensure all data fields are visible on the chart
-- [ ] Check if any fields are cut off or hidden
+- [x] Ensure all data fields are visible on the chart (added current price marker)
+- [x] Check if any fields are cut off or hidden (improved label sizing)

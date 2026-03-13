@@ -1,12 +1,13 @@
 /**
- * Abboud AI Indicator Overlay
+ * Aboood.AI Indicator Overlay — Enhanced Visuals
  * 
  * Renders directly ON the price chart using a single Customized SVG renderer:
- * - Fibonacci retracement levels as horizontal lines with price labels
- * - Entry zone as a visible colored rectangle (pink/magenta)
- * - Stop-loss line (red, bold)
- * - Target lines (green, bold)
- * - Price projection arrows (blue zigzag path)
+ * - Fibonacci retracement levels with thick lines, glow effects, and price labels
+ * - Entry zone as a prominent gradient-filled rectangle with pulsing border
+ * - Stop-loss line (bold red with glow)
+ * - Target lines (bold green with glow)
+ * - Price projection arrows (gradient blue zigzag path with animated dots)
+ * - Swing High/Low labels with icons
  * - Signal summary card below the chart
  * 
  * Uses Recharts Customized component to render raw SVG, bypassing
@@ -30,15 +31,18 @@ const ABBOUD_COLORS = {
   goldDim: "oklch(0.68 0.14 80)",
   goldBright: "oklch(0.92 0.16 80)",
   entry: "#e040fb",
-  entryFill: "rgba(224, 64, 251, 0.15)",
-  entryBorder: "rgba(224, 64, 251, 0.7)",
+  entryFill: "rgba(224, 64, 251, 0.22)",
+  entryBorder: "rgba(224, 64, 251, 0.85)",
   stopLoss: "#ff1744",
-  stopLossDim: "rgba(255, 23, 68, 0.15)",
+  stopLossDim: "rgba(255, 23, 68, 0.18)",
+  stopLossGlow: "rgba(255, 23, 68, 0.5)",
   target: "#00e676",
-  targetDim: "rgba(0, 230, 118, 0.15)",
+  targetDim: "rgba(0, 230, 118, 0.18)",
+  targetGlow: "rgba(0, 230, 118, 0.5)",
   resistance: "#ff5252",
   support: "#69f0ae",
   projection: "#448aff",
+  projectionBright: "#82b1ff",
   projectionDim: "rgba(68, 138, 255, 0.3)",
   fib236: "#26c6da",
   fib382: "#66bb6a",
@@ -47,7 +51,9 @@ const ABBOUD_COLORS = {
   fib786: "#ef5350",
   swingHigh: "#ff5252",
   swingLow: "#69f0ae",
-  labelBg: "rgba(0,0,0,0.85)",
+  labelBg: "rgba(0,0,0,0.88)",
+  labelBgLight: "rgba(0,0,0,0.75)",
+  currentPrice: "#ffd54f",
 };
 
 function getFibColor(level: number): string {
@@ -103,20 +109,38 @@ function AbboudSVGRenderer(chartProps: any) {
     return y >= chartTop - 20 && y <= chartBottom + 20;
   };
 
-  // Helper: draw a dashed horizontal line with a label box on the right
+  // Unique ID for SVG defs to avoid conflicts
+  const uid = "abood-overlay";
+
+  // Helper: draw a labeled line with glow effect and prominent label box
   const drawLabeledLine = (
     price: number,
     color: string,
+    glowColor: string,
     lineWidth: number,
     dashArray: string,
     labelText: string,
     labelBgColor: string,
     key: string,
+    labelWidth: number = 90,
   ) => {
     if (!isInView(price)) return null;
     const y = clampY(yScale(price));
     return (
       <g key={key}>
+        {/* Glow line (wider, semi-transparent behind main line) */}
+        <line
+          x1={chartLeft}
+          x2={chartRight}
+          y1={y}
+          y2={y}
+          stroke={glowColor}
+          strokeWidth={lineWidth + 4}
+          strokeDasharray={dashArray}
+          opacity={0.3}
+          filter={`url(#${uid}-glow)`}
+        />
+        {/* Main line */}
         <line
           x1={chartLeft}
           x2={chartRight}
@@ -125,28 +149,30 @@ function AbboudSVGRenderer(chartProps: any) {
           stroke={color}
           strokeWidth={lineWidth}
           strokeDasharray={dashArray}
-          opacity={0.85}
+          opacity={0.92}
         />
-        {/* Label box on the right */}
+        {/* Label box on the right edge */}
         <rect
-          x={chartRight - 80}
-          y={y - 8}
-          width={78}
-          height={16}
-          rx={3}
+          x={chartRight - labelWidth - 2}
+          y={y - 10}
+          width={labelWidth}
+          height={20}
+          rx={4}
           fill={labelBgColor}
           stroke={color}
-          strokeWidth={0.8}
-          opacity={0.95}
+          strokeWidth={1.2}
+          opacity={0.97}
+          filter={`url(#${uid}-shadow)`}
         />
         <text
-          x={chartRight - 41}
+          x={chartRight - labelWidth / 2 - 2}
           y={y + 4}
           textAnchor="middle"
           fill={color}
-          fontSize={9}
+          fontSize={10}
           fontWeight="bold"
           fontFamily="monospace"
+          style={{ textShadow: `0 0 4px ${glowColor}` }}
         >
           {labelText}
         </text>
@@ -156,42 +182,125 @@ function AbboudSVGRenderer(chartProps: any) {
 
   return (
     <g className="abboud-overlay">
+      {/* ═══ SVG Defs: Filters & Gradients ═══ */}
+      <defs>
+        {/* Glow filter for lines */}
+        <filter id={`${uid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Stronger glow for entry zone */}
+        <filter id={`${uid}-glow-strong`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Drop shadow for labels */}
+        <filter id={`${uid}-shadow`} x="-10%" y="-10%" width="120%" height="130%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="rgba(0,0,0,0.6)" floodOpacity="0.6" />
+        </filter>
+        {/* Entry zone gradient */}
+        <linearGradient id={`${uid}-entry-grad`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={ABBOUD_COLORS.entry} stopOpacity="0.28" />
+          <stop offset="50%" stopColor={ABBOUD_COLORS.entry} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={ABBOUD_COLORS.entry} stopOpacity="0.28" />
+        </linearGradient>
+        {/* Projection gradient */}
+        <linearGradient id={`${uid}-proj-grad`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={ABBOUD_COLORS.projection} stopOpacity="0.6" />
+          <stop offset="50%" stopColor={ABBOUD_COLORS.projectionBright} stopOpacity="1" />
+          <stop offset="100%" stopColor={ABBOUD_COLORS.projection} stopOpacity="0.8" />
+        </linearGradient>
+        {/* Animated pulse for entry zone */}
+        <style>{`
+          @keyframes abboud-pulse {
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 0.5; }
+          }
+          .abboud-entry-border {
+            animation: abboud-pulse 2s ease-in-out infinite;
+          }
+          @keyframes abboud-dot-pulse {
+            0%, 100% { r: 5; opacity: 1; }
+            50% { r: 7; opacity: 0.7; }
+          }
+          .abboud-proj-dot {
+            animation: abboud-dot-pulse 1.5s ease-in-out infinite;
+          }
+        `}</style>
+      </defs>
+
       {/* ═══ Entry Zone Rectangle ═══ */}
       {entryZone && isInView(entryZone.low) && isInView(entryZone.high) && (() => {
         const y1 = clampY(yScale(entryZone.high));
         const y2 = clampY(yScale(entryZone.low));
+        const zoneHeight = Math.max(y2 - y1, 2);
         return (
           <g key="entry-zone">
+            {/* Background fill with gradient */}
             <rect
               x={chartLeft}
               y={y1}
               width={chartWidth}
-              height={Math.max(y2 - y1, 2)}
-              fill={ABBOUD_COLORS.entryFill}
-              stroke={ABBOUD_COLORS.entryBorder}
-              strokeWidth={1.5}
-              strokeDasharray="8 4"
-              opacity={0.9}
+              height={zoneHeight}
+              fill={`url(#${uid}-entry-grad)`}
             />
-            {/* Entry Zone label */}
+            {/* Animated pulsing border */}
             <rect
-              x={chartLeft + 8}
-              y={y1 + 4}
-              width={90}
-              height={18}
-              rx={4}
-              fill="rgba(224, 64, 251, 0.2)"
+              className="abboud-entry-border"
+              x={chartLeft}
+              y={y1}
+              width={chartWidth}
+              height={zoneHeight}
+              fill="none"
               stroke={ABBOUD_COLORS.entryBorder}
-              strokeWidth={0.8}
+              strokeWidth={2.5}
+              strokeDasharray="12 6"
+              filter={`url(#${uid}-glow)`}
+            />
+            {/* Top edge highlight */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y1} y2={y1}
+              stroke={ABBOUD_COLORS.entry}
+              strokeWidth={1}
+              opacity={0.6}
+            />
+            {/* Bottom edge highlight */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y2} y2={y2}
+              stroke={ABBOUD_COLORS.entry}
+              strokeWidth={1}
+              opacity={0.6}
+            />
+            {/* Entry Zone label - centered, larger */}
+            <rect
+              x={chartLeft + 10}
+              y={y1 + (zoneHeight / 2) - 12}
+              width={110}
+              height={24}
+              rx={5}
+              fill="rgba(224, 64, 251, 0.25)"
+              stroke={ABBOUD_COLORS.entryBorder}
+              strokeWidth={1.2}
+              filter={`url(#${uid}-shadow)`}
             />
             <text
-              x={chartLeft + 53}
-              y={y1 + 16}
+              x={chartLeft + 65}
+              y={y1 + (zoneHeight / 2) + 4}
               textAnchor="middle"
               fill={ABBOUD_COLORS.entry}
-              fontSize={10}
+              fontSize={12}
               fontWeight="bold"
               fontFamily="monospace"
+              style={{ textShadow: `0 0 6px rgba(224, 64, 251, 0.6)` }}
             >
               ENTRY ZONE
             </text>
@@ -203,45 +312,121 @@ function AbboudSVGRenderer(chartProps: any) {
       {stopLoss != null && drawLabeledLine(
         stopLoss,
         ABBOUD_COLORS.stopLoss,
-        2.5,
-        "10 5",
+        ABBOUD_COLORS.stopLossGlow,
+        3,
+        "12 6",
         `STOP ${stopLoss.toFixed(3)}`,
-        "rgba(255, 23, 68, 0.15)",
+        ABBOUD_COLORS.stopLossDim,
         "stop-loss",
+        100,
       )}
 
       {/* ═══ Target Lines ═══ */}
       {targets.map((t, i) => drawLabeledLine(
         t.price,
         ABBOUD_COLORS.target,
-        2,
-        "8 4",
+        ABBOUD_COLORS.targetGlow,
+        2.5,
+        "10 5",
         `TP${i + 1} ${t.price.toFixed(3)}`,
-        "rgba(0, 230, 118, 0.12)",
+        ABBOUD_COLORS.targetDim,
         `target-${i}`,
+        100,
       ))}
 
       {/* ═══ Swing High Line (Resistance) ═══ */}
-      {swingHigh && drawLabeledLine(
-        swingHigh.price,
-        ABBOUD_COLORS.resistance,
-        2,
-        "",
-        `RES ${swingHigh.price.toFixed(3)}`,
-        "rgba(255, 82, 82, 0.15)",
-        "swing-high",
-      )}
+      {swingHigh && isInView(swingHigh.price) && (() => {
+        const y = clampY(yScale(swingHigh.price));
+        return (
+          <g key="swing-high">
+            {/* Solid resistance line */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y} y2={y}
+              stroke={ABBOUD_COLORS.resistance}
+              strokeWidth={2.2}
+              opacity={0.85}
+              filter={`url(#${uid}-glow)`}
+            />
+            {/* Label box */}
+            <rect
+              x={chartRight - 102}
+              y={y - 10}
+              width={100}
+              height={20}
+              rx={4}
+              fill="rgba(255, 82, 82, 0.18)"
+              stroke={ABBOUD_COLORS.resistance}
+              strokeWidth={1.2}
+              filter={`url(#${uid}-shadow)`}
+            />
+            <text
+              x={chartRight - 52}
+              y={y + 4}
+              textAnchor="middle"
+              fill={ABBOUD_COLORS.resistance}
+              fontSize={10}
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              RES {swingHigh.price.toFixed(3)}
+            </text>
+            {/* Triangle marker */}
+            <polygon
+              points={`${chartLeft + 6},${y - 2} ${chartLeft + 12},${y - 10} ${chartLeft + 18},${y - 2}`}
+              fill={ABBOUD_COLORS.resistance}
+              opacity={0.8}
+            />
+          </g>
+        );
+      })()}
 
       {/* ═══ Swing Low Line (Support) ═══ */}
-      {swingLow && drawLabeledLine(
-        swingLow.price,
-        ABBOUD_COLORS.support,
-        2,
-        "",
-        `SUP ${swingLow.price.toFixed(3)}`,
-        "rgba(105, 240, 174, 0.12)",
-        "swing-low",
-      )}
+      {swingLow && isInView(swingLow.price) && (() => {
+        const y = clampY(yScale(swingLow.price));
+        return (
+          <g key="swing-low">
+            {/* Solid support line */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y} y2={y}
+              stroke={ABBOUD_COLORS.support}
+              strokeWidth={2.2}
+              opacity={0.85}
+              filter={`url(#${uid}-glow)`}
+            />
+            {/* Label box */}
+            <rect
+              x={chartRight - 102}
+              y={y - 10}
+              width={100}
+              height={20}
+              rx={4}
+              fill="rgba(105, 240, 174, 0.15)"
+              stroke={ABBOUD_COLORS.support}
+              strokeWidth={1.2}
+              filter={`url(#${uid}-shadow)`}
+            />
+            <text
+              x={chartRight - 52}
+              y={y + 4}
+              textAnchor="middle"
+              fill={ABBOUD_COLORS.support}
+              fontSize={10}
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              SUP {swingLow.price.toFixed(3)}
+            </text>
+            {/* Inverted triangle marker */}
+            <polygon
+              points={`${chartLeft + 6},${y + 2} ${chartLeft + 12},${y + 10} ${chartLeft + 18},${y + 2}`}
+              fill={ABBOUD_COLORS.support}
+              opacity={0.8}
+            />
+          </g>
+        );
+      })()}
 
       {/* ═══ Fibonacci Retracement Lines ═══ */}
       {retracementLevels.map((fib) => {
@@ -250,41 +435,76 @@ function AbboudSVGRenderer(chartProps: any) {
         const y = clampY(yScale(fib.price));
         return (
           <g key={`fib-${fib.level}`}>
+            {/* Glow behind fib line */}
             <line
-              x1={chartLeft}
-              x2={chartRight}
-              y1={y}
-              y2={y}
+              x1={chartLeft} x2={chartRight}
+              y1={y} y2={y}
               stroke={color}
-              strokeWidth={1.2}
-              strokeDasharray="5 3"
-              opacity={0.7}
+              strokeWidth={4}
+              strokeDasharray="6 4"
+              opacity={0.15}
+              filter={`url(#${uid}-glow)`}
             />
-            {/* Fib label on the left */}
+            {/* Main fib line - thicker */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y} y2={y}
+              stroke={color}
+              strokeWidth={1.8}
+              strokeDasharray="6 3"
+              opacity={0.85}
+            />
+            {/* Fib label on the left - larger and more visible */}
             <rect
               x={chartLeft + 2}
-              y={y - 14}
-              width={72}
-              height={13}
-              rx={2}
-              fill="rgba(0,0,0,0.75)"
+              y={y - 16}
+              width={82}
+              height={16}
+              rx={3}
+              fill={ABBOUD_COLORS.labelBg}
               stroke={color}
-              strokeWidth={0.5}
+              strokeWidth={0.8}
+              filter={`url(#${uid}-shadow)`}
             />
             <text
-              x={chartLeft + 38}
-              y={y - 4}
+              x={chartLeft + 43}
+              y={y - 5}
               textAnchor="middle"
               fill={color}
-              fontSize={8}
+              fontSize={9.5}
               fontWeight="bold"
               fontFamily="monospace"
+              style={{ textShadow: `0 0 3px ${color}` }}
             >
               {fib.label} {fib.price.toFixed(3)}
             </text>
           </g>
         );
       })}
+
+      {/* ═══ Current Price Marker ═══ */}
+      {isInView(currentPrice) && (() => {
+        const y = clampY(yScale(currentPrice));
+        return (
+          <g key="current-price-marker">
+            {/* Thin dotted line at current price */}
+            <line
+              x1={chartLeft} x2={chartRight}
+              y1={y} y2={y}
+              stroke={ABBOUD_COLORS.currentPrice}
+              strokeWidth={1}
+              strokeDasharray="2 3"
+              opacity={0.5}
+            />
+            {/* Small arrow on left edge */}
+            <polygon
+              points={`${chartLeft - 1},${y} ${chartLeft + 8},${y - 5} ${chartLeft + 8},${y + 5}`}
+              fill={ABBOUD_COLORS.currentPrice}
+              opacity={0.9}
+            />
+          </g>
+        );
+      })()}
 
       {/* ═══ Price Projection Arrows ═══ */}
       {priceProjection && priceProjection.length >= 2 && (() => {
@@ -301,85 +521,114 @@ function AbboudSVGRenderer(chartProps: any) {
 
         if (points.length < 2) return null;
 
-        // Build path
+        // Build smooth curve path using quadratic bezier
         const pathParts: string[] = [];
         points.forEach((p, i) => {
-          if (i === 0) pathParts.push(`M ${p.x} ${p.y}`);
-          else pathParts.push(`L ${p.x} ${p.y}`);
+          if (i === 0) {
+            pathParts.push(`M ${p.x} ${p.y}`);
+          } else {
+            // Use quadratic bezier for smoother curves
+            const prev = points[i - 1];
+            const cpX = (prev.x + p.x) / 2;
+            pathParts.push(`Q ${cpX} ${prev.y} ${p.x} ${p.y}`);
+          }
         });
 
         const lastPoint = points[points.length - 1];
         const prevPoint = points[points.length - 2];
         const angle = Math.atan2(lastPoint.y - prevPoint.y, lastPoint.x - prevPoint.x);
-        const arrowLen = 12;
+        const arrowLen = 14;
         const arrowAngle = Math.PI / 6;
 
         return (
           <g key="projection">
-            {/* Projection path */}
+            {/* Projection glow path */}
             <path
               d={pathParts.join(" ")}
               fill="none"
-              stroke={ABBOUD_COLORS.projection}
-              strokeWidth={2.5}
+              stroke={ABBOUD_COLORS.projectionDim}
+              strokeWidth={8}
               strokeLinecap="round"
               strokeLinejoin="round"
-              opacity={0.9}
+              filter={`url(#${uid}-glow)`}
+            />
+            {/* Main projection path with gradient */}
+            <path
+              d={pathParts.join(" ")}
+              fill="none"
+              stroke={`url(#${uid}-proj-grad)`}
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.95}
             />
 
-            {/* Arrow head */}
+            {/* Arrow head - larger */}
             <path
               d={`M ${lastPoint.x} ${lastPoint.y} 
                   L ${lastPoint.x - arrowLen * Math.cos(angle - arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle - arrowAngle)}
                   M ${lastPoint.x} ${lastPoint.y}
                   L ${lastPoint.x - arrowLen * Math.cos(angle + arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle + arrowAngle)}`}
               fill="none"
-              stroke={ABBOUD_COLORS.projection}
-              strokeWidth={2.5}
+              stroke={ABBOUD_COLORS.projectionBright}
+              strokeWidth={3}
               strokeLinecap="round"
             />
 
-            {/* Dots at each projection point */}
-            {points.map((p, i) => (
-              <g key={`proj-${i}`}>
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={i === 0 ? 4 : 5}
-                  fill={p.type === "current" ? "#ffd54f" :
-                        p.type === "pullback" ? "#ffd54f" :
-                        ABBOUD_COLORS.projection}
-                  stroke="rgba(0,0,0,0.5)"
-                  strokeWidth={1}
-                />
-                {/* Label */}
-                <rect
-                  x={p.x - 28}
-                  y={p.y + (p.type === "pullback" ? 8 : -22)}
-                  width={56}
-                  height={14}
-                  rx={3}
-                  fill="rgba(0,0,0,0.8)"
-                  stroke={p.type === "current" ? "#ffd54f" :
-                          p.type === "pullback" ? "#ffd54f" :
-                          ABBOUD_COLORS.projection}
-                  strokeWidth={0.5}
-                />
-                <text
-                  x={p.x}
-                  y={p.y + (p.type === "pullback" ? 18 : -12)}
-                  textAnchor="middle"
-                  fill={p.type === "current" ? "#ffd54f" :
-                        p.type === "pullback" ? "#ffd54f" :
-                        ABBOUD_COLORS.projection}
-                  fontSize={8}
-                  fontWeight="bold"
-                  fontFamily="monospace"
-                >
-                  {p.label}
-                </text>
-              </g>
-            ))}
+            {/* Dots at each projection point with pulse animation */}
+            {points.map((p, i) => {
+              const dotColor = p.type === "current" || p.type === "pullback"
+                ? ABBOUD_COLORS.currentPrice
+                : ABBOUD_COLORS.projectionBright;
+              return (
+                <g key={`proj-${i}`}>
+                  {/* Outer glow ring */}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={8}
+                    fill="none"
+                    stroke={dotColor}
+                    strokeWidth={1}
+                    opacity={0.3}
+                  />
+                  {/* Main dot */}
+                  <circle
+                    className="abboud-proj-dot"
+                    cx={p.x}
+                    cy={p.y}
+                    r={i === 0 ? 4.5 : 5.5}
+                    fill={dotColor}
+                    stroke="rgba(0,0,0,0.6)"
+                    strokeWidth={1.5}
+                  />
+                  {/* Label with shadow */}
+                  <rect
+                    x={p.x - 32}
+                    y={p.y + (p.type === "pullback" ? 10 : -26)}
+                    width={64}
+                    height={18}
+                    rx={4}
+                    fill={ABBOUD_COLORS.labelBg}
+                    stroke={dotColor}
+                    strokeWidth={0.8}
+                    filter={`url(#${uid}-shadow)`}
+                  />
+                  <text
+                    x={p.x}
+                    y={p.y + (p.type === "pullback" ? 22 : -14)}
+                    textAnchor="middle"
+                    fill={dotColor}
+                    fontSize={9.5}
+                    fontWeight="bold"
+                    fontFamily="monospace"
+                    style={{ textShadow: `0 0 4px ${dotColor}` }}
+                  >
+                    {p.label}
+                  </text>
+                </g>
+              );
+            })}
           </g>
         );
       })()}
