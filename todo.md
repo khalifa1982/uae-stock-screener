@@ -1046,3 +1046,6 @@
 ### Chart Data Fields
 - [x] Ensure all data fields are visible on the chart (added current price marker)
 - [x] Check if any fields are cut off or hidden (improved label sizing)
+
+## Phase 42c - Ticker Bar Speed Fix
+- [x] Slow down ticker bar scrolling animation from 60s to 180s (3x slower)
