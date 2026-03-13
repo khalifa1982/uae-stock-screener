@@ -969,3 +969,17 @@
 - [x] Update footer version to v10.3
 - [x] Add chart legend/key explaining what each colored line represents (Entry Zone, Stop Loss, Targets, Projection, Fib Levels)
 - [x] Add candlestick chart type for OHLC visualization (with wicks via Customized SVG)
+
+## Phase 43 - Abboud AI Alerts, OHLC Tooltip, Overlay Verification
+- [x] Abboud AI alert scanner service (scans all 170 stocks every 5 min during market hours)
+- [x] Entry zone alerts (price enters Fibonacci entry zone)
+- [x] Stop-loss proximity alerts (within 1% of stop loss)
+- [x] Target hit alerts (TP1/TP2/TP3 within 1.5%)
+- [x] Fibonacci level bounce alerts (within 0.8% of key Fib level)
+- [x] Database table: abboud_alerts (symbol, exchange, alertType, price, triggerLevel, direction, severity)
+- [x] In-app notifications created for all users on alert detection
+- [x] 24-hour alert cooldown cache to prevent duplicate alerts
+- [x] tRPC endpoints: scannerStatus, recentAlerts, stockAlerts, triggerScan
+- [x] Scanner auto-starts with server, runs every 5 min during market hours
+- [x] First scan detected 69 alerts across 170 stocks
+- [x] OHLC tooltip already implemented (Open/High/Low/Close/Volume/SMA20/SMA50 + change %)

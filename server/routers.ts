@@ -1540,6 +1540,49 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return computeAbboudIndicator(ohlcData);
       }),
 
+    // Abboud AI Scanner Status
+    scannerStatus: publicProcedure
+      .query(async () => {
+        const { getAbboudScannerStatus } = await import("./services/abboudAlertScanner");
+        return getAbboudScannerStatus();
+      }),
+
+    // Get recent Abboud alerts
+    recentAlerts: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { abboudAlerts } = await import("../drizzle/schema");
+        const { desc } = await import("drizzle-orm");
+        return db.select().from(abboudAlerts)
+          .orderBy(desc(abboudAlerts.detectedAt))
+          .limit(input.limit);
+      }),
+
+    // Get Abboud alerts for a specific stock
+    stockAlerts: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]), limit: z.number().min(1).max(50).default(10) }))
+      .query(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return [];
+        const { abboudAlerts } = await import("../drizzle/schema");
+        const { desc, eq, and } = await import("drizzle-orm");
+        return db.select().from(abboudAlerts)
+          .where(and(eq(abboudAlerts.symbol, input.symbol), eq(abboudAlerts.exchange, input.exchange)))
+          .orderBy(desc(abboudAlerts.detectedAt))
+          .limit(input.limit);
+      }),
+
+    // Manual scan trigger (protected - admin only)
+    triggerScan: protectedProcedure
+      .mutation(async () => {
+        const { manualAbboudScan } = await import("./services/abboudAlertScanner");
+        const alerts = await manualAbboudScan();
+        return { alertCount: alerts.length, alerts };
+      }),
   }),
 
   // Market Summary - daily automated summaries in EN/AR

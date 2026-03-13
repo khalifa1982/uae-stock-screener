@@ -245,3 +245,31 @@ export const chatMessageReactions = mysqlTable("chat_message_reactions", {
 
 export type ChatMessageReaction = typeof chatMessageReactions.$inferSelect;
 export type InsertChatMessageReaction = typeof chatMessageReactions.$inferInsert;
+
+
+// Abboud AI alerts - tracks when stocks enter entry zones or hit targets
+export const abboudAlerts = mysqlTable("abboud_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  symbol: varchar("symbol", { length: 32 }).notNull(),
+  exchange: varchar("exchange", { length: 8 }).notNull(),
+  alertType: mysqlEnum("abboud_alert_type", [
+    "entry_zone",      // Price entered the Fibonacci entry zone
+    "stop_loss",       // Price hit stop loss level
+    "target_1",        // Price hit TP1
+    "target_2",        // Price hit TP2
+    "target_3",        // Price hit TP3
+    "fib_bounce",      // Price bounced off a key Fibonacci level
+  ]).notNull(),
+  price: float("price").notNull(),
+  triggerLevel: float("triggerLevel").notNull(),
+  direction: mysqlEnum("abboud_direction", ["bullish", "bearish"]).notNull().default("bullish"),
+  message: text("message").notNull(),
+  severity: mysqlEnum("abboud_severity", ["info", "warning", "critical"]).notNull().default("info"),
+  detectedAt: timestamp("detectedAt").defaultNow().notNull(),
+}, (table) => [
+  index("abboud_symbol_idx").on(table.symbol, table.detectedAt),
+  index("abboud_detected_idx").on(table.detectedAt),
+]);
+
+export type AbboudAlert = typeof abboudAlerts.$inferSelect;
+export type InsertAbboudAlert = typeof abboudAlerts.$inferInsert;

@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { startVolumeMonitor } from "../volumeMonitor";
 import { startMarketSummaryScheduler } from "../services/marketSummaryService";
+import { startAbboudScanner } from "../services/abboudAlertScanner";
 import { initWebSocketServer } from "../services/tdWebSocketService";
 import { initChatWebSocket } from "../services/chatService";
 import { createServer } from "http";
@@ -72,6 +73,8 @@ async function startServer() {
     startVolumeMonitor();
     // Start the market summary scheduler
     startMarketSummaryScheduler();
+    // Start the Abboud AI alert scanner
+    startAbboudScanner();
   });
 }
 
