@@ -467,10 +467,10 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
         if (v > max) max = v;
       }
     }
-    // Expand domain to include Fibonacci retracement levels + stop loss + entry zone
+    // Expand domain to include Fibonacci levels, stop loss, entry zone, targets & projection
     if (showAbboud && abboudData) {
       for (const fib of abboudData.fibLevels) {
-        if (fib.type === "retracement" && fib.price > 0) {
+        if (fib.price > 0) {
           if (fib.price < min) min = fib.price;
           if (fib.price > max) max = fib.price;
         }
@@ -478,6 +478,20 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
       if (abboudData.signal.stopLoss) {
         if (abboudData.signal.stopLoss < min) min = abboudData.signal.stopLoss;
         if (abboudData.signal.stopLoss > max) max = abboudData.signal.stopLoss;
+      }
+      if (abboudData.signal.entryZone) {
+        if (abboudData.signal.entryZone.low < min) min = abboudData.signal.entryZone.low;
+        if (abboudData.signal.entryZone.high > max) max = abboudData.signal.entryZone.high;
+      }
+      for (const t of abboudData.signal.targets) {
+        if (t.price < min) min = t.price;
+        if (t.price > max) max = t.price;
+      }
+      if (abboudData.signal.priceProjection) {
+        for (const p of abboudData.signal.priceProjection) {
+          if (p.price < min) min = p.price;
+          if (p.price > max) max = p.price;
+        }
       }
     }
     const padding = (max - min) * 0.05;
@@ -663,6 +677,8 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                     entryZone={abboudData.signal.entryZone}
                     stopLoss={abboudData.signal.stopLoss}
                     targets={abboudData.signal.targets}
+                    currentPrice={abboudData.currentPrice}
+                    priceProjection={abboudData.signal.priceProjection ?? []}
                   />
                 )}
 

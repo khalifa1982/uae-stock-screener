@@ -2,13 +2,14 @@
  * Abboud AI Indicator — Fibonacci Retracement + RSI Divergence Engine
  *
  * Strategy:
- * 1. Detect swing high / swing low from OHLC data
+ * 1. Detect the most significant swing high / swing low from OHLC data
  * 2. Calculate Fibonacci retracement levels (23.6%, 38.2%, 50%, 61.8%, 78.6%)
  * 3. Calculate Fibonacci extension levels (127.2%, 161.8%) for price targets
  * 4. Compute RSI (14-period)
  * 5. Detect bullish / bearish divergence between price and RSI
  * 6. Generate entry zone, stop-loss, and target levels
  * 7. Produce a signal summary (Buy / Sell / Neutral)
+ * 8. Generate price projection path for chart visualization
  */
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -49,6 +50,12 @@ export interface DivergenceSignal {
   strength: "weak" | "moderate" | "strong";
 }
 
+export interface PriceProjectionPoint {
+  price: number;
+  label: string;
+  type: "current" | "target" | "pullback" | "final_target";
+}
+
 export interface AbboudSignal {
   action: "BUY" | "SELL" | "NEUTRAL";
   confidence: number;           // 0-100
@@ -56,6 +63,7 @@ export interface AbboudSignal {
   entryZone: { low: number; high: number } | null;
   stopLoss: number | null;
   targets: { level: string; price: number }[];
+  priceProjection: PriceProjectionPoint[];
 }
 
 export interface AbboudIndicatorResult {
@@ -149,6 +157,47 @@ function detectSwings(data: OHLCPoint[], lookback: number = 5): SwingPoint[] {
   return swings;
 }
 
+// ─── Find Most Significant Swing Points ─────────────────────────────────────
+
+function findSignificantSwings(
+  data: OHLCPoint[],
+  swings: SwingPoint[],
+): { swingHigh: SwingPoint; swingLow: SwingPoint } {
+  // Use the overall period high and low for the most meaningful Fibonacci levels
+  // This ensures the Fib levels span the full visible price range
+  let highestPrice = -Infinity;
+  let highestIndex = 0;
+  let lowestPrice = Infinity;
+  let lowestIndex = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].high > highestPrice) {
+      highestPrice = data[i].high;
+      highestIndex = i;
+    }
+    if (data[i].low < lowestPrice) {
+      lowestPrice = data[i].low;
+      lowestIndex = i;
+    }
+  }
+
+  const swingHigh: SwingPoint = {
+    index: highestIndex,
+    date: data[highestIndex].date,
+    price: highestPrice,
+    type: "high",
+  };
+
+  const swingLow: SwingPoint = {
+    index: lowestIndex,
+    date: data[lowestIndex].date,
+    price: lowestPrice,
+    type: "low",
+  };
+
+  return { swingHigh, swingLow };
+}
+
 // ─── Fibonacci Levels ───────────────────────────────────────────────────────
 
 function calculateFibLevels(swingHigh: number, swingLow: number, trend: "uptrend" | "downtrend" | "sideways"): FibonacciLevel[] {
@@ -167,10 +216,8 @@ function calculateFibLevels(swingHigh: number, swingLow: number, trend: "uptrend
   ];
 
   for (const r of retracementRatios) {
-    // In uptrend/sideways: retracement from high down; in downtrend: from low up
-    const price = trend !== "downtrend"
-      ? swingHigh - diff * r.level
-      : swingLow + diff * r.level;
+    // Retracement from high down (standard Fibonacci)
+    const price = swingHigh - diff * r.level;
 
     levels.push({
       level: r.level,
@@ -180,7 +227,7 @@ function calculateFibLevels(swingHigh: number, swingLow: number, trend: "uptrend
     });
   }
 
-  // Extension levels (targets beyond the swing)
+  // Extension levels (targets beyond the swing high)
   const extensionRatios = [
     { level: 1.272, label: "127.2%" },
     { level: 1.618, label: "161.8%" },
@@ -189,9 +236,8 @@ function calculateFibLevels(swingHigh: number, swingLow: number, trend: "uptrend
   ];
 
   for (const e of extensionRatios) {
-    const price = trend !== "downtrend"
-      ? swingHigh + diff * (e.level - 1)
-      : swingLow - diff * (e.level - 1);
+    // Extensions above swing high
+    const price = swingHigh + diff * (e.level - 1);
 
     levels.push({
       level: e.level,
@@ -217,7 +263,6 @@ function detectDivergences(
   const swingLows = swings.filter(s => s.type === "low");
 
   // Check consecutive swing lows for bullish divergence
-  // Bullish: price makes lower low, RSI makes higher low
   for (let i = 1; i < swingLows.length; i++) {
     const prev = swingLows[i - 1];
     const curr = swingLows[i];
@@ -267,7 +312,6 @@ function detectDivergences(
   }
 
   // Check consecutive swing highs for bearish divergence
-  // Bearish: price makes higher high, RSI makes lower high
   for (let i = 1; i < swingHighs.length; i++) {
     const prev = swingHighs[i - 1];
     const curr = swingHighs[i];
@@ -338,6 +382,54 @@ function detectTrend(data: OHLCPoint[]): "uptrend" | "downtrend" | "sideways" {
   return "sideways";
 }
 
+// ─── Generate Price Projection ──────────────────────────────────────────────
+
+function generatePriceProjection(
+  currentPrice: number,
+  action: "BUY" | "SELL" | "NEUTRAL",
+  entryZone: { low: number; high: number } | null,
+  targets: { level: string; price: number }[],
+  stopLoss: number | null,
+  fibLevels: FibonacciLevel[],
+): PriceProjectionPoint[] {
+  const projection: PriceProjectionPoint[] = [];
+
+  // Start from current price
+  projection.push({ price: currentPrice, label: "Current", type: "current" });
+
+  if (action === "BUY") {
+    // For BUY: price goes up to first target, pulls back, then goes to second target
+    const fib50 = fibLevels.find(f => f.level === 0.5)?.price ?? currentPrice;
+    const fib382 = fibLevels.find(f => f.level === 0.382)?.price ?? currentPrice;
+
+    if (targets.length >= 1) {
+      // First target
+      projection.push({ price: targets[0].price, label: `TP1 (${targets[0].level})`, type: "target" });
+
+      // Pullback to 50% Fib
+      if (targets.length >= 2) {
+        const pullbackPrice = targets[0].price - (targets[0].price - currentPrice) * 0.382;
+        projection.push({ price: pullbackPrice, label: "Pullback", type: "pullback" });
+        // Final target
+        projection.push({ price: targets[1].price, label: `TP2 (${targets[1].level})`, type: "final_target" });
+      }
+    } else {
+      // No specific targets, project to swing high
+      const swingHighPrice = fibLevels.find(f => f.level === 0)?.price;
+      if (swingHighPrice && swingHighPrice > currentPrice) {
+        projection.push({ price: swingHighPrice, label: "Swing High", type: "target" });
+      }
+    }
+  } else if (action === "SELL") {
+    // For SELL: price goes down
+    if (stopLoss) {
+      projection.push({ price: stopLoss, label: "Target", type: "target" });
+    }
+  }
+
+  return projection;
+}
+
 // ─── Generate Signal ────────────────────────────────────────────────────────
 
 function generateSignal(
@@ -352,10 +444,13 @@ function generateSignal(
   const extensions = fibLevels.filter(f => f.type === "extension");
 
   // Find which Fibonacci zone the price is in
+  const fib0 = retracements.find(f => f.level === 0)?.price ?? 0;   // swing high
+  const fib236 = retracements.find(f => f.level === 0.236)?.price ?? 0;
   const fib382 = retracements.find(f => f.level === 0.382)?.price ?? 0;
   const fib50 = retracements.find(f => f.level === 0.5)?.price ?? 0;
   const fib618 = retracements.find(f => f.level === 0.618)?.price ?? 0;
   const fib786 = retracements.find(f => f.level === 0.786)?.price ?? 0;
+  const fib100 = retracements.find(f => f.level === 1)?.price ?? 0;  // swing low
 
   // Recent divergences (last 3)
   const recentDivergences = divergences.slice(-3);
@@ -371,74 +466,77 @@ function generateSignal(
   let stopLoss: number | null = null;
   const targets: { level: string; price: number }[] = [];
 
-  if (trend === "uptrend" || trend === "sideways") {
-    // BUY signal: price near 38.2%-50% Fibo + bullish divergence
-    const inEntryZone = (fib382 > fib50)
-      ? (currentPrice <= fib382 && currentPrice >= fib50)
-      : (currentPrice >= fib382 && currentPrice <= fib50);
+  // Determine entry zone based on where price is relative to Fib levels
+  // The entry zone is always the 38.2%-50% retracement area
+  const entryLow = Math.min(fib382, fib50);
+  const entryHigh = Math.max(fib382, fib50);
 
-    const nearEntryZone = Math.abs(currentPrice - fib50) / currentPrice < 0.05 ||
-                          Math.abs(currentPrice - fib382) / currentPrice < 0.05;
+  // Check if price is in or near the entry zone
+  const inEntryZone = currentPrice >= entryLow && currentPrice <= entryHigh;
+  const nearEntryZone = Math.abs(currentPrice - entryLow) / currentPrice < 0.05 ||
+                        Math.abs(currentPrice - entryHigh) / currentPrice < 0.05;
 
-    if ((inEntryZone || nearEntryZone) && hasBullishDiv) {
-      action = "BUY";
-      confidence = strongBullish ? 85 : 70;
-      reason = `Price at Fibonacci ${inEntryZone ? "38.2%-50%" : "near entry zone"} with ${strongBullish ? "strong" : ""}bullish RSI divergence. RSI: ${currentRSI.toFixed(1)}.`;
-      entryZone = { low: Math.min(fib382, fib50), high: Math.max(fib382, fib50) };
-      stopLoss = trend === "uptrend" ? Math.min(fib618, fib786) : Math.max(fib618, fib786);
+  // Check if price is below the entry zone (deeper retracement = stronger buy)
+  const belowEntryZone = currentPrice < entryLow;
+  const nearStopLoss = currentPrice <= fib618 || currentPrice <= fib786;
 
-      // Targets at extension levels
-      for (const ext of extensions.slice(0, 2)) {
-        targets.push({ level: ext.label, price: ext.price });
-      }
-    } else if (inEntryZone && currentRSI < 40) {
-      action = "BUY";
-      confidence = 55;
-      reason = `Price in Fibonacci 38.2%-50% zone with oversold RSI (${currentRSI.toFixed(1)}). Waiting for divergence confirmation.`;
-      entryZone = { low: Math.min(fib382, fib50), high: Math.max(fib382, fib50) };
-      stopLoss = trend === "uptrend" ? Math.min(fib618, fib786) : Math.max(fib618, fib786);
-      for (const ext of extensions.slice(0, 2)) {
-        targets.push({ level: ext.label, price: ext.price });
-      }
-    } else if (hasBullishDiv) {
-      action = "BUY";
-      confidence = 60;
-      reason = `Bullish RSI divergence detected. RSI: ${currentRSI.toFixed(1)}. Price not yet at ideal Fibonacci entry.`;
-      entryZone = { low: Math.min(fib382, fib50), high: Math.max(fib382, fib50) };
-      stopLoss = trend === "uptrend" ? Math.min(fib618, fib786) : Math.max(fib618, fib786);
-      for (const ext of extensions.slice(0, 2)) {
-        targets.push({ level: ext.label, price: ext.price });
-      }
-    }
+  // Always set entry zone for visualization
+  entryZone = { low: entryLow, high: entryHigh };
+
+  // Always set stop loss at 61.8% or 78.6% level
+  stopLoss = Math.min(fib618, fib786);
+
+  // Always set targets at key levels above current price
+  if (currentPrice < fib0) {
+    // Target 1: swing high (0% Fib)
+    targets.push({ level: "0.0%", price: fib0 });
+  }
+  if (extensions.length > 0 && extensions[0].price > currentPrice) {
+    targets.push({ level: extensions[0].label, price: extensions[0].price });
+  }
+  if (extensions.length > 1 && extensions[1].price > currentPrice) {
+    targets.push({ level: extensions[1].label, price: extensions[1].price });
   }
 
-  if (trend === "downtrend" || (trend === "sideways" && action === "NEUTRAL")) {
-    // SELL signal: price near 38.2%-50% Fibo from bottom + bearish divergence
-    const inSellZone = (fib382 > fib50)
-      ? (currentPrice <= fib382 && currentPrice >= fib50)
-      : (currentPrice >= fib382 && currentPrice <= fib50);
-
-    if (inSellZone && hasBearishDiv) {
-      action = "SELL";
-      confidence = strongBearish ? 80 : 65;
-      reason = `Price at Fibonacci retracement zone with ${strongBearish ? "strong " : ""}bearish RSI divergence. RSI: ${currentRSI.toFixed(1)}.`;
-      entryZone = { low: Math.min(fib382, fib50), high: Math.max(fib382, fib50) };
-      stopLoss = trend === "downtrend" ? Math.max(fib618, fib786) : Math.min(fib618, fib786);
-    } else if (hasBearishDiv && currentRSI > 60) {
-      action = "SELL";
-      confidence = 55;
-      reason = `Bearish RSI divergence with overbought conditions. RSI: ${currentRSI.toFixed(1)}.`;
-      stopLoss = retracements.find(f => f.level === 0)?.price ?? null;
-    }
+  // Signal logic
+  if (belowEntryZone && currentRSI < 35) {
+    // Price deeply retraced + oversold RSI = strong buy opportunity
+    action = "BUY";
+    confidence = hasBullishDiv ? (strongBullish ? 85 : 75) : 60;
+    reason = `Price below Fibonacci 38.2%-50% entry zone with oversold RSI (${currentRSI.toFixed(1)}).${hasBullishDiv ? " Bullish divergence confirms reversal." : " Watch for bullish divergence confirmation."}`;
+  } else if ((inEntryZone || nearEntryZone) && hasBullishDiv) {
+    action = "BUY";
+    confidence = strongBullish ? 85 : 70;
+    reason = `Price at Fibonacci ${inEntryZone ? "38.2%-50%" : "near entry zone"} with ${strongBullish ? "strong " : ""}bullish RSI divergence. RSI: ${currentRSI.toFixed(1)}.`;
+  } else if (inEntryZone && currentRSI < 40) {
+    action = "BUY";
+    confidence = 55;
+    reason = `Price in Fibonacci 38.2%-50% zone with oversold RSI (${currentRSI.toFixed(1)}). Waiting for divergence confirmation.`;
+  } else if (hasBullishDiv && currentRSI < 45) {
+    action = "BUY";
+    confidence = 60;
+    reason = `Bullish RSI divergence detected. RSI: ${currentRSI.toFixed(1)}. Price not yet at ideal Fibonacci entry.`;
+  } else if (hasBearishDiv && currentRSI > 60) {
+    action = "SELL";
+    confidence = strongBearish ? 80 : 65;
+    reason = `Bearish RSI divergence with overbought conditions. RSI: ${currentRSI.toFixed(1)}.`;
+    stopLoss = fib0; // Stop above swing high
+  } else if (currentRSI > 70) {
+    action = "SELL";
+    confidence = 55;
+    reason = `Overbought RSI (${currentRSI.toFixed(1)}). Watch for bearish divergence at Fibonacci resistance.`;
+    stopLoss = fib0;
   }
 
   // If still neutral, provide context
   if (action === "NEUTRAL") {
-    if (currentRSI > 70) {
-      reason = `Overbought RSI (${currentRSI.toFixed(1)}). Watch for bearish divergence at Fibonacci resistance.`;
-      confidence = 40;
-    } else if (currentRSI < 30) {
+    if (currentRSI < 30) {
       reason = `Oversold RSI (${currentRSI.toFixed(1)}). Watch for bullish divergence at Fibonacci support.`;
+      confidence = 45;
+      // Still show as potential buy
+      action = "BUY";
+    } else if (currentRSI > 70) {
+      reason = `Overbought RSI (${currentRSI.toFixed(1)}). Watch for bearish divergence at Fibonacci resistance.`;
       confidence = 40;
     } else {
       reason = `Price between Fibonacci levels. RSI neutral at ${currentRSI.toFixed(1)}. No divergence detected.`;
@@ -446,7 +544,10 @@ function generateSignal(
     }
   }
 
-  return { action, confidence, reason, entryZone, stopLoss, targets };
+  // Generate price projection
+  const priceProjection = generatePriceProjection(currentPrice, action, entryZone, targets, stopLoss, fibLevels);
+
+  return { action, confidence, reason, entryZone, stopLoss, targets, priceProjection };
 }
 
 // ─── Main Export ─────────────────────────────────────────────────────────────
@@ -462,33 +563,26 @@ export function computeAbboudIndicator(data: OHLCPoint[]): AbboudIndicatorResult
 
   // 2. Detect swings
   const swings = detectSwings(data, 5);
-  const swingHighs = swings.filter(s => s.type === "high");
-  const swingLows = swings.filter(s => s.type === "low");
 
-  // Use the most recent significant swing high and swing low
-  const swingHigh = swingHighs.length > 0 ? swingHighs[swingHighs.length - 1] : null;
-  const swingLow = swingLows.length > 0 ? swingLows[swingLows.length - 1] : null;
+  // 3. Find the most significant swing high and low (full period range)
+  const { swingHigh, swingLow } = findSignificantSwings(data, swings);
 
-  // If we can't find swings, use period high/low
-  const highPrice = swingHigh?.price ?? Math.max(...data.map(d => d.high));
-  const lowPrice = swingLow?.price ?? Math.min(...data.map(d => d.low));
+  if (swingHigh.price === swingLow.price) return null;
 
-  if (highPrice === lowPrice) return null;
+  // 4. Calculate Fibonacci levels using the full range
+  const fibLevels = calculateFibLevels(swingHigh.price, swingLow.price, trendDirection);
 
-  // 3. Calculate Fibonacci levels
-  const fibLevels = calculateFibLevels(highPrice, lowPrice, trendDirection);
-
-  // 4. Calculate RSI
+  // 5. Calculate RSI
   const rsiRaw = calculateRSI(closes, 14);
   const rsiValues = data.map((d, i) => ({
     date: d.date,
     value: rsiRaw[i] ?? 0,
   })).filter(r => r.value > 0);
 
-  // 5. Detect divergences
+  // 6. Detect divergences
   const divergences = detectDivergences(data, rsiRaw, swings);
 
-  // 6. Generate signal
+  // 7. Generate signal
   const signal = generateSignal(currentPrice, fibLevels, divergences, rsiRaw, trendDirection);
 
   return {

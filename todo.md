@@ -961,3 +961,4 @@
 - [x] Allow users to change their display name
 - [x] Replace chat default avatars with random emoji characters
 - [x] Emoji avatars should be consistent per user (deterministic based on userId)
+- [x] Fix Abboud AI indicator to render visual overlays directly ON the chart (Fibonacci levels as horizontal lines, entry/buy zone as colored rectangle, stop-loss as red line, price projection arrows)
