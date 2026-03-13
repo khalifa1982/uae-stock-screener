@@ -79,11 +79,11 @@ export function DataConnectionIndicator({ isConnected, className = "" }: DataCon
           ) : isMarketActive ? (
             <>
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
               </span>
-              <RefreshCw className="h-3 w-3 text-amber-400 animate-spin" style={{ animationDuration: "3s" }} />
-              <span className="text-[9px] font-medium text-amber-400 uppercase tracking-wider">Polling</span>
+              <RefreshCw className="h-3 w-3 text-emerald-400" />
+              <span className="text-[9px] font-medium text-emerald-400 uppercase tracking-wider">Live</span>
             </>
           ) : (
             <>
@@ -98,7 +98,7 @@ export function DataConnectionIndicator({ isConnected, className = "" }: DataCon
         {isConnected ? (
           <span className="text-popover-foreground">Real-time data streaming via WebSocket</span>
         ) : isMarketActive ? (
-          <span className="text-popover-foreground">WebSocket unavailable. Data refreshing via API polling.</span>
+          <span className="text-popover-foreground">Data syncing via live API polling. Auto-refreshes every 30s.</span>
         ) : (
           <span className="text-popover-foreground">Market closed. Data will sync when market reopens.</span>
         )}

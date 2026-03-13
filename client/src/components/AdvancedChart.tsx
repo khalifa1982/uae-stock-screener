@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
-  Brush,
+  Brush, Customized, ReferenceArea,
 } from "recharts";
 import {
   BarChart3, TrendingUp, Activity, Layers, Eye, EyeOff,
@@ -143,6 +143,7 @@ function ChartToolbar({
 }) {
   const chartTypes: { type: ChartType; icon: React.ReactNode; label: string }[] = [
     { type: "area", icon: <BarChart3 className="h-3 w-3" />, label: "Area" },
+    { type: "candlestick", icon: <CandlestickChart className="h-3 w-3" />, label: "Candlestick" },
     { type: "line", icon: <LineChartIcon className="h-3 w-3" />, label: "Line" },
     { type: "bar", icon: <BarChart2 className="h-3 w-3" />, label: "OHLC" },
   ];
@@ -440,6 +441,12 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
       const rsi = rsiMap.get(lookupKey);
       const isUp = d.close >= (d.open ?? d.close);
 
+      // Candlestick: body is the range between open and close
+      const openPrice = d.open ?? d.close;
+      const candleBottom = Math.min(openPrice, d.close);
+      const candleTop = Math.max(openPrice, d.close);
+      const candleBody = candleTop - candleBottom || 0.001; // min body size
+
       return {
         ...d,
         sma20: sma20[i],
@@ -452,6 +459,10 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
         macdHist: macd?.histogram ?? null,
         rsi: rsi ?? null,
         volColor: isUp ? NEON.green : NEON.red,
+        candleBottom,
+        candleBody,
+        candleHigh: d.high ?? candleTop,
+        candleLow: d.low ?? candleBottom,
       };
     });
   }, [chartData, bbData, macdData, rsiData]);
@@ -467,31 +478,37 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
         if (v > max) max = v;
       }
     }
-    // Expand domain to include Fibonacci levels, stop loss, entry zone, targets & projection
+    // Expand domain to include key Abboud levels (retracement only, not extensions)
+    // Extensions and far targets are shown but don't force domain expansion to avoid
+    // compressing the visible price action into a tiny band
     if (showAbboud && abboudData) {
+      const priceRange = max - min;
+      const maxExpansion = priceRange * 2; // Don't expand more than 2x the price range
+      const domainCeiling = max + maxExpansion;
+      const domainFloor = min - maxExpansion;
+
+      // Only include retracement levels (not extensions) in domain
       for (const fib of abboudData.fibLevels) {
-        if (fib.price > 0) {
-          if (fib.price < min) min = fib.price;
-          if (fib.price > max) max = fib.price;
+        if (fib.type === "retracement" && fib.price > 0) {
+          if (fib.price < min && fib.price >= domainFloor) min = fib.price;
+          if (fib.price > max && fib.price <= domainCeiling) max = fib.price;
         }
       }
       if (abboudData.signal.stopLoss) {
-        if (abboudData.signal.stopLoss < min) min = abboudData.signal.stopLoss;
-        if (abboudData.signal.stopLoss > max) max = abboudData.signal.stopLoss;
+        const sl = abboudData.signal.stopLoss;
+        if (sl < min && sl >= domainFloor) min = sl;
+        if (sl > max && sl <= domainCeiling) max = sl;
       }
       if (abboudData.signal.entryZone) {
-        if (abboudData.signal.entryZone.low < min) min = abboudData.signal.entryZone.low;
-        if (abboudData.signal.entryZone.high > max) max = abboudData.signal.entryZone.high;
+        const ez = abboudData.signal.entryZone;
+        if (ez.low < min && ez.low >= domainFloor) min = ez.low;
+        if (ez.high > max && ez.high <= domainCeiling) max = ez.high;
       }
-      for (const t of abboudData.signal.targets) {
-        if (t.price < min) min = t.price;
-        if (t.price > max) max = t.price;
-      }
-      if (abboudData.signal.priceProjection) {
-        for (const p of abboudData.signal.priceProjection) {
-          if (p.price < min) min = p.price;
-          if (p.price > max) max = p.price;
-        }
+      // Only include the first target (TP1) in domain, not far extensions
+      if (abboudData.signal.targets.length > 0) {
+        const tp1 = abboudData.signal.targets[0].price;
+        if (tp1 < min && tp1 >= domainFloor) min = tp1;
+        if (tp1 > max && tp1 <= domainCeiling) max = tp1;
       }
     }
     const padding = (max - min) * 0.05;
@@ -669,6 +686,48 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                     ))}
                   </Bar>
                 )}
+                {chartType === "candlestick" && (
+                  <>
+                    {/* Invisible bar to set the base (candleBottom) */}
+                    <Bar dataKey="candleBottom" stackId="candle" barSize={6} fill="transparent" />
+                    {/* Visible body bar stacked on top */}
+                    <Bar dataKey="candleBody" stackId="candle" barSize={6}>
+                      {mergedData.map((entry, idx) => {
+                        const isBullish = entry.close >= (entry.open ?? entry.close);
+                        return <Cell key={idx} fill={isBullish ? NEON.green : NEON.red} />;
+                      })}
+                    </Bar>
+                    {/* Wicks drawn via Customized SVG */}
+                    <Customized component={(props: any) => {
+                      const { xAxisMap, yAxisMap, offset } = props;
+                      if (!xAxisMap || !yAxisMap) return null;
+                      const xAxis = Object.values(xAxisMap)[0] as any;
+                      const yAxis = Object.values(yAxisMap)[0] as any;
+                      if (!xAxis?.scale || !yAxis?.scale) return null;
+                      return (
+                        <g>
+                          {mergedData.map((entry, idx) => {
+                            const x = xAxis.scale(idx) + (xAxis.bandSize ? xAxis.bandSize / 2 : 0);
+                            const yHigh = yAxis.scale(entry.candleHigh);
+                            const yLow = yAxis.scale(entry.candleLow);
+                            const isBullish = entry.close >= (entry.open ?? entry.close);
+                            return (
+                              <line
+                                key={`wick-${idx}`}
+                                x1={x}
+                                x2={x}
+                                y1={yHigh}
+                                y2={yLow}
+                                stroke={isBullish ? NEON.green : NEON.red}
+                                strokeWidth={1}
+                              />
+                            );
+                          })}
+                        </g>
+                      );
+                    }} />
+                  </>
+                )}
 
                 {/* Abboud AI Fibonacci Overlay */}
                 {showAbboud && abboudData && (
@@ -721,10 +780,32 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 </div>
               )}
               {showAbboud && (
-                <div className="flex items-center gap-1">
-                  <Sparkles className="h-2.5 w-2.5" style={{ color: NEON.gold }} />
-                  <span className="text-[8px]" style={{ color: NEON.gold }}>Abboud AI</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-1">
+                    <Sparkles className="h-2.5 w-2.5" style={{ color: NEON.gold }} />
+                    <span className="text-[8px]" style={{ color: NEON.gold }}>Abboud AI</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-1.5 rounded-sm" style={{ backgroundColor: "rgba(224, 64, 251, 0.3)", border: "1px solid rgba(224, 64, 251, 0.6)" }} />
+                    <span className="text-[8px] text-muted-foreground">Entry Zone</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "#ff1744" }} />
+                    <span className="text-[8px] text-muted-foreground">Stop Loss</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "#00e676" }} />
+                    <span className="text-[8px] text-muted-foreground">Targets</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "#448aff" }} />
+                    <span className="text-[8px] text-muted-foreground">Projection</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-0.5 rounded border-dashed" style={{ borderTop: "1px dashed #ffd54f" }} />
+                    <span className="text-[8px] text-muted-foreground">Fib Levels</span>
+                  </div>
+                </>
               )}
             </div>
 

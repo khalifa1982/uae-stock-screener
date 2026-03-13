@@ -96,12 +96,13 @@ describe("Phase 36 Bug Fixes", () => {
       expect(content).toContain("Synced");
     });
 
-    it("should show Polling state when market is active but WS disconnected", () => {
+    it("should show Live state when market is active but WS disconnected", () => {
       const content = fs.readFileSync(
         path.join(__dirname, "../client/src/components/RealtimeIndicator.tsx"),
         "utf-8"
       );
-      expect(content).toContain("Polling");
+      // Changed from "Polling" to "Live" - shows green indicator instead of alarming amber
+      expect(content).toContain("Live");
     });
 
     it("should show Offline state with red color when market is closed", () => {
@@ -125,15 +126,13 @@ describe("Phase 36 Bug Fixes", () => {
       expect(content).not.toMatch(/<RealtimeIndicator\s/);
     });
 
-    it("should have three states: Synced (green), Polling (amber), Offline (red)", () => {
+    it("should have three states: Synced (green), Live (green), Offline (red)", () => {
       const content = fs.readFileSync(
         path.join(__dirname, "../client/src/components/RealtimeIndicator.tsx"),
         "utf-8"
       );
-      // Green for connected
+      // Green for connected and live polling
       expect(content).toContain("text-emerald-400");
-      // Amber for polling
-      expect(content).toContain("text-amber-400");
       // Red for offline
       expect(content).toContain("text-red-400");
     });

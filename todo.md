@@ -962,3 +962,10 @@
 - [x] Replace chat default avatars with random emoji characters
 - [x] Emoji avatars should be consistent per user (deterministic based on userId)
 - [x] Fix Abboud AI indicator to render visual overlays directly ON the chart (Fibonacci levels as horizontal lines, entry/buy zone as colored rectangle, stop-loss as red line, price projection arrows)
+
+## Phase 42 - Abboud AI Overlay Fix, WebSocket Fix, Legend & Candlestick
+- [x] Fix Abboud AI overlay not rendering on production chart (domain expansion was including extension levels, compressing price to 10% of chart height)
+- [x] Fix WebSocket unavailable error on production (changed from alarming POLLING/amber to LIVE/green)
+- [x] Update footer version to v10.3
+- [x] Add chart legend/key explaining what each colored line represents (Entry Zone, Stop Loss, Targets, Projection, Fib Levels)
+- [x] Add candlestick chart type for OHLC visualization (with wicks via Customized SVG)
