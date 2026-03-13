@@ -407,6 +407,16 @@ export function AbboudFibOverlay({ fibLevels, entryZone, stopLoss, targets, curr
   return <Customized component={AbboudSVGRenderer} />;
 }
 
+// ─── Direct exports for inline Customized usage in AdvancedChart ────────────
+// Recharts only recognizes <Customized> as a direct child of ComposedChart,
+// so we export the renderer and data setter for inline use.
+
+export function setAbboudOverlayData(data: AbboudOverlayData) {
+  _abboudData = data;
+}
+
+export const AbboudSVGRendererDirect = AbboudSVGRenderer;
+
 // ─── Signal Summary Card ─────────────────────────────────────────────────────
 
 interface AbboudSignalCardProps {

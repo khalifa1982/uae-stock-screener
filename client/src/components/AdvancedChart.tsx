@@ -32,7 +32,7 @@ import {
   ZoomIn, ZoomOut, RotateCcw, AlertTriangle, Bell, ChevronDown,
   Sparkles,
 } from "lucide-react";
-import { AbboudFibOverlay, AbboudSignalCard, useAbboudIndicator } from "./AbboudIndicatorOverlay";
+import { AbboudFibOverlay, AbboudSignalCard, useAbboudIndicator, setAbboudOverlayData, AbboudSVGRendererDirect } from "./AbboudIndicatorOverlay";
 
 interface AdvancedChartProps {
   symbol: string;
@@ -729,16 +729,20 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                   </>
                 )}
 
-                {/* Abboud AI Fibonacci Overlay */}
+                {/* Abboud AI Fibonacci Overlay - rendered as direct Customized child */}
                 {showAbboud && abboudData && (
-                  <AbboudFibOverlay
-                    fibLevels={abboudData.fibLevels}
-                    entryZone={abboudData.signal.entryZone}
-                    stopLoss={abboudData.signal.stopLoss}
-                    targets={abboudData.signal.targets}
-                    currentPrice={abboudData.currentPrice}
-                    priceProjection={abboudData.signal.priceProjection ?? []}
-                  />
+                  <Customized component={(chartProps: any) => {
+                    // Set the module-level data for the renderer
+                    setAbboudOverlayData({
+                      fibLevels: abboudData.fibLevels,
+                      entryZone: abboudData.signal.entryZone,
+                      stopLoss: abboudData.signal.stopLoss,
+                      targets: abboudData.signal.targets,
+                      currentPrice: abboudData.currentPrice,
+                      priceProjection: abboudData.signal.priceProjection ?? [],
+                    });
+                    return <AbboudSVGRendererDirect {...chartProps} />;
+                  }} />
                 )}
 
                 {/* Zoom brush */}
