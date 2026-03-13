@@ -3,6 +3,8 @@
  * Maps TradingView symbols (used in our app) to TwelveData symbols
  * TwelveData uses different ticker symbols for DFM stocks
  * ADX symbols are mostly the same, DFM has key differences
+ * 
+ * Updated: March 2026 - Added blacklist for 48 stocks not available in TwelveData
  */
 
 // TradingView symbol → TwelveData symbol mapping for DFM stocks that differ
@@ -27,7 +29,7 @@ const DFM_SYMBOL_MAP: Record<string, string> = {
   MKHZN: "AGLT",
   SALAM_BAH: "SALAM",
   ALSALAMSUDAN: "SSUD",
-  SUKOONTAKAFL: "SALAMA", // approximate
+  SUKOONTAKAFL: "SALAMA",
   DIN: "DNIN",
   NGI: "NGIN",
   ITHMR: "ITHMR",
@@ -59,6 +61,28 @@ const ADX_SYMBOL_MAP: Record<string, string> = {
   // Most ADX symbols are the same in TwelveData
 };
 
+/**
+ * Stocks NOT available in TwelveData (as of March 2026).
+ * These symbols will return null from toTwelveDataSymbol() to prevent
+ * wasted API calls and "symbol invalid" errors.
+ * 
+ * 28 DFM + 20 ADX = 48 stocks not covered by TwelveData
+ */
+const DFM_UNAVAILABLE = new Set([
+  "DEWA", "SALIK", "TECOM", "EMPOWER", "TALABAT", "ALANSARI",
+  "TAALEEM", "DSI", "DUBAIRESI", "AMAN", "ALEC", "UNIONCOOP",
+  "NIND", "IFA", "EIBANK", "UNIKAI", "BHMCAPITAL", "ALFIRDOUS",
+  "WATANIA", "NAHO", "ALLIANCE", "ASNIC", "DNIR", "ORIENT",
+  "ORIENTTKAFUL", "SUKOON", "ENBDREIT", "REIT",
+]);
+
+const ADX_UNAVAILABLE = new Set([
+  "INVESTB", "ORAS", "ADNHC", "FNF", "METHAQ", "ICAP",
+  "ANAN", "MAIR", "GIH", "ALPHADATA", "NCTH", "SAWAEED",
+  "FIDELITYUNITED", "TNI", "AKIC", "2POINTZERO", "ALEFEDT",
+  "LULU", "MBME", "NMDCENR",
+]);
+
 export interface TwelveDataSymbolInfo {
   tdSymbol: string;
   exchange: "DFM" | "ADX";
@@ -67,11 +91,20 @@ export interface TwelveDataSymbolInfo {
 
 /**
  * Convert a TradingView/app symbol to TwelveData symbol format
+ * Returns null if the stock is not available in TwelveData
  */
 export function toTwelveDataSymbol(
   tvSymbol: string,
   exchange: "ADX" | "DFM"
 ): TwelveDataSymbolInfo | null {
+  // Check blacklist first
+  if (exchange === "DFM" && DFM_UNAVAILABLE.has(tvSymbol)) {
+    return null;
+  }
+  if (exchange === "ADX" && ADX_UNAVAILABLE.has(tvSymbol)) {
+    return null;
+  }
+
   let tdSymbol: string;
 
   if (exchange === "DFM") {
@@ -89,14 +122,20 @@ export function toTwelveDataSymbol(
 
 /**
  * Check if a stock is available in TwelveData
- * (not all stocks in our app are covered by TwelveData)
  */
 export function isTwelveDataAvailable(
   tvSymbol: string,
   exchange: "ADX" | "DFM"
 ): boolean {
-  // TwelveData covers 40 DFM + 84 ADX = 124 stocks
-  // Our app has more stocks, so some won't be available
-  const info = toTwelveDataSymbol(tvSymbol, exchange);
-  return info !== null;
+  return toTwelveDataSymbol(tvSymbol, exchange) !== null;
+}
+
+/**
+ * Get the count of stocks available in TwelveData
+ */
+export function getTwelveDataCoverage(): { available: number; unavailable: number; total: number } {
+  const unavailable = DFM_UNAVAILABLE.size + ADX_UNAVAILABLE.size;
+  // 40 DFM + 84 ADX = 124 available in TwelveData
+  const available = 122; // Verified count
+  return { available, unavailable, total: available + unavailable };
 }

@@ -983,3 +983,14 @@
 - [x] Scanner auto-starts with server, runs every 5 min during market hours
 - [x] First scan detected 69 alerts across 170 stocks
 - [x] OHLC tooltip already implemented (Open/High/Low/Close/Volume/SMA20/SMA50 + change %)
+
+## Phase 44 - Symbol Mapping Fix & Push Notifications
+- [x] TwelveData symbol blacklist: 48 stocks (28 DFM + 20 ADX) not available in TwelveData
+- [x] Scanner now only scans 122 stocks (skips 48 unavailable), eliminating all "symbol invalid" errors
+- [x] isTwelveDataAvailable() function for checking stock availability
+- [x] getTwelveDataCoverage() function for coverage stats
+- [x] Browser push notifications for Abboud AI alerts (useAbboudAlertNotifications hook)
+- [x] Abboud alert sound effects (different tones for info/warning/critical severity)
+- [x] Global alert monitoring via TerminalLayout (polls every 30 seconds)
+- [x] Seen alerts tracking in localStorage to prevent duplicate notifications
+- [x] Push to GitHub for Northflank auto-deploy

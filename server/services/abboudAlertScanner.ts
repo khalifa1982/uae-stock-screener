@@ -13,6 +13,12 @@ import { fetchChartData } from "./tdDataService";
 import { computeAbboudIndicator, AbboudIndicatorResult } from "./abboudIndicator";
 import { ALL_STOCKS } from "../../shared/stockData";
 import { isUAETradingHours } from "../volumeMonitor";
+import { isTwelveDataAvailable } from "./tdSymbolMapper";
+
+// Filter stocks to only those available in TwelveData (avoids wasted API calls)
+const SCANNABLE_STOCKS = ALL_STOCKS.filter(s => 
+  isTwelveDataAvailable(s.symbol, s.exchange as "ADX" | "DFM")
+);
 
 // Lazy imports for DB operations
 let dbModule: typeof import("../db") | null = null;
@@ -190,10 +196,10 @@ async function scanAllStocks(): Promise<AbboudAlertResult[]> {
   const BATCH_SIZE = 3; // Process 3 stocks at a time
   const BATCH_DELAY = 2000; // 2 seconds between batches
 
-  console.log(`[AbboudScanner] Starting scan of ${ALL_STOCKS.length} stocks...`);
+  console.log(`[AbboudScanner] Starting scan of ${SCANNABLE_STOCKS.length} stocks (${ALL_STOCKS.length - SCANNABLE_STOCKS.length} skipped - not in TwelveData)...`);
 
-  for (let i = 0; i < ALL_STOCKS.length; i += BATCH_SIZE) {
-    const batch = ALL_STOCKS.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < SCANNABLE_STOCKS.length; i += BATCH_SIZE) {
+    const batch = SCANNABLE_STOCKS.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
       batch.map(stock => checkStockForAlerts(stock.symbol, stock.exchange as "ADX" | "DFM"))
     );
@@ -205,7 +211,7 @@ async function scanAllStocks(): Promise<AbboudAlertResult[]> {
     }
 
     // Rate limit delay between batches
-    if (i + BATCH_SIZE < ALL_STOCKS.length) {
+    if (i + BATCH_SIZE < SCANNABLE_STOCKS.length) {
       await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
     }
   }

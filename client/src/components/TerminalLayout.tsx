@@ -11,6 +11,7 @@ import { UserCircle } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
+import { useAbboudAlertNotifications } from "@/hooks/useAbboudAlertNotifications";
 import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { QuickSearch } from "@/components/QuickSearch";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -139,6 +140,9 @@ export default function TerminalLayout({
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuItems = user?.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+
+  // Global Abboud AI alert monitoring - polls for new alerts and shows browser notifications
+  useAbboudAlertNotifications();
 
   if (loading) {
     return (
