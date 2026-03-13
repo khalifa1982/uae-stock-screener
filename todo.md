@@ -941,3 +941,15 @@
 - [ ] Unread message count badge on chat icon
 - [ ] Smooth scroll-to-bottom with new message indicator
 - [ ] Add notification sound for new messages when chat is closed
+
+## Phase 40 - Abboud AI Indicator (Fibonacci + RSI Divergence)
+- [x] Create abboudIndicator.ts calculation engine (swing detection, Fibonacci levels, RSI, divergence detection)
+- [x] Add tRPC endpoint for Abboud AI indicator data
+- [x] Create AbboudIndicatorOverlay component for chart integration
+- [x] Draw Fibonacci retracement levels (23.6%, 38.2%, 50%, 61.8%, 78.6%) as horizontal lines
+- [x] Draw entry zone (38.2%-50%) with green shading
+- [x] Draw stop-loss level at 61.8% with red line
+- [x] Draw future price targets (127.2%, 161.8% extensions)
+- [x] Add RSI divergence detection and visual markers
+- [x] Add gold toggle button to enable/disable indicator on chart
+- [x] Integrate with existing stock detail chart

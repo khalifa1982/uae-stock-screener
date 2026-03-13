@@ -1484,6 +1484,28 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return info;
       }),
 
+    // Abboud AI Indicator (Fibonacci + RSI Divergence)
+    abboud: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        exchange: z.enum(["ADX", "DFM"]),
+        outputsize: z.number().min(30).max(5000).default(200),
+      }))
+      .query(async ({ input }) => {
+        const candles = await fetchChartData(input.symbol, input.exchange, "1day", input.outputsize);
+        if (!candles || candles.length < 30) return null;
+        const ohlcData = candles.map((c: any) => ({
+          date: c.datetime,
+          open: parseFloat(c.open),
+          high: parseFloat(c.high),
+          low: parseFloat(c.low),
+          close: parseFloat(c.close),
+          volume: parseInt(c.volume, 10),
+        }));
+        const { computeAbboudIndicator } = await import("./services/abboudIndicator");
+        return computeAbboudIndicator(ohlcData);
+      }),
+
   }),
 
   // Market Summary - daily automated summaries in EN/AR

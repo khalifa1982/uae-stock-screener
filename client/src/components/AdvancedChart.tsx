@@ -30,7 +30,9 @@ import {
   CandlestickChart, LineChart as LineChartIcon, BarChart2,
   Pencil, Ruler, Type, Eraser, Download, Camera, Settings2,
   ZoomIn, ZoomOut, RotateCcw, AlertTriangle, Bell, ChevronDown,
+  Sparkles,
 } from "lucide-react";
+import { AbboudFibOverlay, AbboudSignalCard, useAbboudIndicator } from "./AbboudIndicatorOverlay";
 
 interface AdvancedChartProps {
   symbol: string;
@@ -361,6 +363,10 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   const [showCrosshair, setShowCrosshair] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [brushRange, setBrushRange] = useState<{ startIndex?: number; endIndex?: number }>({});
+  const [showAbboud, setShowAbboud] = useState(false);
+
+  // Fetch Abboud AI Indicator
+  const { data: abboudData } = useAbboudIndicator(symbol, exchange, showAbboud);
 
   // Fetch Bollinger Bands
   const { data: bbData } = trpc.td.bbands.useQuery(
@@ -450,7 +456,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     });
   }, [chartData, bbData, macdData, rsiData]);
 
-  // Calculate Y domain for price chart
+  // Calculate Y domain for price chart (includes Fibonacci levels when Abboud is active)
   const priceDomain = useMemo(() => {
     if (mergedData.length === 0) return ["auto", "auto"] as const;
     let min = Infinity, max = -Infinity;
@@ -461,9 +467,22 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
         if (v > max) max = v;
       }
     }
+    // Expand domain to include Fibonacci retracement levels + stop loss + entry zone
+    if (showAbboud && abboudData) {
+      for (const fib of abboudData.fibLevels) {
+        if (fib.type === "retracement" && fib.price > 0) {
+          if (fib.price < min) min = fib.price;
+          if (fib.price > max) max = fib.price;
+        }
+      }
+      if (abboudData.signal.stopLoss) {
+        if (abboudData.signal.stopLoss < min) min = abboudData.signal.stopLoss;
+        if (abboudData.signal.stopLoss > max) max = abboudData.signal.stopLoss;
+      }
+    }
     const padding = (max - min) * 0.05;
     return [min - padding, max + padding] as const;
-  }, [mergedData]);
+  }, [mergedData, showAbboud, abboudData]);
 
   const currentPrice = mergedData.length > 0 ? mergedData[mergedData.length - 1].close : 0;
 
@@ -476,6 +495,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     { key: "bb", label: "BB", active: showBB, toggle: () => setShowBB(!showBB), color: NEON.cyanDim },
     { key: "macd", label: "MACD", active: showMACD, toggle: () => setShowMACD(!showMACD), color: NEON.macdLine },
     { key: "rsi", label: "RSI", active: showRSI, toggle: () => setShowRSI(!showRSI), color: NEON.rsiLine },
+    { key: "abboud", label: "Abboud AI", active: showAbboud, toggle: () => setShowAbboud(!showAbboud), color: NEON.gold },
   ];
 
   const chartHeight = isExpanded ? 450 : 280;
@@ -517,10 +537,11 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 key={t.key}
                 variant={t.active ? "default" : "ghost"}
                 size="sm"
-                className={`h-5 px-1.5 text-[9px] gap-0.5 ${t.active ? '' : 'opacity-50'}`}
+                className={`h-5 px-1.5 text-[9px] gap-0.5 ${t.active ? '' : 'opacity-50'} ${t.key === 'abboud' && t.active ? 'ring-1 ring-[oklch(0.82_0.16_80)] bg-[oklch(0.82_0.16_80)]/15' : ''}`}
                 onClick={t.toggle}
+                style={t.key === 'abboud' ? { color: t.active ? NEON.gold : undefined } : undefined}
               >
-                {t.active ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
+                {t.key === 'abboud' ? <Sparkles className="h-2.5 w-2.5" style={{ color: t.active ? NEON.gold : undefined }} /> : (t.active ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />)}
                 {t.label}
               </Button>
             ))}
@@ -635,6 +656,16 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                   </Bar>
                 )}
 
+                {/* Abboud AI Fibonacci Overlay */}
+                {showAbboud && abboudData && (
+                  <AbboudFibOverlay
+                    fibLevels={abboudData.fibLevels}
+                    entryZone={abboudData.signal.entryZone}
+                    stopLoss={abboudData.signal.stopLoss}
+                    targets={abboudData.signal.targets}
+                  />
+                )}
+
                 {/* Zoom brush */}
                 <Brush
                   dataKey="date"
@@ -671,6 +702,12 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-0.5 rounded border border-dashed" style={{ borderColor: NEON.cyanDim }} />
                   <span className="text-[8px] text-muted-foreground">Bollinger Bands</span>
+                </div>
+              )}
+              {showAbboud && (
+                <div className="flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" style={{ color: NEON.gold }} />
+                  <span className="text-[8px]" style={{ color: NEON.gold }}>Abboud AI</span>
                 </div>
               )}
             </div>
@@ -734,6 +771,11 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+            )}
+
+            {/* ═══ Abboud AI Signal Card ═══ */}
+            {showAbboud && (
+              <AbboudSignalCard symbol={symbol} exchange={exchange} enabled={showAbboud} />
             )}
 
             {/* ═══ RSI Sub-Chart ═══ */}
