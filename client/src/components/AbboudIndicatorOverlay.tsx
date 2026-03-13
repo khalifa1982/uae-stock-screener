@@ -1,19 +1,20 @@
 /**
  * Abboud AI Indicator Overlay
  * 
- * Renders directly ON the price chart:
+ * Renders directly ON the price chart using a single Customized SVG renderer:
  * - Fibonacci retracement levels as horizontal lines with price labels
  * - Entry zone as a visible colored rectangle (pink/magenta)
  * - Stop-loss line (red, bold)
  * - Target lines (green, bold)
- * - Price projection arrows (blue zigzag path via Customized SVG)
+ * - Price projection arrows (blue zigzag path)
  * - Signal summary card below the chart
  * 
- * Uses Recharts ReferenceLine, ReferenceArea, and Customized SVG shapes.
+ * Uses Recharts Customized component to render raw SVG, bypassing
+ * Recharts' child element detection which doesn't work with Fragment children.
  */
 
 import { useMemo, useCallback } from "react";
-import { ReferenceLine, ReferenceArea, Customized, Label } from "recharts";
+import { Customized } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
@@ -28,28 +29,26 @@ const ABBOUD_COLORS = {
   gold: "oklch(0.82 0.16 80)",
   goldDim: "oklch(0.68 0.14 80)",
   goldBright: "oklch(0.92 0.16 80)",
-  entry: "#e040fb",           // magenta/pink for entry zone
-  entryFill: "rgba(224, 64, 251, 0.12)",
-  entryBorder: "rgba(224, 64, 251, 0.6)",
-  stopLoss: "#ff1744",        // bright red
+  entry: "#e040fb",
+  entryFill: "rgba(224, 64, 251, 0.15)",
+  entryBorder: "rgba(224, 64, 251, 0.7)",
+  stopLoss: "#ff1744",
   stopLossDim: "rgba(255, 23, 68, 0.15)",
-  target: "#00e676",          // bright green
+  target: "#00e676",
   targetDim: "rgba(0, 230, 118, 0.15)",
-  resistance: "#ff5252",      // red for resistance
-  support: "#69f0ae",         // green for support
-  projection: "#448aff",      // blue for price projection arrows
+  resistance: "#ff5252",
+  support: "#69f0ae",
+  projection: "#448aff",
   projectionDim: "rgba(68, 138, 255, 0.3)",
-  fib236: "#26c6da",          // cyan
-  fib382: "#66bb6a",          // green
-  fib50: "#ffd54f",           // gold/amber
-  fib618: "#ff7043",          // orange
-  fib786: "#ef5350",          // red
+  fib236: "#26c6da",
+  fib382: "#66bb6a",
+  fib50: "#ffd54f",
+  fib618: "#ff7043",
+  fib786: "#ef5350",
   swingHigh: "#ff5252",
   swingLow: "#69f0ae",
   labelBg: "rgba(0,0,0,0.85)",
 };
-
-// ─── Fib level color helper ────────────────────────────────────────────────
 
 function getFibColor(level: number): string {
   if (level <= 0.236) return ABBOUD_COLORS.fib236;
@@ -59,124 +58,331 @@ function getFibColor(level: number): string {
   return ABBOUD_COLORS.fib786;
 }
 
-// ─── Price Projection SVG Component (rendered via Customized) ──────────────
+// ─── Module-level data store for the Customized renderer ──────────────────
 
-interface ProjectionRendererProps {
+interface AbboudOverlayData {
+  fibLevels: Array<{ level: number; label: string; price: number; type: string }>;
+  entryZone: { low: number; high: number } | null;
+  stopLoss: number | null;
+  targets: Array<{ level: string; price: number }>;
   currentPrice: number;
-  projection: Array<{ price: number; label: string; type: string }>;
+  priceProjection: Array<{ price: number; label: string; type: string }>;
 }
 
-// Store projection data in a module-level ref so the Customized renderer can access it
-let _projectionData: ProjectionRendererProps | null = null;
+let _abboudData: AbboudOverlayData | null = null;
 
-function ProjectionSVGRenderer(chartProps: any) {
+// ─── Single SVG Renderer (renders ALL overlay elements) ───────────────────
+
+function AbboudSVGRenderer(chartProps: any) {
   const { yAxisMap, xAxisMap, offset, width, height } = chartProps;
-  
-  if (!_projectionData || !_projectionData.projection || _projectionData.projection.length < 2) return null;
+
+  if (!_abboudData) return null;
   if (!yAxisMap || !xAxisMap) return null;
-  
+
   const yAxis = Object.values(yAxisMap)[0] as any;
   if (!yAxis?.scale) return null;
-  
+
   const yScale = yAxis.scale;
   const chartLeft = offset?.left ?? 52;
-  const chartRight = chartLeft + (offset?.width ?? width - 57);
+  const chartRight = chartLeft + (offset?.width ?? (width - 57));
+  const chartTop = offset?.top ?? 5;
+  const chartBottom = chartTop + (offset?.height ?? (height - 30));
   const chartWidth = chartRight - chartLeft;
-  
-  const { projection } = _projectionData;
 
-  // Position projection in the right portion of the chart (future area)
-  const startX = chartLeft + chartWidth * 0.65;
-  const endX = chartRight - 60;
-  const segmentWidth = (endX - startX) / Math.max(projection.length - 1, 1);
+  const { fibLevels, entryZone, stopLoss, targets, currentPrice, priceProjection } = _abboudData;
 
-  const points = projection.map((p, i) => ({
-    x: startX + i * segmentWidth,
-    y: yScale(p.price),
-    ...p,
-  })).filter(p => !isNaN(p.y));
+  // Get retracement-only fib levels (exclude 0% and 100% which are swing high/low)
+  const retracementLevels = fibLevels.filter(f => f.type === "retracement" && f.level > 0 && f.level < 1);
+  const swingHigh = fibLevels.find(f => f.level === 0 && f.type === "retracement");
+  const swingLow = fibLevels.find(f => f.level === 1 && f.type === "retracement");
 
-  if (points.length < 2) return null;
+  // Helper: clamp Y position to chart area
+  const clampY = (y: number) => Math.max(chartTop, Math.min(chartBottom, y));
+  const isInView = (price: number) => {
+    const y = yScale(price);
+    return y >= chartTop - 20 && y <= chartBottom + 20;
+  };
 
-  // Build path
-  const pathParts: string[] = [];
-  points.forEach((p, i) => {
-    if (i === 0) pathParts.push(`M ${p.x} ${p.y}`);
-    else pathParts.push(`L ${p.x} ${p.y}`);
-  });
-
-  const lastPoint = points[points.length - 1];
-  const prevPoint = points[points.length - 2];
-  const angle = Math.atan2(lastPoint.y - prevPoint.y, lastPoint.x - prevPoint.x);
-  const arrowLen = 10;
-  const arrowAngle = Math.PI / 6;
+  // Helper: draw a dashed horizontal line with a label box on the right
+  const drawLabeledLine = (
+    price: number,
+    color: string,
+    lineWidth: number,
+    dashArray: string,
+    labelText: string,
+    labelBgColor: string,
+    key: string,
+  ) => {
+    if (!isInView(price)) return null;
+    const y = clampY(yScale(price));
+    return (
+      <g key={key}>
+        <line
+          x1={chartLeft}
+          x2={chartRight}
+          y1={y}
+          y2={y}
+          stroke={color}
+          strokeWidth={lineWidth}
+          strokeDasharray={dashArray}
+          opacity={0.85}
+        />
+        {/* Label box on the right */}
+        <rect
+          x={chartRight - 80}
+          y={y - 8}
+          width={78}
+          height={16}
+          rx={3}
+          fill={labelBgColor}
+          stroke={color}
+          strokeWidth={0.8}
+          opacity={0.95}
+        />
+        <text
+          x={chartRight - 41}
+          y={y + 4}
+          textAnchor="middle"
+          fill={color}
+          fontSize={9}
+          fontWeight="bold"
+          fontFamily="monospace"
+        >
+          {labelText}
+        </text>
+      </g>
+    );
+  };
 
   return (
-    <g className="abboud-projection">
-      {/* Projection path */}
-      <path
-        d={pathParts.join(" ")}
-        fill="none"
-        stroke={ABBOUD_COLORS.projection}
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.9}
-      />
-      
-      {/* Arrow head */}
-      <path
-        d={`M ${lastPoint.x} ${lastPoint.y} 
-            L ${lastPoint.x - arrowLen * Math.cos(angle - arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle - arrowAngle)}
-            M ${lastPoint.x} ${lastPoint.y}
-            L ${lastPoint.x - arrowLen * Math.cos(angle + arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle + arrowAngle)}`}
-        fill="none"
-        stroke={ABBOUD_COLORS.projection}
-        strokeWidth={2.5}
-        strokeLinecap="round"
-      />
+    <g className="abboud-overlay">
+      {/* ═══ Entry Zone Rectangle ═══ */}
+      {entryZone && isInView(entryZone.low) && isInView(entryZone.high) && (() => {
+        const y1 = clampY(yScale(entryZone.high));
+        const y2 = clampY(yScale(entryZone.low));
+        return (
+          <g key="entry-zone">
+            <rect
+              x={chartLeft}
+              y={y1}
+              width={chartWidth}
+              height={Math.max(y2 - y1, 2)}
+              fill={ABBOUD_COLORS.entryFill}
+              stroke={ABBOUD_COLORS.entryBorder}
+              strokeWidth={1.5}
+              strokeDasharray="8 4"
+              opacity={0.9}
+            />
+            {/* Entry Zone label */}
+            <rect
+              x={chartLeft + 8}
+              y={y1 + 4}
+              width={90}
+              height={18}
+              rx={4}
+              fill="rgba(224, 64, 251, 0.2)"
+              stroke={ABBOUD_COLORS.entryBorder}
+              strokeWidth={0.8}
+            />
+            <text
+              x={chartLeft + 53}
+              y={y1 + 16}
+              textAnchor="middle"
+              fill={ABBOUD_COLORS.entry}
+              fontSize={10}
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              ENTRY ZONE
+            </text>
+          </g>
+        );
+      })()}
 
-      {/* Dots at each projection point */}
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle
-            cx={p.x}
-            cy={p.y}
-            r={i === 0 ? 4 : 5}
-            fill={p.type === "current" ? ABBOUD_COLORS.gold : 
-                  p.type === "pullback" ? ABBOUD_COLORS.fib50 :
-                  ABBOUD_COLORS.projection}
-            stroke="rgba(0,0,0,0.5)"
-            strokeWidth={1}
-          />
-          {/* Label */}
-          <rect
-            x={p.x - 25}
-            y={p.y + (p.type === "pullback" ? 8 : -22)}
-            width={50}
-            height={14}
-            rx={3}
-            fill="rgba(0,0,0,0.75)"
-            stroke={p.type === "current" ? ABBOUD_COLORS.gold : 
-                    p.type === "pullback" ? ABBOUD_COLORS.fib50 :
-                    ABBOUD_COLORS.projection}
-            strokeWidth={0.5}
-          />
-          <text
-            x={p.x}
-            y={p.y + (p.type === "pullback" ? 18 : -12)}
-            textAnchor="middle"
-            fill={p.type === "current" ? ABBOUD_COLORS.gold : 
-                  p.type === "pullback" ? ABBOUD_COLORS.fib50 :
-                  ABBOUD_COLORS.projection}
-            fontSize={8}
-            fontWeight="bold"
-            fontFamily="monospace"
-          >
-            {p.label}
-          </text>
-        </g>
+      {/* ═══ Stop Loss Line ═══ */}
+      {stopLoss != null && drawLabeledLine(
+        stopLoss,
+        ABBOUD_COLORS.stopLoss,
+        2.5,
+        "10 5",
+        `STOP ${stopLoss.toFixed(3)}`,
+        "rgba(255, 23, 68, 0.15)",
+        "stop-loss",
+      )}
+
+      {/* ═══ Target Lines ═══ */}
+      {targets.map((t, i) => drawLabeledLine(
+        t.price,
+        ABBOUD_COLORS.target,
+        2,
+        "8 4",
+        `TP${i + 1} ${t.price.toFixed(3)}`,
+        "rgba(0, 230, 118, 0.12)",
+        `target-${i}`,
       ))}
+
+      {/* ═══ Swing High Line (Resistance) ═══ */}
+      {swingHigh && drawLabeledLine(
+        swingHigh.price,
+        ABBOUD_COLORS.resistance,
+        2,
+        "",
+        `RES ${swingHigh.price.toFixed(3)}`,
+        "rgba(255, 82, 82, 0.15)",
+        "swing-high",
+      )}
+
+      {/* ═══ Swing Low Line (Support) ═══ */}
+      {swingLow && drawLabeledLine(
+        swingLow.price,
+        ABBOUD_COLORS.support,
+        2,
+        "",
+        `SUP ${swingLow.price.toFixed(3)}`,
+        "rgba(105, 240, 174, 0.12)",
+        "swing-low",
+      )}
+
+      {/* ═══ Fibonacci Retracement Lines ═══ */}
+      {retracementLevels.map((fib) => {
+        if (!isInView(fib.price)) return null;
+        const color = getFibColor(fib.level);
+        const y = clampY(yScale(fib.price));
+        return (
+          <g key={`fib-${fib.level}`}>
+            <line
+              x1={chartLeft}
+              x2={chartRight}
+              y1={y}
+              y2={y}
+              stroke={color}
+              strokeWidth={1.2}
+              strokeDasharray="5 3"
+              opacity={0.7}
+            />
+            {/* Fib label on the left */}
+            <rect
+              x={chartLeft + 2}
+              y={y - 14}
+              width={72}
+              height={13}
+              rx={2}
+              fill="rgba(0,0,0,0.75)"
+              stroke={color}
+              strokeWidth={0.5}
+            />
+            <text
+              x={chartLeft + 38}
+              y={y - 4}
+              textAnchor="middle"
+              fill={color}
+              fontSize={8}
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              {fib.label} {fib.price.toFixed(3)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* ═══ Price Projection Arrows ═══ */}
+      {priceProjection && priceProjection.length >= 2 && (() => {
+        // Position projection in the right portion of the chart (future area)
+        const startX = chartLeft + chartWidth * 0.65;
+        const endX = chartRight - 60;
+        const segmentWidth = (endX - startX) / Math.max(priceProjection.length - 1, 1);
+
+        const points = priceProjection.map((p, i) => ({
+          x: startX + i * segmentWidth,
+          y: yScale(p.price),
+          ...p,
+        })).filter(p => !isNaN(p.y) && p.y >= chartTop - 20 && p.y <= chartBottom + 20);
+
+        if (points.length < 2) return null;
+
+        // Build path
+        const pathParts: string[] = [];
+        points.forEach((p, i) => {
+          if (i === 0) pathParts.push(`M ${p.x} ${p.y}`);
+          else pathParts.push(`L ${p.x} ${p.y}`);
+        });
+
+        const lastPoint = points[points.length - 1];
+        const prevPoint = points[points.length - 2];
+        const angle = Math.atan2(lastPoint.y - prevPoint.y, lastPoint.x - prevPoint.x);
+        const arrowLen = 12;
+        const arrowAngle = Math.PI / 6;
+
+        return (
+          <g key="projection">
+            {/* Projection path */}
+            <path
+              d={pathParts.join(" ")}
+              fill="none"
+              stroke={ABBOUD_COLORS.projection}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.9}
+            />
+
+            {/* Arrow head */}
+            <path
+              d={`M ${lastPoint.x} ${lastPoint.y} 
+                  L ${lastPoint.x - arrowLen * Math.cos(angle - arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle - arrowAngle)}
+                  M ${lastPoint.x} ${lastPoint.y}
+                  L ${lastPoint.x - arrowLen * Math.cos(angle + arrowAngle)} ${lastPoint.y - arrowLen * Math.sin(angle + arrowAngle)}`}
+              fill="none"
+              stroke={ABBOUD_COLORS.projection}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+
+            {/* Dots at each projection point */}
+            {points.map((p, i) => (
+              <g key={`proj-${i}`}>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={i === 0 ? 4 : 5}
+                  fill={p.type === "current" ? "#ffd54f" :
+                        p.type === "pullback" ? "#ffd54f" :
+                        ABBOUD_COLORS.projection}
+                  stroke="rgba(0,0,0,0.5)"
+                  strokeWidth={1}
+                />
+                {/* Label */}
+                <rect
+                  x={p.x - 28}
+                  y={p.y + (p.type === "pullback" ? 8 : -22)}
+                  width={56}
+                  height={14}
+                  rx={3}
+                  fill="rgba(0,0,0,0.8)"
+                  stroke={p.type === "current" ? "#ffd54f" :
+                          p.type === "pullback" ? "#ffd54f" :
+                          ABBOUD_COLORS.projection}
+                  strokeWidth={0.5}
+                />
+                <text
+                  x={p.x}
+                  y={p.y + (p.type === "pullback" ? 18 : -12)}
+                  textAnchor="middle"
+                  fill={p.type === "current" ? "#ffd54f" :
+                        p.type === "pullback" ? "#ffd54f" :
+                        ABBOUD_COLORS.projection}
+                  fontSize={8}
+                  fontWeight="bold"
+                  fontFamily="monospace"
+                >
+                  {p.label}
+                </text>
+              </g>
+            ))}
+          </g>
+        );
+      })()}
     </g>
   );
 }
@@ -193,155 +399,12 @@ interface FibOverlayProps {
 }
 
 export function AbboudFibOverlay({ fibLevels, entryZone, stopLoss, targets, currentPrice, priceProjection }: FibOverlayProps) {
-  // Set module-level data for the Customized renderer
-  _projectionData = { currentPrice, projection: priceProjection };
+  // Store data in module-level variable for the Customized renderer
+  _abboudData = { fibLevels, entryZone, stopLoss, targets, currentPrice, priceProjection };
 
-  // Get retracement-only fib levels (exclude 0% and 100% which are swing high/low)
-  const retracementLevels = fibLevels.filter(f => f.type === "retracement" && f.level > 0 && f.level < 1);
-  
-  // Swing high (0%) and swing low (100%)
-  const swingHigh = fibLevels.find(f => f.level === 0 && f.type === "retracement");
-  const swingLow = fibLevels.find(f => f.level === 1 && f.type === "retracement");
-
-  return (
-    <>
-      {/* ═══ Entry Zone Rectangle ═══ */}
-      {entryZone && (
-        <ReferenceArea
-          y1={entryZone.low}
-          y2={entryZone.high}
-          fill={ABBOUD_COLORS.entryFill}
-          stroke={ABBOUD_COLORS.entryBorder}
-          strokeWidth={1.5}
-          strokeDasharray="6 3"
-          ifOverflow="extendDomain"
-        >
-          <Label
-            value="ENTRY ZONE"
-            position="insideTopLeft"
-            fill={ABBOUD_COLORS.entry}
-            fontSize={10}
-            fontWeight="bold"
-            fontFamily="monospace"
-            offset={5}
-          />
-        </ReferenceArea>
-      )}
-
-      {/* ═══ Stop Loss Line ═══ */}
-      {stopLoss != null && (
-        <ReferenceLine
-          y={stopLoss}
-          stroke={ABBOUD_COLORS.stopLoss}
-          strokeWidth={2}
-          strokeDasharray="8 4"
-          ifOverflow="extendDomain"
-        >
-          <Label
-            value={`STOP ${stopLoss.toFixed(3)}`}
-            position="right"
-            fill="#fff"
-            fontSize={9}
-            fontWeight="bold"
-            fontFamily="monospace"
-            offset={5}
-          />
-        </ReferenceLine>
-      )}
-
-      {/* ═══ Target Lines ═══ */}
-      {targets.map((t, i) => (
-        <ReferenceLine
-          key={`target-${i}`}
-          y={t.price}
-          stroke={ABBOUD_COLORS.target}
-          strokeWidth={2}
-          strokeDasharray="6 4"
-          ifOverflow="extendDomain"
-        >
-          <Label
-            value={`TP${i + 1} ${t.price.toFixed(3)}`}
-            position="right"
-            fill={ABBOUD_COLORS.target}
-            fontSize={9}
-            fontWeight="bold"
-            fontFamily="monospace"
-            offset={5}
-          />
-        </ReferenceLine>
-      ))}
-
-      {/* ═══ Swing High Line (0% / Resistance) ═══ */}
-      {swingHigh && (
-        <ReferenceLine
-          y={swingHigh.price}
-          stroke={ABBOUD_COLORS.resistance}
-          strokeWidth={2}
-          ifOverflow="extendDomain"
-        >
-          <Label
-            value={`${swingHigh.price.toFixed(3)}`}
-            position="right"
-            fill={ABBOUD_COLORS.resistance}
-            fontSize={9}
-            fontWeight="bold"
-            fontFamily="monospace"
-            offset={5}
-          />
-        </ReferenceLine>
-      )}
-
-      {/* ═══ Swing Low Line (100% / Support) ═══ */}
-      {swingLow && (
-        <ReferenceLine
-          y={swingLow.price}
-          stroke={ABBOUD_COLORS.support}
-          strokeWidth={2}
-          ifOverflow="extendDomain"
-        >
-          <Label
-            value={`${swingLow.price.toFixed(3)}`}
-            position="right"
-            fill={ABBOUD_COLORS.support}
-            fontSize={9}
-            fontWeight="bold"
-            fontFamily="monospace"
-            offset={5}
-          />
-        </ReferenceLine>
-      )}
-
-      {/* ═══ Fibonacci Retracement Lines ═══ */}
-      {retracementLevels.map((fib) => {
-        const color = getFibColor(fib.level);
-        return (
-          <ReferenceLine
-            key={`fib-${fib.level}`}
-            y={fib.price}
-            stroke={color}
-            strokeWidth={1}
-            strokeDasharray="4 3"
-            ifOverflow="extendDomain"
-          >
-            <Label
-              value={`${fib.label} ${fib.price.toFixed(2)}`}
-              position="insideTopLeft"
-              fill={color}
-              fontSize={8}
-              fontWeight="bold"
-              fontFamily="monospace"
-              offset={3}
-            />
-          </ReferenceLine>
-        );
-      })}
-
-      {/* ═══ Price Projection Arrows (SVG via Customized) ═══ */}
-      {priceProjection && priceProjection.length >= 2 && (
-        <Customized component={ProjectionSVGRenderer} />
-      )}
-    </>
-  );
+  // Render a single Customized component that draws ALL overlay elements as raw SVG
+  // This bypasses Recharts' child element detection which doesn't work with Fragment children
+  return <Customized component={AbboudSVGRenderer} />;
 }
 
 // ─── Signal Summary Card ─────────────────────────────────────────────────────

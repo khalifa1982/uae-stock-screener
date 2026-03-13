@@ -994,3 +994,13 @@
 - [x] Global alert monitoring via TerminalLayout (polls every 30 seconds)
 - [x] Seen alerts tracking in localStorage to prevent duplicate notifications
 - [x] Push to GitHub for Northflank auto-deploy
+
+## Phase 45 - Improve Abboud AI Overlay Visuals
+- [ ] Make Fibonacci level lines thicker and more visible with price labels on right edge
+- [ ] Make entry zone rectangle more prominent (bolder border, semi-transparent fill like TradingView)
+- [ ] Make stop-loss line bold red with price label box on right edge
+- [ ] Make target lines bold green with TP1/TP2/TP3 price label boxes on right edge
+- [ ] Add price projection arrows (blue zigzag path showing predicted price trajectory)
+- [ ] Add swing high/low labels directly on the chart
+- [ ] Ensure overlay works well on both light and dark themes
+- [ ] Test overlay on multiple stocks to verify visual quality
