@@ -7,6 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UserCircle } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -246,6 +247,13 @@ export default function TerminalLayout({
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  onClick={() => setLocation("/profile")}
+                  className="cursor-pointer text-xs"
+                >
+                  <UserCircle className="mr-2 h-3 w-3" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer text-destructive focus:text-destructive text-xs"
                 >
@@ -299,10 +307,10 @@ export default function TerminalLayout({
       <TickerBar />
 
       {/* ─── Main Content ─── */}
-      <main className="flex-1 p-2 sm:p-3 lg:p-4">{children}</main>
+      <main className={`flex-1 p-2 sm:p-3 lg:p-4 ${isMobile ? "pb-20" : ""}`}>{children}</main>
 
       {/* ─── Footer ─── */}
-      <footer className="terminal-footer">
+      <footer className={`terminal-footer ${isMobile ? "mb-16" : ""}`}>
         <span>UAE Market &mdash; www.uae.market</span>
         <span className="mx-2">·</span>
         <span>{APP_VERSION}</span>

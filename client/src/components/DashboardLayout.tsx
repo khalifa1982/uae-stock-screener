@@ -334,10 +334,10 @@ function DashboardLayoutContent({
         </div>
 
         {/* ─── Main Content ─── */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
+        <main className={`flex-1 p-3 sm:p-4 lg:p-6 ${isMobile ? "pb-20" : ""}`}>{children}</main>
 
         {/* ─── Footer ─── */}
-        <footer className="border-t border-border/30 px-4 py-3 text-center">
+        <footer className={`border-t border-border/30 px-4 py-3 text-center ${isMobile ? "mb-16" : ""}`}>
           <p className="text-[11px] text-muted-foreground tracking-wide">
             UAE Market &mdash; www.uae.market &middot; {APP_VERSION}
           </p>

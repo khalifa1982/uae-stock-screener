@@ -9,6 +9,8 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   resetToken: varchar("resetToken", { length: 128 }),
   resetTokenExpiry: timestamp("resetTokenExpiry"),
+  mobileNumber: varchar("mobileNumber", { length: 20 }),
+  avatarEmoji: varchar("avatarEmoji", { length: 8 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

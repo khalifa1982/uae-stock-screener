@@ -131,21 +131,31 @@ function ReplyPreview({ userName, content, type }: { userName?: string; content?
   );
 }
 
+// ─── Avatar Emojis (deterministic per userId) ─────────────────────
+const AVATAR_EMOJIS = [
+  "🦁", "🐯", "🦊", "🐺", "🦅", "🐉", "🦈", "🐬",
+  "🦉", "🐻", "🦇", "🐸", "🦋", "🐝", "🦄", "🐙",
+  "🦀", "🐢", "🦎", "🐍", "🦩", "🦚", "🐧", "🐨",
+  "🦘", "🦥", "🦦", "🦫", "🐼", "🦭", "🐳", "🦬",
+  "🐲", "🦑", "🐊", "🦜", "🐆", "🐅", "🦏", "🐘",
+  "🦒", "🐫", "🦔", "🐿️", "🦡", "🐋", "🐠", "🦐",
+];
+
+function getEmojiForUser(userId?: number): string {
+  if (!userId || userId === 0) return "🤖";
+  return AVATAR_EMOJIS[(userId - 1) % AVATAR_EMOJIS.length];
+}
+
 // ─── Avatar Component ──────────────────────────────────────────────
-function UserAvatar({ name, color, size = "sm" }: { name: string; color: string; size?: "sm" | "md" }) {
-  const initials = (name || "?")
-    .split(" ")
-    .map(w => w[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-  const sizeClass = size === "md" ? "w-8 h-8 text-xs" : "w-6 h-6 text-[10px]";
+function UserAvatar({ name, color, size = "sm", userId }: { name: string; color: string; size?: "sm" | "md"; userId?: number }) {
+  const emoji = getEmojiForUser(userId);
+  const sizeClass = size === "md" ? "w-8 h-8 text-base" : "w-6 h-6 text-sm";
   return (
     <div
-      className={`${sizeClass} rounded-full flex items-center justify-center text-white font-bold shrink-0`}
-      style={{ backgroundColor: color }}
+      className={`${sizeClass} rounded-full flex items-center justify-center shrink-0`}
+      style={{ backgroundColor: color + "33" }}
     >
-      {initials}
+      {emoji}
     </div>
   );
 }
@@ -204,7 +214,7 @@ function MessageBubble({
       onMouseLeave={handleMouseLeave}
     >
       {!isOwn && (
-        <UserAvatar name={msg.userName || "?"} color={msg.userColor || "#666"} />
+        <UserAvatar name={msg.userName || "?"} color={msg.userColor || "#666"} userId={msg.userId} />
       )}
       <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"} relative`}>
         {!isOwn && (
@@ -289,7 +299,7 @@ function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: ()
         {users.map((u) => (
           <div key={u.userId} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-accent/50">
             <div className="relative">
-              <UserAvatar name={u.userName} color={u.userColor} size="md" />
+              <UserAvatar name={u.userName} color={u.userColor} size="md" userId={u.userId} />
               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-popover" />
             </div>
             <span className="text-xs font-medium truncate">{u.userName}</span>

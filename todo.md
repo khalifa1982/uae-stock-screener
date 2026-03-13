@@ -953,3 +953,11 @@
 - [x] Add RSI divergence detection and visual markers
 - [x] Add gold toggle button to enable/disable indicator on chart
 - [x] Integrate with existing stock detail chart
+
+## Phase 41 - UI Fixes & Profile Page
+- [x] Fix bottom toolbar gap on mobile (content showing behind/below the nav bar)
+- [x] Add user profile page (name, email, mobile number display and editing)
+- [x] Add mobile number field to user database schema
+- [x] Allow users to change their display name
+- [x] Replace chat default avatars with random emoji characters
+- [x] Emoji avatars should be consistent per user (deterministic based on userId)

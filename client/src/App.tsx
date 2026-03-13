@@ -20,6 +20,7 @@ import { LiveChat } from "./components/LiveChat";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile";
 
 function Router() {
   return (
@@ -43,6 +44,7 @@ function Router() {
             <Route path={"/summary"} component={MarketSummary} />
             <Route path={"/notifications"} component={NotificationSettings} />
             <Route path={"/admin"} component={Admin} />
+            <Route path={"/profile"} component={Profile} />
             <Route path={"/stock/:symbol"} component={StockDetail} />
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />

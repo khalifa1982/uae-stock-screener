@@ -70,6 +70,23 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// Profile update operations
+export async function updateUserProfile(
+  openId: string,
+  data: { name?: string; mobileNumber?: string | null; avatarEmoji?: string | null }
+) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const updateSet: Record<string, unknown> = {};
+  if (data.name !== undefined) updateSet.name = data.name;
+  if (data.mobileNumber !== undefined) updateSet.mobileNumber = data.mobileNumber;
+  if (data.avatarEmoji !== undefined) updateSet.avatarEmoji = data.avatarEmoji;
+  if (Object.keys(updateSet).length === 0) return undefined;
+  await db.update(users).set(updateSet).where(eq(users.openId, openId));
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 // Stock snapshot operations
 export async function upsertStockSnapshot(data: InsertStockSnapshot): Promise<void> {
   const db = await getDb();

@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
@@ -160,6 +160,40 @@ export const appRouter = router({
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
+    }),
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(100).optional(),
+        mobileNumber: z.string().max(20).nullable().optional(),
+        avatarEmoji: z.string().max(8).nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const updated = await updateUserProfile(ctx.user.openId, input);
+        if (!updated) throw new Error("Failed to update profile");
+        return {
+          id: updated.id,
+          name: updated.name,
+          email: updated.email,
+          mobileNumber: updated.mobileNumber,
+          avatarEmoji: updated.avatarEmoji,
+          role: updated.role,
+          createdAt: updated.createdAt,
+        };
+      }),
+    getProfile: protectedProcedure.query(async ({ ctx }) => {
+      const { getUserByOpenId } = await import("./db");
+      const user = await getUserByOpenId(ctx.user.openId);
+      if (!user) throw new Error("User not found");
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        avatarEmoji: user.avatarEmoji,
+        role: user.role,
+        createdAt: user.createdAt,
+        openId: user.openId,
+      };
     }),
   }),
 
