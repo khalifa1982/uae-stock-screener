@@ -129,7 +129,7 @@ function ChartToolbar({
   drawingTool, setDrawingTool,
   showCrosshair, setShowCrosshair,
   isExpanded, setIsExpanded,
-  onResetZoom,
+  onResetZoom, onZoomIn, onZoomOut,
 }: {
   chartType: ChartType;
   setChartType: (t: ChartType) => void;
@@ -140,6 +140,8 @@ function ChartToolbar({
   isExpanded: boolean;
   setIsExpanded: (v: boolean) => void;
   onResetZoom: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }) {
   const chartTypes: { type: ChartType; icon: React.ReactNode; label: string }[] = [
     { type: "area", icon: <BarChart3 className="h-3 w-3" />, label: "Area" },
@@ -217,7 +219,25 @@ function ChartToolbar({
         <Crosshair className="h-3 w-3" />
       </Button>
 
-      {/* Reset Zoom */}
+      {/* Zoom Controls */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+        onClick={onZoomIn}
+        title="Zoom In"
+      >
+        <ZoomIn className="h-3 w-3" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+        onClick={onZoomOut}
+        title="Zoom Out"
+      >
+        <ZoomOut className="h-3 w-3" />
+      </Button>
       <Button
         variant="ghost"
         size="sm"
@@ -521,6 +541,57 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     setBrushRange({});
   }, []);
 
+  // Zoom in: narrow the visible range by 25% from each side
+  const handleZoomIn = useCallback(() => {
+    const len = mergedData.length;
+    if (len < 4) return;
+    const start = brushRange.startIndex ?? 0;
+    const end = brushRange.endIndex ?? len - 1;
+    const visibleLen = end - start;
+    if (visibleLen < 8) return; // min 8 data points
+    const step = Math.max(1, Math.floor(visibleLen * 0.15));
+    setBrushRange({
+      startIndex: Math.min(start + step, end - 4),
+      endIndex: Math.max(end - step, start + 4),
+    });
+  }, [mergedData.length, brushRange]);
+
+  // Zoom out: widen the visible range by 25% from each side
+  const handleZoomOut = useCallback(() => {
+    const len = mergedData.length;
+    if (len < 2) return;
+    const start = brushRange.startIndex ?? 0;
+    const end = brushRange.endIndex ?? len - 1;
+    const visibleLen = end - start;
+    const step = Math.max(1, Math.floor(visibleLen * 0.2));
+    const newStart = Math.max(0, start - step);
+    const newEnd = Math.min(len - 1, end + step);
+    if (newStart === 0 && newEnd === len - 1) {
+      setBrushRange({});
+    } else {
+      setBrushRange({ startIndex: newStart, endIndex: newEnd });
+    }
+  }, [mergedData.length, brushRange]);
+
+  // Mouse wheel zoom on chart area
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = chartContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      // Only zoom if Ctrl/Cmd is held, or if it's a pinch gesture (ctrlKey is true for pinch)
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        handleZoomIn();
+      } else {
+        handleZoomOut();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [handleZoomIn, handleZoomOut]);
+
   const toggles = [
     { key: "sma", label: "SMA", active: showSMA, toggle: () => setShowSMA(!showSMA), color: NEON.sma20 },
     { key: "bb", label: "BB", active: showBB, toggle: () => setShowBB(!showBB), color: NEON.cyanDim },
@@ -559,6 +630,8 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
               isExpanded={isExpanded}
               setIsExpanded={setIsExpanded}
               onResetZoom={handleResetZoom}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
             />
           </div>
           {/* Row 2: Indicator Toggles + Range Buttons */}
@@ -591,7 +664,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1 px-2">
+      <CardContent className="space-y-1 px-2" ref={chartContainerRef}>
         {chartLoading ? (
           <Skeleton className="h-[350px] w-full rounded" />
         ) : mergedData.length > 0 ? (

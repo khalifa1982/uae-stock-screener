@@ -1028,3 +1028,21 @@
 - [x] Update scanner/alerts references
 - [x] Update notification text for Aboood.AI alerts
 - [x] Update all test files with new name
+
+## Phase 42b - Chart Zoom & Remaining Fixes
+
+### Chart Zoom Controls
+- [x] Add zoom in/out functionality to the Advanced Chart
+- [x] Support mouse wheel zoom on chart area (Ctrl/Cmd + scroll)
+- [x] Add zoom in/out buttons (+/-) to chart toolbar
+- [x] Allow panning/scrolling through chart data when zoomed in (via Brush)
+- [x] Reset zoom button to return to default view
+
+### Remaining Abboud AI → Aboood.AI Rename
+- [x] Fix chart legend text still showing "Abboud AI" (was already fixed in code, deployment was stale)
+- [x] Fix toggle button still showing "Abboud AI" (already fixed in code) 
+- [x] Verify all references are updated in deployed version
+
+### Chart Data Fields
+- [ ] Ensure all data fields are visible on the chart
+- [ ] Check if any fields are cut off or hidden
