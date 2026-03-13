@@ -10,6 +10,8 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   // TwelveData API
   twelveDataApiKey: process.env.TWELVEDATA_API_KEY ?? "",
+  // Scrapfly.io API for web scraping
+  scrapflyApiKey: process.env.SCRAPFLY_API_KEY ?? "",
   // Legacy forge references (kept for compatibility, mapped to Gemini)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? process.env.GEMINI_API_KEY ?? "",

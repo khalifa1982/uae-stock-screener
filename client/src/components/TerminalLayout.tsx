@@ -16,10 +16,12 @@ import { MarketStatusBadge } from "@/components/MarketStatusIndicator";
 import { QuickSearch } from "@/components/QuickSearch";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Button } from "./ui/button";
 import { APP_VERSION } from "../../../shared/const";
+import { ALL_STOCKS } from "../../../shared/stockData";
+import { useRealtimePrices } from "@/hooks/useRealtimePrices";
 import {
   LayoutDashboard,
   Filter,
@@ -65,26 +67,116 @@ const mobileNavItems = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════
-   SCROLLING TICKER BAR
+   SCROLLING TICKER BAR — Live WebSocket Prices
    ═══════════════════════════════════════════════════════════════════ */
+
+/** Single ticker item that flashes on price change */
+function TickerItem({ symbol, price, changePercent, flashDir }: {
+  symbol: string;
+  price: number;
+  changePercent: number;
+  flashDir: "up" | "down" | null;
+}) {
+  const isUp = changePercent > 0;
+  const isDown = changePercent < 0;
+  return (
+    <span className="ticker-item">
+      <span className="ticker-symbol">{symbol}</span>
+      <span className={`ticker-price font-mono ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}>
+        {price.toFixed(2)}
+      </span>
+      <span
+        className={`ticker-change font-mono ${
+          isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"
+        } ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}
+      >
+        {isUp ? "▲" : isDown ? "▼" : ""}
+        {isUp ? "+" : ""}
+        {changePercent.toFixed(2)}%
+      </span>
+      <span className="ticker-divider">│</span>
+    </span>
+  );
+}
+
 function TickerBar() {
+  // 1. Load initial snapshot data (baseline prices + change %)
   const { data: snapshots } = trpc.stocks.fetchAll.useQuery(undefined, {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-  const tickerRef = useRef<HTMLDivElement>(null);
+
+  // 2. Subscribe to WebSocket for ALL stocks
+  const allSymbols = useMemo(() => ALL_STOCKS.map(s => s.symbol), []);
+  const allExchanges = useMemo(() => ALL_STOCKS.map(s => s.exchange), []);
+  const { prices: wsPrices } = useRealtimePrices(allSymbols, allExchanges);
+
+  // 3. Track flash state per symbol
+  const [flashes, setFlashes] = useState<Record<string, "up" | "down">>({});
+  const prevPricesRef = useRef<Record<string, number>>({});
+  const flashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Detect price changes from WS and trigger flash
+  useEffect(() => {
+    const prev = prevPricesRef.current;
+    const newFlashes: Record<string, "up" | "down"> = {};
+    let hasNew = false;
+
+    for (const [sym, data] of Object.entries(wsPrices)) {
+      if (prev[sym] !== undefined && data.price !== prev[sym]) {
+        const dir = data.price > prev[sym] ? "up" : "down";
+        newFlashes[sym] = dir;
+        hasNew = true;
+
+        // Clear flash after 800ms
+        if (flashTimersRef.current[sym]) clearTimeout(flashTimersRef.current[sym]);
+        flashTimersRef.current[sym] = setTimeout(() => {
+          setFlashes(f => {
+            const copy = { ...f };
+            delete copy[sym];
+            return copy;
+          });
+        }, 800);
+      }
+      prev[sym] = data.price;
+    }
+
+    if (hasNew) {
+      setFlashes(f => ({ ...f, ...newFlashes }));
+    }
+  }, [wsPrices]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(flashTimersRef.current).forEach(clearTimeout);
+    };
+  }, []);
+
   const [isPaused, setIsPaused] = useState(false);
 
-  // Pick top movers (gainers + losers + most active) for the ticker
+  // 4. Build merged ticker list: snapshot data overlaid with WS live prices
   const tickerStocks = useMemo(() => {
     if (!snapshots || snapshots.length === 0) return [];
     const withPrice = snapshots.filter((s: any) => s.price && s.price > 0);
-    // Sort by absolute change to get the most interesting stocks
+    // Sort by absolute change % for most interesting display
     const sorted = [...withPrice].sort((a: any, b: any) =>
       Math.abs(b.changePercent || 0) - Math.abs(a.changePercent || 0)
     );
-    return sorted.slice(0, 30);
+    return sorted;
   }, [snapshots]);
+
+  // Merge WS prices on top of snapshot data
+  const getLivePrice = useCallback((stock: any) => {
+    const ws = wsPrices[stock.symbol];
+    if (ws && ws.price > 0) {
+      // Recalculate change % from WS price vs previous close
+      const prevClose = stock.previousClose || (stock.price - (stock.price * (stock.changePercent || 0) / 100));
+      const liveChangePercent = prevClose > 0 ? ((ws.price - prevClose) / prevClose) * 100 : (stock.changePercent || 0);
+      return { price: ws.price, changePercent: liveChangePercent };
+    }
+    return { price: stock.price, changePercent: stock.changePercent || 0 };
+  }, [wsPrices]);
 
   if (tickerStocks.length === 0) return null;
 
@@ -95,30 +187,19 @@ function TickerBar() {
       onMouseLeave={() => setIsPaused(false)}
     >
       <div
-        ref={tickerRef}
         className={`ticker-track ${isPaused ? "paused" : ""}`}
       >
         {/* Duplicate for seamless loop */}
         {[...tickerStocks, ...tickerStocks].map((stock: any, i: number) => {
-          const isUp = (stock.changePercent || 0) > 0;
-          const isDown = (stock.changePercent || 0) < 0;
+          const live = getLivePrice(stock);
           return (
-            <span key={`${stock.symbol}-${i}`} className="ticker-item">
-              <span className="ticker-symbol">{stock.symbol}</span>
-              <span className="ticker-price font-mono">
-                {stock.price?.toFixed(2)}
-              </span>
-              <span
-                className={`ticker-change font-mono ${
-                  isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"
-                }`}
-              >
-                {isUp ? "▲" : isDown ? "▼" : ""}
-                {isUp ? "+" : ""}
-                {(stock.changePercent || 0).toFixed(2)}%
-              </span>
-              <span className="ticker-divider">│</span>
-            </span>
+            <TickerItem
+              key={`${stock.symbol}-${i}`}
+              symbol={stock.symbol}
+              price={live.price}
+              changePercent={live.changePercent}
+              flashDir={flashes[stock.symbol] || null}
+            />
           );
         })}
       </div>

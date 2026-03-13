@@ -92,7 +92,7 @@ async function checkStockForAlerts(
             price: currentPrice,
             triggerLevel: (low + high) / 2,
             direction,
-            message: `${symbol} (${exchange}) is in the Abboud AI entry zone (${low.toFixed(3)} - ${high.toFixed(3)}). Current price: ${currentPrice.toFixed(3)}. Signal: ${signal.action} (${signal.confidence}% confidence)`,
+            message: `${symbol} (${exchange}) is in the Aboood.AI entry zone (${low.toFixed(3)} - ${high.toFixed(3)}). Current price: ${currentPrice.toFixed(3)}. Signal: ${signal.action} (${signal.confidence}% confidence)`,
             severity: signal.confidence >= 70 ? "critical" : "warning",
           });
           cacheAlert(cacheKey);
@@ -113,7 +113,7 @@ async function checkStockForAlerts(
             price: currentPrice,
             triggerLevel: signal.stopLoss,
             direction,
-            message: `⚠️ ${symbol} (${exchange}) is near the Abboud AI stop loss at ${signal.stopLoss.toFixed(3)}. Current price: ${currentPrice.toFixed(3)}`,
+            message: `⚠️ ${symbol} (${exchange}) is near the Aboood.AI stop loss at ${signal.stopLoss.toFixed(3)}. Current price: ${currentPrice.toFixed(3)}`,
             severity: "critical",
           });
           cacheAlert(cacheKey);
@@ -136,7 +136,7 @@ async function checkStockForAlerts(
             price: currentPrice,
             triggerLevel: target.price,
             direction,
-            message: `🎯 ${symbol} (${exchange}) hit Abboud AI ${target.level} at ${target.price.toFixed(3)}. Current price: ${currentPrice.toFixed(3)}`,
+            message: `🎯 ${symbol} (${exchange}) hit Aboood.AI ${target.level} at ${target.price.toFixed(3)}. Current price: ${currentPrice.toFixed(3)}`,
             severity: i === 0 ? "warning" : "info",
           });
           cacheAlert(cacheKey);

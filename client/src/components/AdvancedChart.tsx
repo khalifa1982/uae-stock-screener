@@ -526,7 +526,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
     { key: "bb", label: "BB", active: showBB, toggle: () => setShowBB(!showBB), color: NEON.cyanDim },
     { key: "macd", label: "MACD", active: showMACD, toggle: () => setShowMACD(!showMACD), color: NEON.macdLine },
     { key: "rsi", label: "RSI", active: showRSI, toggle: () => setShowRSI(!showRSI), color: NEON.rsiLine },
-    { key: "abboud", label: "Abboud AI", active: showAbboud, toggle: () => setShowAbboud(!showAbboud), color: NEON.gold },
+    { key: "abboud", label: "Aboood.AI", active: showAbboud, toggle: () => setShowAbboud(!showAbboud), color: NEON.gold },
   ];
 
   const chartHeight = isExpanded ? 450 : 280;
@@ -787,7 +787,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 <>
                   <div className="flex items-center gap-1">
                     <Sparkles className="h-2.5 w-2.5" style={{ color: NEON.gold }} />
-                    <span className="text-[8px]" style={{ color: NEON.gold }}>Abboud AI</span>
+                    <span className="text-[8px]" style={{ color: NEON.gold }}>Aboood.AI Thoughts</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-1.5 rounded-sm" style={{ backgroundColor: "rgba(224, 64, 251, 0.3)", border: "1px solid rgba(224, 64, 251, 0.6)" }} />
@@ -874,7 +874,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
               </div>
             )}
 
-            {/* ═══ Abboud AI Signal Card ═══ */}
+            {/* ═══ Aboood.AI Thoughts Signal Card ═══ */}
             {showAbboud && (
               <AbboudSignalCard symbol={symbol} exchange={exchange} enabled={showAbboud} />
             )}

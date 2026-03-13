@@ -135,7 +135,7 @@ function showAbboudNotification(alert: {
   const label = typeLabel[alert.alertType] || alert.alertType;
   const dirEmoji = alert.direction === "bullish" ? "\u{1F7E2}" : "\u{1F534}";
 
-  const title = `${emoji} Abboud AI: ${alert.symbol} - ${label}`;
+  const title = `${emoji} Aboood.AI: ${alert.symbol} - ${label}`;
   const body = [
     `${dirEmoji} ${alert.direction.toUpperCase()} signal`,
     `Price: ${alert.price.toFixed(3)} AED`,

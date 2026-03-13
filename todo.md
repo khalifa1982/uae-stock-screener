@@ -1004,3 +1004,27 @@
 - [ ] Add swing high/low labels directly on the chart
 - [ ] Ensure overlay works well on both light and dark themes
 - [ ] Test overlay on multiple stocks to verify visual quality
+
+## Phase 42 - v10.4: Scrapfly.io Integration, Live Ticker Bar, Aboood.AI Rename
+
+### Scrapfly.io Web Scraping Integration
+- [x] Set up Scrapfly.io API key as environment secret
+- [ ] Create Scrapfly.io scraping service for comprehensive stock data fields
+- [ ] Ensure no duplicate data fields across all data sources (TwelveData, TradingView, StockAnalysis, Scrapfly)
+- [ ] Review and consolidate all data fields from the UAE Stock Market Data Fields Comparison document
+
+### Live Ticker Bar Fix
+- [x] Fix ticker bar to show live real-time prices (currently showing stale/old data)
+- [x] Ticker bar should update instantly when prices change during market hours
+- [x] Price changes should reflect immediately with correct colors (green for up, red for down)
+- [x] Ticker bar should scroll/move continuously with live data feed
+- [x] Ensure ticker bar data refreshes from the same live data source as the main table
+
+### Rename Abboud AI → Aboood.AI Thoughts
+- [x] Rename all references from "Abboud AI" to "Aboood.AI Thoughts" in UI components
+- [x] Update chart toggle button label
+- [x] Update signal card title
+- [x] Update chart legend labels
+- [x] Update scanner/alerts references
+- [x] Update notification text for Aboood.AI alerts
+- [x] Update all test files with new name

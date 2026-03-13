@@ -894,6 +894,26 @@
     opacity: 0.5;
   }
 
+  /* ── Ticker flash animations (live price change) ── */
+  @keyframes ticker-flash-green {
+    0% { color: var(--gain); text-shadow: 0 0 6px color-mix(in oklch, var(--gain) 60%, transparent); transform: scale(1.08); }
+    50% { color: var(--gain); text-shadow: 0 0 3px color-mix(in oklch, var(--gain) 30%, transparent); transform: scale(1.02); }
+    100% { text-shadow: none; transform: scale(1); }
+  }
+  @keyframes ticker-flash-red {
+    0% { color: var(--loss); text-shadow: 0 0 6px color-mix(in oklch, var(--loss) 60%, transparent); transform: scale(1.08); }
+    50% { color: var(--loss); text-shadow: 0 0 3px color-mix(in oklch, var(--loss) 30%, transparent); transform: scale(1.02); }
+    100% { text-shadow: none; transform: scale(1); }
+  }
+  .ticker-flash-up {
+    animation: ticker-flash-green 0.8s ease-out;
+    display: inline-block;
+  }
+  .ticker-flash-down {
+    animation: ticker-flash-red 0.8s ease-out;
+    display: inline-block;
+  }
+
   /* ═══════════════════════════════════════════════════════════════════
      TERMINAL LAYOUT - Footer
      ═══════════════════════════════════════════════════════════════════ */

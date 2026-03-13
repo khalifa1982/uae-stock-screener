@@ -465,7 +465,7 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-semibold flex items-center gap-2">
           <Sparkles className="h-4 w-4" style={{ color: ABBOUD_COLORS.gold }} />
-          <span style={{ color: ABBOUD_COLORS.gold }}>Abboud AI Indicator</span>
+          <span style={{ color: ABBOUD_COLORS.gold }}>Aboood.AI Thoughts</span>
           <Badge variant="outline" className="text-[9px] ml-1" style={{ borderColor: ABBOUD_COLORS.goldDim, color: ABBOUD_COLORS.gold }}>
             Fib + RSI Divergence
           </Badge>
