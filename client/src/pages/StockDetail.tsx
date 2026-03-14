@@ -7,6 +7,9 @@ import { StockNewsTab } from "@/components/StockNewsTab";
 import { StockForecastsTab } from "@/components/StockForecastsTab";
 import { StockSeasonalsTab } from "@/components/StockSeasonalsTab";
 import { StockFinancialsExtended } from "@/components/StockFinancialsExtended";
+import { SAFinancialsView } from "@/components/SAFinancialsView";
+import OwnershipView from "@/components/OwnershipView";
+import DividendsView from "@/components/DividendsView";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
@@ -393,6 +396,8 @@ export default function StockDetail() {
           <TabsTrigger value="news" className="text-xs gap-1.5"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
           <TabsTrigger value="forecasts" className="text-xs gap-1.5"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
           <TabsTrigger value="seasonals" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
+          <TabsTrigger value="dividends" className="text-xs gap-1.5"><DollarSign className="h-3.5 w-3.5" /> Dividends</TabsTrigger>
+          <TabsTrigger value="ownership" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
           <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> AI Analysis</TabsTrigger>
@@ -741,8 +746,11 @@ export default function StockDetail() {
         </TabsContent>
 
         {/* ═══════════════ FINANCIALS TAB ═══════════════ */}
-        <TabsContent value="financials" className="space-y-2 mt-4">
-          {/* TradingView Extended Financials (always shown) */}
+        <TabsContent value="financials" className="space-y-4 mt-4">
+          {/* StockAnalysis.com comprehensive financial statements */}
+          <SAFinancialsView symbol={symbol} exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"} />
+
+          {/* TradingView Extended Financials (supplementary) */}
           <StockFinancialsExtended symbol={symbol} />
 
           {profileLoading ? (
@@ -1171,6 +1179,16 @@ export default function StockDetail() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ═══════════════ DIVIDENDS TAB ═══════════════ */}
+        <TabsContent value="dividends" className="space-y-2 mt-4">
+          <DividendsView symbol={symbol} companyName={stockInfo?.name || symbol} exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"} />
+        </TabsContent>
+
+        {/* ═══════════════ OWNERSHIP & ESG TAB ═══════════════ */}
+        <TabsContent value="ownership" className="space-y-2 mt-4">
+          <OwnershipView symbol={symbol} companyName={stockInfo?.name || symbol} exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"} />
         </TabsContent>
 
         {/* ═══════════════ TRANSCRIPTS TAB ═══════════════ */}

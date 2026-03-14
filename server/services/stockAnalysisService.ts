@@ -1,13 +1,19 @@
 /**
- * StockAnalysis.com Web Scraping Service
+ * StockAnalysis.com Web Scraping Service (v2 - Scrapfly-powered)
  * 
- * Scrapes financial data from StockAnalysis.com for UAE stocks (ADX & DFM).
- * Data is extracted from the server-rendered SvelteKit pages which embed
- * structured data in JavaScript objects.
+ * Scrapes comprehensive financial data from StockAnalysis.com for UAE stocks.
+ * Uses Scrapfly.io for anti-bot bypass and proxy rotation.
  * 
- * URL pattern: https://stockanalysis.com/quote/{exchange}/{symbol}/
- * Exchange codes: "dfm" for DFM, "adx" for ADX
+ * Pages scraped:
+ * - Overview: /quote/{exchange}/{symbol}/
+ * - Income Statement: /quote/{exchange}/{symbol}/financials/
+ * - Balance Sheet: /quote/{exchange}/{symbol}/financials/balance-sheet/
+ * - Cash Flow: /quote/{exchange}/{symbol}/financials/cash-flow-statement/
+ * - Ratios: /quote/{exchange}/{symbol}/financials/ratios/
+ * - Dividends: /quote/{exchange}/{symbol}/dividend/
  */
+
+import { scrapflyFetch } from "./scrapflyService";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -16,7 +22,6 @@ export interface SAOverviewData {
   exchange: string;
   name: string;
   description: string;
-  // Quote
   price: number | null;
   change: number | null;
   changePercent: number | null;
@@ -27,7 +32,6 @@ export interface SAOverviewData {
   previousClose: number | null;
   high52w: number | null;
   low52w: number | null;
-  // Fundamentals
   marketCap: string | null;
   marketCapGrowth: number | null;
   revenue: string | null;
@@ -39,23 +43,19 @@ export interface SAOverviewData {
   epsGrowth: number | null;
   peRatio: string | null;
   forwardPE: string | null;
-  // Dividend
   dividend: string | null;
   dividendYield: string | null;
   payoutRatio: string | null;
   payoutFrequency: string | null;
   exDividendDate: string | null;
-  // Technical
   averageVolume: string | null;
   beta: string | null;
   rsi: string | null;
   earningsDate: string | null;
-  // Company info
   industry: string | null;
   sector: string | null;
   founded: number | null;
   country: string | null;
-  // Price changes
   priceChanges: {
     "1w": number | null;
     "1m": number | null;
@@ -65,7 +65,6 @@ export interface SAOverviewData {
     "1y": number | null;
     "5y": number | null;
   };
-  // Financial chart data
   financialChart: Array<{
     year: string;
     revenue: number;
@@ -74,7 +73,6 @@ export interface SAOverviewData {
     earningsGrowth: number;
   }>;
   financialIntro: string | null;
-  // News
   news: Array<{
     url: string;
     title: string;
@@ -85,10 +83,37 @@ export interface SAOverviewData {
 }
 
 export interface SAFinancialsData {
-  incomeStatement: any[];
-  balanceSheet: any[];
-  cashFlow: any[];
-  ratios: any[];
+  incomeStatement: Record<string, (number | null)[]>;
+  balanceSheet: Record<string, (number | null)[]>;
+  cashFlow: Record<string, (number | null)[]>;
+  ratios: Record<string, (number | null)[]>;
+  periods: {
+    incomeStatement: string[];
+    balanceSheet: string[];
+    cashFlow: string[];
+    ratios: string[];
+  };
+}
+
+export interface SADividendData {
+  history: Array<{
+    exDate: string | null;
+    payDate: string | null;
+    amount: number | null;
+    type: string | null;
+    frequency: string | null;
+  }>;
+  annualYields: Array<{
+    year: string;
+    dividend: number | null;
+    yield: number | null;
+    growth: number | null;
+    payoutRatio: number | null;
+  }>;
+  currentYield: number | null;
+  annualDividend: number | null;
+  payoutRatio: number | null;
+  dividendGrowth5Y: number | null;
 }
 
 // ─── Cache ─────────────────────────────────────────────────────────
@@ -100,9 +125,8 @@ interface CacheEntry<T> {
 
 const overviewCache = new Map<string, CacheEntry<SAOverviewData>>();
 const financialsCache = new Map<string, CacheEntry<SAFinancialsData>>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
-const REQUEST_DELAY = 500; // ms between requests to avoid rate limiting
-let lastRequestTime = 0;
+const dividendCache = new Map<string, CacheEntry<SADividendData>>();
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // ─── Stats ─────────────────────────────────────────────────────────
 
@@ -130,45 +154,16 @@ function buildUrl(symbol: string, exchange: string, page?: string): string {
   return page ? `${base}${page}/` : base;
 }
 
-async function rateLimitedFetch(url: string): Promise<string> {
-  const now = Date.now();
-  const elapsed = now - lastRequestTime;
-  if (elapsed < REQUEST_DELAY) {
-    await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY - elapsed));
-  }
-  lastRequestTime = Date.now();
-
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Cache-Control": "no-cache",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  return response.text();
-}
-
 /**
- * Parse the SvelteKit embedded data from the HTML page.
- * StockAnalysis uses SvelteKit SSR which embeds data in script tags.
+ * Parse JS object notation to JSON-parseable format.
+ * StockAnalysis uses SvelteKit SSR which embeds data in JS objects.
  */
 function parseJSValue(text: string): any {
-  // Convert JS object notation to JSON-parseable format
-  // Handle: void 0 -> null, unquoted keys, single quotes
   let json = text
     .replace(/void 0/g, "null")
     .replace(/undefined/g, "null")
-    // Add quotes to unquoted keys
     .replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":')
-    // Handle trailing commas
     .replace(/,\s*([}\]])/g, "$1");
-
   try {
     return JSON.parse(json);
   } catch {
@@ -176,6 +171,51 @@ function parseJSValue(text: string): any {
   }
 }
 
+/**
+ * Extract the financial data block from the HTML page.
+ * Finds the data:{statement:"...",...,financialData:{...}} block.
+ */
+function extractFinancialBlock(html: string, statementType: string): any {
+  const marker = `data:{statement:"${statementType}"`;
+  const idx = html.indexOf(marker);
+  if (idx === -1) return null;
+
+  const dataStart = idx + 5; // skip 'data:'
+  let depth = 0;
+  let inString = false;
+  let stringChar = "";
+  let end = dataStart;
+
+  for (let i = dataStart; i < Math.min(dataStart + 200000, html.length); i++) {
+    const ch = html[i];
+    const prev = i > 0 ? html[i - 1] : "";
+    if (inString) {
+      if (ch === stringChar && prev !== "\\") inString = false;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      inString = true;
+      stringChar = ch;
+      continue;
+    }
+    if (ch === "{" || ch === "[") depth++;
+    if (ch === "}" || ch === "]") {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (end <= dataStart) return null;
+  const blockText = html.substring(dataStart, end);
+  return parseJSValue(blockText);
+}
+
+/**
+ * Extract all data blocks from the HTML (SvelteKit format)
+ */
 function extractDataBlocks(html: string): any[] {
   const blocks: any[] = [];
   const pattern = /\{type:"data",\s*data:\s*/g;
@@ -183,29 +223,23 @@ function extractDataBlocks(html: string): any[] {
 
   while ((match = pattern.exec(html)) !== null) {
     const startIdx = match.index + match[0].length;
-    // Find the matching closing brace
     let depth = 0;
     let inString = false;
     let stringChar = "";
     let endIdx = startIdx;
 
-    for (let i = startIdx; i < Math.min(startIdx + 50000, html.length); i++) {
+    for (let i = startIdx; i < Math.min(startIdx + 100000, html.length); i++) {
       const ch = html[i];
       const prev = i > 0 ? html[i - 1] : "";
-
       if (inString) {
-        if (ch === stringChar && prev !== "\\") {
-          inString = false;
-        }
+        if (ch === stringChar && prev !== "\\") inString = false;
         continue;
       }
-
       if (ch === '"' || ch === "'") {
         inString = true;
         stringChar = ch;
         continue;
       }
-
       if (ch === "{" || ch === "[") depth++;
       if (ch === "}" || ch === "]") {
         depth--;
@@ -217,11 +251,8 @@ function extractDataBlocks(html: string): any[] {
     }
 
     if (endIdx > startIdx) {
-      const blockText = html.substring(startIdx, endIdx);
-      const parsed = parseJSValue(blockText);
-      if (parsed) {
-        blocks.push(parsed);
-      }
+      const parsed = parseJSValue(html.substring(startIdx, endIdx));
+      if (parsed) blocks.push(parsed);
     }
   }
 
@@ -292,48 +323,69 @@ function extractOverviewData(overviewBlock: any): Partial<SAOverviewData> {
 }
 
 function extractNewsData(html: string): SAOverviewData["news"] {
-  // News is embedded in a separate data block
-  const newsPattern = /\{url:"https?:\/\/[^"]+",img:"[^"]*",title:"[^"]+"/g;
-  const newsItems: SAOverviewData["news"] = [];
+  const altIdx = html.indexOf("news:[");
+  if (altIdx === -1) return [];
 
-  // Find the news array
-  const newsIdx = html.indexOf('"news":[');
-  if (newsIdx === -1) {
-    // Try alternate format: news:[
-    const altIdx = html.indexOf("news:[");
-    if (altIdx === -1) return [];
-
-    // Extract the news array
-    let depth = 0;
-    let start = html.indexOf("[", altIdx);
-    let end = start;
-    for (let i = start; i < Math.min(start + 30000, html.length); i++) {
-      if (html[i] === "[") depth++;
-      if (html[i] === "]") {
-        depth--;
-        if (depth === 0) {
-          end = i + 1;
-          break;
-        }
-      }
-    }
-
-    if (end > start) {
-      const newsText = html.substring(start, end);
-      const parsed = parseJSValue(newsText);
-      if (Array.isArray(parsed)) {
-        return parsed.slice(0, 10).map((n: any) => ({
-          url: n.url || "",
-          title: n.title || "",
-          text: n.text || "",
-          source: n.source || "",
-          time: n.time || "",
-        }));
+  let depth = 0;
+  const start = html.indexOf("[", altIdx);
+  let end = start;
+  for (let i = start; i < Math.min(start + 30000, html.length); i++) {
+    if (html[i] === "[") depth++;
+    if (html[i] === "]") {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
       }
     }
   }
 
-  return newsItems;
+  if (end > start) {
+    const newsText = html.substring(start, end);
+    const parsed = parseJSValue(newsText);
+    if (Array.isArray(parsed)) {
+      return parsed.slice(0, 10).map((n: any) => ({
+        url: n.url || "",
+        title: n.title || "",
+        text: n.text || "",
+        source: n.source || "",
+        time: n.time || "",
+      }));
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Extract financial data from a parsed block.
+ * The financialData object contains arrays keyed by field name.
+ */
+function extractFinancialData(block: any): {
+  periods: string[];
+  data: Record<string, (number | null)[]>;
+} {
+  const fd = block?.financialData;
+  if (!fd) return { periods: [], data: {} };
+
+  const periods = fd.datekey || fd.fiscalYear || [];
+  const data: Record<string, (number | null)[]> = {};
+
+  // Skip metadata fields
+  const skipFields = new Set([
+    "datekey", "fiscalYear", "fiscalQuarter", "map",
+    "availableSources", "params", "cookies", "dark",
+    "hideNewsSources", "md",
+  ]);
+
+  for (const [key, value] of Object.entries(fd)) {
+    if (skipFields.has(key)) continue;
+    if (Array.isArray(value)) {
+      data[key] = value.map((v: any) => (typeof v === "number" ? v : null));
+    }
+  }
+
+  return { periods, data };
 }
 
 // ─── Public API ────────────────────────────────────────────────────
@@ -349,7 +401,6 @@ export async function fetchSAOverview(
   stats.totalRequests++;
   stats.lastRequest = cacheKey;
 
-  // Check cache
   const cached = overviewCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     stats.cacheHits++;
@@ -360,15 +411,10 @@ export async function fetchSAOverview(
   try {
     const url = buildUrl(symbol, exchange);
     console.log(`[StockAnalysis] Fetching overview: ${url}`);
-    const html = await rateLimitedFetch(url);
+    const result = await scrapflyFetch(url, { asp: true, cache: true, cacheTtl: 1800 });
+    const html = result.content;
 
-    // Extract data blocks
     const blocks = extractDataBlocks(html);
-
-    // Block 0: session info (skip)
-    // Block 1: info (quote, symbol, exchange)
-    // Block 2: overview (fundamentals, financials)
-    // Block 3+: news, etc.
 
     let quoteData: Partial<SAOverviewData> = {};
     let overviewData: Partial<SAOverviewData> = {};
@@ -384,7 +430,7 @@ export async function fetchSAOverview(
 
     const news = extractNewsData(html);
 
-    const result: SAOverviewData = {
+    const data: SAOverviewData = {
       symbol: (quoteData.symbol || symbol).toUpperCase(),
       exchange: (quoteData.exchange || exchange).toUpperCase(),
       name: quoteData.name || "",
@@ -432,20 +478,20 @@ export async function fetchSAOverview(
       news,
     };
 
-    // Cache the result
-    overviewCache.set(cacheKey, { data: result, timestamp: Date.now() });
-    console.log(`[StockAnalysis] Successfully scraped ${cacheKey}: ${result.name}, price=${result.price}`);
-    return result;
+    overviewCache.set(cacheKey, { data, timestamp: Date.now() });
+    console.log(`[StockAnalysis] Scraped overview ${cacheKey}: ${data.name}, price=${data.price}`);
+    return data;
   } catch (err: any) {
     stats.errors++;
     stats.lastError = `${cacheKey}: ${err.message}`;
-    console.error(`[StockAnalysis] Error fetching ${cacheKey}:`, err.message);
+    console.error(`[StockAnalysis] Error fetching overview ${cacheKey}:`, err.message);
     return null;
   }
 }
 
 /**
- * Fetch financials page data for a UAE stock
+ * Fetch comprehensive financial statements for a UAE stock.
+ * Scrapes 4 pages: Income Statement, Balance Sheet, Cash Flow, Ratios.
  */
 export async function fetchSAFinancials(
   symbol: string,
@@ -462,37 +508,158 @@ export async function fetchSAFinancials(
   stats.cacheMisses++;
 
   try {
-    const url = buildUrl(symbol, exchange, "financials");
-    console.log(`[StockAnalysis] Fetching financials: ${url}`);
-    const html = await rateLimitedFetch(url);
+    // Fetch all 4 financial pages
+    const pages = [
+      { page: "financials", type: "income-statement" },
+      { page: "financials/balance-sheet", type: "balance-sheet" },
+      { page: "financials/cash-flow-statement", type: "cash-flow-statement" },
+      { page: "financials/ratios", type: "ratios" },
+    ];
 
-    const blocks = extractDataBlocks(html);
-
-    // Find the financials data block
-    let financialsData: SAFinancialsData = {
-      incomeStatement: [],
-      balanceSheet: [],
-      cashFlow: [],
-      ratios: [],
+    const result: SAFinancialsData = {
+      incomeStatement: {},
+      balanceSheet: {},
+      cashFlow: {},
+      ratios: {},
+      periods: {
+        incomeStatement: [],
+        balanceSheet: [],
+        cashFlow: [],
+        ratios: [],
+      },
     };
 
-    for (const block of blocks) {
-      if (block.data && Array.isArray(block.data)) {
-        // This is likely the financials table data
-        financialsData.incomeStatement = block.data;
+    for (const { page, type } of pages) {
+      try {
+        const url = buildUrl(symbol, exchange, page);
+        console.log(`[StockAnalysis] Fetching ${type}: ${url}`);
+        const fetchResult = await scrapflyFetch(url, { asp: true, cache: true, cacheTtl: 3600 });
+        const html = fetchResult.content;
+
+        const block = extractFinancialBlock(html, type);
+        if (block) {
+          const { periods, data } = extractFinancialData(block);
+
+          switch (type) {
+            case "income-statement":
+              result.incomeStatement = data;
+              result.periods.incomeStatement = periods;
+              break;
+            case "balance-sheet":
+              result.balanceSheet = data;
+              result.periods.balanceSheet = periods;
+              break;
+            case "cash-flow-statement":
+              result.cashFlow = data;
+              result.periods.cashFlow = periods;
+              break;
+            case "ratios":
+              result.ratios = data;
+              result.periods.ratios = periods;
+              break;
+          }
+        }
+      } catch (pageErr: any) {
+        console.warn(`[StockAnalysis] Failed to fetch ${type} for ${symbol}: ${pageErr.message}`);
+        // Continue with other pages
       }
-      if (block.incomeStatement) financialsData.incomeStatement = block.incomeStatement;
-      if (block.balanceSheet) financialsData.balanceSheet = block.balanceSheet;
-      if (block.cashFlow) financialsData.cashFlow = block.cashFlow;
-      if (block.ratios) financialsData.ratios = block.ratios;
     }
 
-    financialsCache.set(cacheKey, { data: financialsData, timestamp: Date.now() });
-    return financialsData;
+    financialsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    console.log(
+      `[StockAnalysis] Scraped financials ${cacheKey}: IS=${Object.keys(result.incomeStatement).length} fields, BS=${Object.keys(result.balanceSheet).length} fields, CF=${Object.keys(result.cashFlow).length} fields, R=${Object.keys(result.ratios).length} fields`
+    );
+    return result;
   } catch (err: any) {
     stats.errors++;
     stats.lastError = `${cacheKey}: ${err.message}`;
-    console.error(`[StockAnalysis] Error fetching financials for ${cacheKey}:`, err.message);
+    console.error(`[StockAnalysis] Error fetching financials ${cacheKey}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch dividend data for a UAE stock
+ */
+export async function fetchSADividends(
+  symbol: string,
+  exchange: string
+): Promise<SADividendData | null> {
+  const cacheKey = `${exchange.toUpperCase()}-${symbol.toUpperCase()}-dividends`;
+  stats.totalRequests++;
+
+  const cached = dividendCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    stats.cacheHits++;
+    return cached.data;
+  }
+  stats.cacheMisses++;
+
+  try {
+    const url = buildUrl(symbol, exchange, "dividend");
+    console.log(`[StockAnalysis] Fetching dividends: ${url}`);
+    const fetchResult = await scrapflyFetch(url, { asp: true, cache: true, cacheTtl: 3600 });
+    const html = fetchResult.content;
+
+    const blocks = extractDataBlocks(html);
+
+    const result: SADividendData = {
+      history: [],
+      annualYields: [],
+      currentYield: null,
+      annualDividend: null,
+      payoutRatio: null,
+      dividendGrowth5Y: null,
+    };
+
+    for (const block of blocks) {
+      // Look for dividend history data
+      if (block.dividendHistory && Array.isArray(block.dividendHistory)) {
+        result.history = block.dividendHistory.map((d: any) => ({
+          exDate: d.exDate || d.ex_date || null,
+          payDate: d.payDate || d.pay_date || null,
+          amount: d.amount ?? d.dividend ?? null,
+          type: d.type || "Cash",
+          frequency: d.frequency || null,
+        }));
+      }
+
+      // Look for annual yield data
+      if (block.annualData && Array.isArray(block.annualData)) {
+        result.annualYields = block.annualData.map((d: any) => ({
+          year: d.year || d.fiscalYear || "",
+          dividend: d.dividend ?? d.dps ?? null,
+          yield: d.yield ?? d.dividendYield ?? null,
+          growth: d.growth ?? d.dividendGrowth ?? null,
+          payoutRatio: d.payoutRatio ?? null,
+        }));
+      }
+
+      // Overview-level dividend stats
+      if (block.dividendYield !== undefined) result.currentYield = block.dividendYield;
+      if (block.dividend !== undefined) result.annualDividend = block.dividend;
+      if (block.payoutRatio !== undefined) result.payoutRatio = block.payoutRatio;
+      if (block.dividendGrowth5Y !== undefined) result.dividendGrowth5Y = block.dividendGrowth5Y;
+
+      // Check for table-format dividend data
+      if (block.dividendTable && Array.isArray(block.dividendTable)) {
+        result.history = block.dividendTable.map((d: any) => ({
+          exDate: d.exDate || d.ex || null,
+          payDate: d.payDate || d.pay || null,
+          amount: d.amount ?? d.cash ?? null,
+          type: d.type || "Cash",
+          frequency: d.frequency || null,
+        }));
+      }
+    }
+
+    dividendCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    console.log(`[StockAnalysis] Scraped dividends ${cacheKey}: ${result.history.length} records`);
+    return result;
+  } catch (err: any) {
+    stats.errors++;
+    stats.lastError = `${cacheKey}: ${err.message}`;
+    console.error(`[StockAnalysis] Error fetching dividends ${cacheKey}:`, err.message);
     return null;
   }
 }
@@ -503,7 +670,7 @@ export async function fetchSAFinancials(
 export function getSAStats() {
   return {
     ...stats,
-    cacheSize: overviewCache.size + financialsCache.size,
+    cacheSize: overviewCache.size + financialsCache.size + dividendCache.size,
     cacheTTL: CACHE_TTL / 1000,
   };
 }
@@ -514,5 +681,6 @@ export function getSAStats() {
 export function clearSACache() {
   overviewCache.clear();
   financialsCache.clear();
+  dividendCache.clear();
   return { cleared: true };
 }

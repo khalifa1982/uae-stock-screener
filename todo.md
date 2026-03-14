@@ -1049,3 +1049,42 @@
 
 ## Phase 42c - Ticker Bar Speed Fix
 - [x] Slow down ticker bar scrolling animation from 60s to 180s (3x slower)
+
+## Phase 43 - v10.5: Full Data Fields Implementation (4 Scraping Phases)
+
+### Phase 1: Expand StockAnalysis.com Scraper
+- [x] Create Scrapfly.io base service (server/services/scrapflyService.ts)
+- [x] Expand SA scraper: full Income Statement line items (COGS, OpEx, OpIncome, Interest, Tax, D&A)
+- [x] Expand SA scraper: full Balance Sheet (Cash, Receivables, Inventory, PPE, Goodwill, Liabilities, Equity)
+- [x] Expand SA scraper: full Cash Flow (Operating CF, CapEx, Investing CF, Financing CF, Dividends Paid)
+- [x] Expand SA scraper: extended Ratios (PEG, EV/Sales, Interest Coverage, FCF Yield)
+- [x] Expand SA scraper: Dividend history (Record Date, Payment Date, Growth)
+- [x] Expand SA scraper: Profile extras (Fiscal Year, Reporting Currency, ISIN, SIC Code)
+- [x] Add new tRPC endpoints for expanded financial data
+- [x] Build new UI: Dividends tab (DividendsView component)
+- [x] Build new UI: Statistics/Ratios tab (SAFinancialsView with Ratios sub-tab)
+
+### Phase 2: Build MarketScreener.com Scraper
+- [x] Build MarketScreener symbol-to-ID mapper (search-based URL resolver)
+- [x] Build MS scraper: Ownership & Shareholders
+- [x] Build MS scraper: Analyst Consensus (target price, ratings, spread)
+- [x] Build MS scraper: ESG Scores (MSCI rating)
+- [x] Build MS scraper: ADX/DFM Index data (via consensus page)
+- [x] Add new tRPC endpoints for MS data
+- [x] Build new UI: Ownership tab (OwnershipView component)
+- [x] Build new UI: Consensus tab (integrated into OwnershipView)
+- [x] Build new UI: ESG tab (integrated into OwnershipView)
+
+### Phase 3: Build Investing.com Scraper
+- [x] Build Investing.com symbol slug mapper (search-based resolver)
+- [x] Build INV scraper: Dividend details (Type, Record Date, Payment Date)
+- [x] Build INV scraper: Analyst Ratings (Buy/Hold/Sell, 12-Month Target)
+- [x] Build INV scraper: Earnings Reports & Calendar
+- [x] Build INV scraper: ADX/DFM Index data
+- [x] Add new tRPC endpoints for INV data
+
+### Phase 4: SimplyWall.St Expansion + Empty MT Fields
+- [x] Expand SWS scraper: Volatility comparisons (kept existing, MT for unavailable)
+- [x] Add derivable fields (FCF Yield, Earnings Yield, Book Value/Share, Working Capital) — available via SA Ratios
+- [x] Add all remaining empty/MT fields to the UI structure (shown as '—' dashes)
+- [x] Ensure all 314 fields are represented in the platform (data or MT placeholder)

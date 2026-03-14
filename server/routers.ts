@@ -20,7 +20,9 @@ import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
 import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt, toggleMessageReaction, ALLOWED_REACTION_EMOJIS } from "./services/chatService";
-import { fetchSAOverview, fetchSAFinancials, getSAStats, clearSACache } from "./services/stockAnalysisService";
+import { fetchSAOverview, fetchSAFinancials, fetchSADividends, getSAStats, clearSACache } from "./services/stockAnalysisService";
+import { fetchMSData } from "./services/marketScreenerService";
+import { fetchINVData } from "./services/investingComService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
 import { getEarningsTranscript } from "./services/earningsTranscriptService";
 
@@ -1624,9 +1626,33 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return fetchSAFinancials(input.symbol, input.exchange);
       }),
 
+    dividends: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSADividends(input.symbol, input.exchange);
+      }),
+
     stats: publicProcedure.query(() => getSAStats()),
 
     clearCache: protectedProcedure.mutation(() => clearSACache()),
+  }),
+
+  // ─── MarketScreener Data (Ownership, Consensus, ESG) ──────────
+  marketScreener: router({
+    data: publicProcedure
+      .input(z.object({ symbol: z.string(), companyName: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchMSData(input.symbol, input.companyName, input.exchange);
+      }),
+  }),
+
+  // ─── Investing.com Data (Dividends, Consensus) ────────────────
+  investingCom: router({
+    data: publicProcedure
+      .input(z.object({ symbol: z.string(), companyName: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchINVData(input.symbol, input.companyName, input.exchange);
+      }),
   }),
 
   // ─── Chat HTTP polling fallback ─────────────────────────────────
