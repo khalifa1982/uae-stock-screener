@@ -1088,3 +1088,13 @@
 - [x] Add derivable fields (FCF Yield, Earnings Yield, Book Value/Share, Working Capital) — available via SA Ratios
 - [x] Add all remaining empty/MT fields to the UI structure (shown as '—' dashes)
 - [x] Ensure all 314 fields are represented in the platform (data or MT placeholder)
+
+## Phase 43b - Update Admin Page API Diagram
+- [x] Update admin page API data source diagram with new Scrapfly scraping sources
+- [x] Add StockAnalysis.com, MarketScreener.com, Investing.com, SimplyWall.St to architecture diagram
+- [x] Update website structure documentation with new tabs and data flow
+- [x] Backend apiStatusService now checks all 7 data sources (TwelveData, TradingView, Scrapfly, StockAnalysis, MarketScreener, Investing.com, SimplyWall.St)
+- [x] Frontend admin page shows all 7 source cards with logos, health status, features, and data provided
+- [x] New Data Flow Diagram with 3 tiers: External Sources → Processing Layer → Application Features
+- [x] Data Source Mapping table showing which source powers each feature/tab
+- [x] Updated vitest tests: 17 tests covering all 7 sources, type distribution, and field validation

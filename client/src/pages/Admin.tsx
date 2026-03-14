@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Activity, AlertCircle, CheckCircle2, Clock, Database, ExternalLink,
   Globe, Key, Loader2, RefreshCw, Server, Shield, Wifi, WifiOff, Zap,
-  BarChart3, TrendingUp, ChevronDown, ChevronUp,
+  BarChart3, TrendingUp, ChevronDown, ChevronUp, ArrowRight,
+  LineChart, PieChart, Brain, Bell, Users, Layers,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
@@ -98,30 +98,52 @@ function getTypeLabel(type: string) {
 
 // ─── Logo Components ─────────────────────────────────────────────────
 
-function TwelveDataLogo() {
-  return (
-    <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-[11px] shrink-0">
-      12
-    </div>
-  );
-}
-
-function TradingViewLogo() {
-  return (
-    <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shrink-0">
-      <TrendingUp className="w-5 h-5 text-white" />
-    </div>
-  );
-}
-
-
-
 function getSourceLogo(id: string) {
   switch (id) {
-    case "twelvedata": return <TwelveDataLogo />;
-    case "tradingview": return <TradingViewLogo />;
-
-    default: return <div className="w-10 h-10 rounded bg-muted flex items-center justify-center"><Database className="w-5 h-5" /></div>;
+    case "twelvedata":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-[11px] shrink-0">
+          12
+        </div>
+      );
+    case "tradingview":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shrink-0">
+          <TrendingUp className="w-5 h-5 text-white" />
+        </div>
+      );
+    case "scrapfly":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shrink-0">
+          <Layers className="w-5 h-5 text-white" />
+        </div>
+      );
+    case "stockanalysis":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-green-600 to-teal-700 flex items-center justify-center shrink-0">
+          <BarChart3 className="w-5 h-5 text-white" />
+        </div>
+      );
+    case "marketscreener":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+          <PieChart className="w-5 h-5 text-white" />
+        </div>
+      );
+    case "investingcom":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center shrink-0">
+          <LineChart className="w-5 h-5 text-white" />
+        </div>
+      );
+    case "simplywall":
+      return (
+        <div className="w-10 h-10 rounded bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shrink-0">
+          <Activity className="w-5 h-5 text-white" />
+        </div>
+      );
+    default:
+      return <div className="w-10 h-10 rounded bg-muted flex items-center justify-center"><Database className="w-5 h-5" /></div>;
   }
 }
 
@@ -261,6 +283,229 @@ function ApiSourceCard({ source }: { source: ApiSource }) {
   );
 }
 
+// ─── Data Flow Diagram ──────────────────────────────────────────────
+
+function DataFlowDiagram({ sources }: { sources?: ApiSource[] }) {
+  const getStatusDot = (id: string) => {
+    const source = sources?.find(s => s.id === id);
+    return source?.status === "connected" ? "bg-emerald-400" : "bg-zinc-500";
+  };
+
+  // Group sources by type for the diagram
+  const directApis = [
+    { id: "twelvedata", name: "TwelveData", icon: "12", color: "from-blue-600 to-blue-800" },
+    { id: "tradingview", name: "TradingView", icon: "TV", color: "from-blue-500 to-indigo-700" },
+  ];
+
+  const scrapflySources = [
+    { id: "stockanalysis", name: "StockAnalysis.com", color: "from-green-600 to-teal-700" },
+    { id: "marketscreener", name: "MarketScreener.com", color: "from-cyan-500 to-blue-600" },
+    { id: "investingcom", name: "Investing.com", color: "from-emerald-500 to-green-700" },
+  ];
+
+  const directScraping = [
+    { id: "simplywall", name: "SimplyWall.St", color: "from-yellow-500 to-orange-600" },
+  ];
+
+  const appFeatures = [
+    { name: "Dashboard", icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    { name: "Screener", icon: <TrendingUp className="w-3.5 h-3.5" /> },
+    { name: "Stock Profiles", icon: <LineChart className="w-3.5 h-3.5" /> },
+    { name: "Financials", icon: <PieChart className="w-3.5 h-3.5" /> },
+    { name: "Ownership & ESG", icon: <Users className="w-3.5 h-3.5" /> },
+    { name: "Dividends", icon: <Activity className="w-3.5 h-3.5" /> },
+    { name: "Aboood.AI Thoughts", icon: <Brain className="w-3.5 h-3.5" /> },
+    { name: "Volume Alerts", icon: <Bell className="w-3.5 h-3.5" /> },
+    { name: "Watchlist", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+    { name: "Heatmap", icon: <Layers className="w-3.5 h-3.5" /> },
+    { name: "Live Ticker", icon: <Wifi className="w-3.5 h-3.5" /> },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* ── Row 1: Data Sources ── */}
+      <div>
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          External Data Sources
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Direct APIs */}
+          <div className="space-y-2">
+            <div className="text-[11px] font-medium text-blue-400 mb-2">Direct APIs</div>
+            {directApis.map((api) => (
+              <div key={api.id} className="flex items-center gap-2 p-2 rounded bg-background/50 border border-border/30">
+                <div className={`w-2 h-2 rounded-full ${getStatusDot(api.id)}`} />
+                <div className={`w-6 h-6 rounded bg-gradient-to-br ${api.color} flex items-center justify-center text-white text-[9px] font-bold shrink-0`}>
+                  {api.icon}
+                </div>
+                <span className="text-[11px] text-foreground font-medium">{api.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Scrapfly-proxied sources */}
+          <div className="space-y-2">
+            <div className="text-[11px] font-medium text-orange-400 mb-2">Via Scrapfly.io Proxy</div>
+            <div className="p-2 rounded border border-orange-500/30 bg-orange-500/5 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-2 h-2 rounded-full ${getStatusDot("scrapfly")}`} />
+                <Layers className="w-4 h-4 text-orange-400" />
+                <span className="text-[11px] text-orange-300 font-semibold">Scrapfly.io</span>
+                <Badge className="text-[9px] bg-orange-500/15 text-orange-400 border-orange-500/30">Proxy</Badge>
+              </div>
+              {scrapflySources.map((src) => (
+                <div key={src.id} className="flex items-center gap-2 p-1.5 rounded bg-background/30 ml-4">
+                  <div className={`w-2 h-2 rounded-full ${getStatusDot(src.id)}`} />
+                  <span className="text-[11px] text-foreground">{src.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Direct Scraping */}
+          <div className="space-y-2">
+            <div className="text-[11px] font-medium text-yellow-400 mb-2">Direct Scraping</div>
+            {directScraping.map((src) => (
+              <div key={src.id} className="flex items-center gap-2 p-2 rounded bg-background/50 border border-border/30">
+                <div className={`w-2 h-2 rounded-full ${getStatusDot(src.id)}`} />
+                <div className={`w-6 h-6 rounded bg-gradient-to-br ${src.color} flex items-center justify-center shrink-0`}>
+                  <Activity className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="text-[11px] text-foreground font-medium">{src.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Arrow Row ── */}
+      <div className="flex items-center justify-center gap-2 text-muted-foreground">
+        <div className="h-px flex-1 bg-border/50" />
+        <ArrowRight className="w-5 h-5 text-primary/60" />
+        <span className="text-xs text-muted-foreground">Data Pipeline</span>
+        <ArrowRight className="w-5 h-5 text-primary/60" />
+        <div className="h-px flex-1 bg-border/50" />
+      </div>
+
+      {/* ── Row 2: Processing Layer ── */}
+      <div>
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Processing Layer
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center">
+            <Server className="w-5 h-5 text-primary mx-auto mb-1" />
+            <div className="text-[11px] font-medium text-foreground">tRPC Server</div>
+            <div className="text-[10px] text-muted-foreground">API Routing</div>
+          </div>
+          <div className="p-3 rounded-md bg-purple-500/10 border border-purple-500/20 text-center">
+            <Globe className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+            <div className="text-[11px] font-medium text-foreground">Scrapfly Service</div>
+            <div className="text-[10px] text-muted-foreground">HTML Parse & Extract</div>
+          </div>
+          <div className="p-3 rounded-md bg-blue-500/10 border border-blue-500/20 text-center">
+            <Database className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+            <div className="text-[11px] font-medium text-foreground">In-Memory Cache</div>
+            <div className="text-[10px] text-muted-foreground">24h TTL per stock</div>
+          </div>
+          <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20 text-center">
+            <Brain className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+            <div className="text-[11px] font-medium text-foreground">Aboood.AI Engine</div>
+            <div className="text-[10px] text-muted-foreground">Fibonacci + RSI Analysis</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Arrow Row ── */}
+      <div className="flex items-center justify-center gap-2 text-muted-foreground">
+        <div className="h-px flex-1 bg-border/50" />
+        <ArrowRight className="w-5 h-5 text-primary/60" />
+        <span className="text-xs text-muted-foreground">Frontend</span>
+        <ArrowRight className="w-5 h-5 text-primary/60" />
+        <div className="h-px flex-1 bg-border/50" />
+      </div>
+
+      {/* ── Row 3: Application Features ── */}
+      <div>
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Application Features
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {appFeatures.map((feat) => (
+            <div key={feat.name} className="flex items-center gap-2 p-2 rounded bg-background/50 border border-border/30">
+              <div className="text-primary/70">{feat.icon}</div>
+              <span className="text-[11px] text-foreground">{feat.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Data Source Mapping Table ── */}
+      <div className="mt-4">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Data Source Mapping
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="border-b border-border/30">
+                <th className="text-left p-2 text-muted-foreground font-medium">Feature / Tab</th>
+                <th className="text-left p-2 text-muted-foreground font-medium">Primary Source</th>
+                <th className="text-left p-2 text-muted-foreground font-medium">Data Fields</th>
+                <th className="text-left p-2 text-muted-foreground font-medium">Scraping Method</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/20">
+              <tr>
+                <td className="p-2 text-foreground font-medium">Overview / Prices</td>
+                <td className="p-2"><Badge className="text-[9px] bg-blue-500/15 text-blue-400 border-blue-500/30">TwelveData + TradingView</Badge></td>
+                <td className="p-2 text-muted-foreground">OHLCV, Market Cap, P/E, EPS, Volume</td>
+                <td className="p-2 text-muted-foreground">Direct API + WebSocket</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Financials (4 sub-tabs)</td>
+                <td className="p-2"><Badge className="text-[9px] bg-green-500/15 text-green-400 border-green-500/30">StockAnalysis.com</Badge></td>
+                <td className="p-2 text-muted-foreground">210+ fields: Income, Balance Sheet, Cash Flow, Ratios</td>
+                <td className="p-2 text-muted-foreground">Scrapfly.io (HTML parse)</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Ownership & ESG</td>
+                <td className="p-2"><Badge className="text-[9px] bg-cyan-500/15 text-cyan-400 border-cyan-500/30">MarketScreener.com</Badge></td>
+                <td className="p-2 text-muted-foreground">Shareholders, Consensus, ESG MSCI Rating</td>
+                <td className="p-2 text-muted-foreground">Scrapfly.io (HTML parse)</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Dividends</td>
+                <td className="p-2"><Badge className="text-[9px] bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Investing.com</Badge></td>
+                <td className="p-2 text-muted-foreground">Yield, History, Ex-Date, Payment Date, Analyst Ratings</td>
+                <td className="p-2 text-muted-foreground">Scrapfly.io (HTML parse)</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Valuation & Risk</td>
+                <td className="p-2"><Badge className="text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/30">SimplyWall.St</Badge></td>
+                <td className="p-2 text-muted-foreground">Snowflake Scores, Fair Value, Risk Level</td>
+                <td className="p-2 text-muted-foreground">Direct (__NEXT_DATA__)</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Technical Analysis</td>
+                <td className="p-2"><Badge className="text-[9px] bg-indigo-500/15 text-indigo-400 border-indigo-500/30">TradingView Scanner</Badge></td>
+                <td className="p-2 text-muted-foreground">RSI, MACD, SMA, EMA, Stochastic, ADX, CCI, BB</td>
+                <td className="p-2 text-muted-foreground">Free Scanner API</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-foreground font-medium">Aboood.AI Thoughts</td>
+                <td className="p-2"><Badge className="text-[9px] bg-amber-500/15 text-amber-400 border-amber-500/30">TwelveData + Engine</Badge></td>
+                <td className="p-2 text-muted-foreground">Fibonacci Levels, RSI Divergence, Entry/Exit Signals</td>
+                <td className="p-2 text-muted-foreground">Computed from OHLCV data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ─────────────────────────────────────────────────
 
 export default function Admin() {
@@ -322,13 +567,13 @@ export default function Admin() {
     : "bg-red-500/10 border-red-500/20";
 
   return (
-    <div className="p-2 md:p-2 max-w-5xl mx-auto space-y-2">
+    <div className="p-2 md:p-2 max-w-6xl mx-auto space-y-2">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xs font-bold text-foreground">API Data Sources</h1>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Monitor and manage all connected data feeds powering the stock screener
+            Monitor and manage all {data?.totalSources || 7} connected data feeds powering the stock screener
           </p>
         </div>
         <Button
@@ -407,10 +652,10 @@ export default function Admin() {
           </Card>
           <Card className="bg-card/50">
             <CardContent className="p-2 text-center">
-              <div className="text-[11px] font-bold text-foreground">
-                {Math.max(...data.sources.map(s => s.stocksCovered))}
+              <div className="text-[11px] font-bold text-purple-400">
+                {data.sources.filter(s => s.type === 'web-scraping').length}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">Max Coverage</div>
+              <div className="text-xs text-muted-foreground mt-1">Scraping Sources</div>
             </CardContent>
           </Card>
         </div>
@@ -418,8 +663,9 @@ export default function Admin() {
 
       {/* API Source Cards */}
       <div className="space-y-3">
+        <h2 className="text-xs font-semibold text-foreground">Source Health Status</h2>
         {isLoading ? (
-          [1, 2, 3, 4].map((i) => (
+          [1, 2, 3, 4, 5, 6, 7].map((i) => (
             <Skeleton key={i} className="h-48 rounded-md" />
           ))
         ) : data ? (
@@ -440,48 +686,12 @@ export default function Admin() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <CardTitle className="text-xs">Data Flow Architecture</CardTitle>
-          <CardDescription>How data flows from sources to the application</CardDescription>
+          <CardDescription>
+            How data flows from 7 external sources through the Scrapfly proxy and processing layer to the application
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-            {/* Sources Column */}
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Data Sources</div>
-              {data?.sources.map((s) => (
-                <div key={s.id} className="flex items-center gap-2 p-2 rounded bg-background/50">
-                  <div className={`w-2 h-2 rounded-full ${s.status === "connected" ? "bg-emerald-400" : "bg-zinc-500"}`} />
-                  <span className="text-[11px] text-foreground">{s.name}</span>
-                </div>
-              )) || [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-9" />)}
-            </div>
-
-            {/* Processing Column */}
-            <div className="space-y-2 flex flex-col items-center justify-center">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Processing</div>
-              <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center w-full">
-                <Server className="w-5 h-5 text-primary mx-auto mb-1" />
-                <div className="text-[11px] font-medium text-foreground">API Aggregator</div>
-                <div className="text-xs text-muted-foreground">Merge & Normalize</div>
-              </div>
-              <div className="text-muted-foreground">↓</div>
-              <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center w-full">
-                <Database className="w-5 h-5 text-primary mx-auto mb-1" />
-                <div className="text-[11px] font-medium text-foreground">Database</div>
-                <div className="text-xs text-muted-foreground">Persist & Cache</div>
-              </div>
-            </div>
-
-            {/* Output Column */}
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Application</div>
-              {["Dashboard", "Screener", "Stock Profiles", "Volume Alerts", "Watchlist", "Heatmap"].map((item) => (
-                <div key={item} className="flex items-center gap-2 p-2 rounded bg-background/50">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-[11px] text-foreground">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DataFlowDiagram sources={data?.sources} />
         </CardContent>
       </Card>
     </div>
