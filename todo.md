@@ -1127,3 +1127,27 @@
 
 ### Tests
 - [x] 18 vitest tests in server/admin-features.test.ts (5 credit monitor + 13 cache metrics)
+
+## Phase 44b - Fix Scrapfly API Key on Live Site
+- [x] Verified SCRAPFLY_API_KEY was missing from Northflank env vars
+- [x] Added SCRAPFLY_API_KEY to Northflank environment and restarted service
+- [x] Verified on live admin page: 6 of 7 sources connected
+- [x] StockAnalysis.com - Connected, 170 stocks, 100% success
+- [x] MarketScreener.com - Connected, 150 stocks, 100% success
+- [x] Investing.com - Connected, 160 stocks, 100% success
+- [x] Scrapfly.io - Connected, 174 stocks, 100% success
+- [x] Credit Monitor showing 431,182 credits remaining
+- [x] Cache Hit/Miss Metrics: 60% overall hit rate, 173 cached entries
+- [ ] SimplyWall.St showing HTTP error (separate issue, not Scrapfly-dependent)
+
+## Phase 45b - Fix SimplyWall.St HTTP 404 Error
+- [x] Investigated root cause: Cloudflare 403 blocking direct requests (not true 404)
+- [x] Tested Scrapfly ASP bypass - successfully gets HTTP 200 through Cloudflare
+- [x] Rewrote simplyWallStService.ts to use Scrapfly with ASP (Anti Scraping Protection)
+- [x] Parse __REACT_QUERY_STATE__ from rendered page for snowflake scores, fair value, risk data
+- [x] Updated apiStatusService.ts health check for SWS to use Scrapfly
+- [x] Updated Admin.tsx: SWS moved from Direct Scraping to Scrapfly sources column
+- [x] 15 vitest tests passing for SWS service, 30 phase37b tests updated and passing
+- [x] Built and pushed Docker image v10.7 to DockerHub
+- [x] Deployed v10.7 to Northflank - ALL 7/7 sources connected!
+- [x] Scrapfly Credit Monitor: 430,265 credits remaining

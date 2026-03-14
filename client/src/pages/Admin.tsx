@@ -303,11 +303,10 @@ function DataFlowDiagram({ sources }: { sources?: ApiSource[] }) {
     { id: "stockanalysis", name: "StockAnalysis.com", color: "from-green-600 to-teal-700" },
     { id: "marketscreener", name: "MarketScreener.com", color: "from-cyan-500 to-blue-600" },
     { id: "investingcom", name: "Investing.com", color: "from-emerald-500 to-green-700" },
-  ];
-
-  const directScraping = [
     { id: "simplywall", name: "SimplyWall.St", color: "from-yellow-500 to-orange-600" },
   ];
+
+  const directScraping: { id: string; name: string; color: string }[] = [];
 
   const appFeatures = [
     { name: "Dashboard", icon: <BarChart3 className="w-3.5 h-3.5" /> },
@@ -364,18 +363,27 @@ function DataFlowDiagram({ sources }: { sources?: ApiSource[] }) {
             </div>
           </div>
 
-          {/* Direct Scraping */}
+          {/* Summary Stats */}
           <div className="space-y-2">
-            <div className="text-[11px] font-medium text-yellow-400 mb-2">Direct Scraping</div>
-            {directScraping.map((src) => (
-              <div key={src.id} className="flex items-center gap-2 p-2 rounded bg-background/50 border border-border/30">
-                <div className={`w-2 h-2 rounded-full ${getStatusDot(src.id)}`} />
-                <div className={`w-6 h-6 rounded bg-gradient-to-br ${src.color} flex items-center justify-center shrink-0`}>
-                  <Activity className="w-3.5 h-3.5 text-white" />
-                </div>
-                <span className="text-[11px] text-foreground font-medium">{src.name}</span>
+            <div className="text-[11px] font-medium text-green-400 mb-2">Connection Summary</div>
+            <div className="p-3 rounded bg-background/50 border border-border/30 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Total Sources</span>
+                <span className="text-[11px] font-bold text-foreground">7</span>
               </div>
-            ))}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Direct APIs</span>
+                <span className="text-[11px] font-medium text-blue-400">2</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Via Scrapfly</span>
+                <span className="text-[11px] font-medium text-orange-400">4</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Free APIs</span>
+                <span className="text-[11px] font-medium text-purple-400">1 (TradingView)</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -486,7 +494,7 @@ function DataFlowDiagram({ sources }: { sources?: ApiSource[] }) {
                 <td className="p-2 text-foreground font-medium">Valuation & Risk</td>
                 <td className="p-2"><Badge className="text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/30">SimplyWall.St</Badge></td>
                 <td className="p-2 text-muted-foreground">Snowflake Scores, Fair Value, Risk Level</td>
-                <td className="p-2 text-muted-foreground">Direct (__NEXT_DATA__)</td>
+                <td className="p-2 text-muted-foreground">Scrapfly.io ASP (__REACT_QUERY_STATE__)</td>
               </tr>
               <tr>
                 <td className="p-2 text-foreground font-medium">Technical Analysis</td>

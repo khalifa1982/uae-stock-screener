@@ -116,14 +116,13 @@ describe("Phase 37b: Tab overlap fix + Yahoo/SWS removal", () => {
     });
   });
 
-  // ─── API Status Service - Only TwelveData + TradingView ───
-  describe("apiStatusService.ts - Only TwelveData + TradingView", () => {
+  // ─── API Status Service - All 7 data sources ───
+  describe("apiStatusService.ts - All 7 data sources", () => {
     const statusPath = path.join(__dirname, "services/apiStatusService.ts");
     const content = fs.readFileSync(statusPath, "utf-8");
 
-    it("does NOT contain Simply Wall St", () => {
-      expect(content).not.toContain("Simply Wall St");
-      expect(content).not.toContain("simplywall");
+    it("contains SimplyWall.St as a Scrapfly-powered source", () => {
+      expect(content).toContain("simplywall");
     });
 
     it("does NOT contain Yahoo Finance", () => {
@@ -142,30 +141,31 @@ describe("Phase 37b: Tab overlap fix + Yahoo/SWS removal", () => {
     });
   });
 
-  // ─── Admin.tsx - No SWS/Yahoo logos ───
-  describe("Admin.tsx - No SWS/Yahoo logos", () => {
+  // ─── Admin.tsx - Data source logos ───
+  describe("Admin.tsx - Data source references", () => {
     const adminPath = path.join(__dirname, "../client/src/pages/Admin.tsx");
     const content = fs.readFileSync(adminPath, "utf-8");
 
-    it("does NOT contain SimplyWallStLogo function", () => {
-      expect(content).not.toContain("SimplyWallStLogo");
-    });
-
     it("does NOT contain YahooLogo function", () => {
       expect(content).not.toContain("YahooLogo");
-    });
-
-    it("does NOT contain simplywall case in getSourceLogo", () => {
-      expect(content).not.toContain('"simplywall"');
     });
 
     it("does NOT contain yahoo case in getSourceLogo", () => {
       expect(content).not.toContain('"yahoo"');
     });
 
-    it("still contains TwelveData and TradingView logos", () => {
-      expect(content).toContain("TwelveDataLogo");
-      expect(content).toContain("TradingViewLogo");
+    it("contains simplywall as a Scrapfly-powered source", () => {
+      expect(content).toContain('"simplywall"');
+    });
+
+    it("contains all 7 data source references", () => {
+      expect(content).toContain("twelvedata");
+      expect(content).toContain("tradingview");
+      expect(content).toContain("scrapfly");
+      expect(content).toContain("stockanalysis");
+      expect(content).toContain("marketscreener");
+      expect(content).toContain("investingcom");
+      expect(content).toContain("simplywall");
     });
   });
 

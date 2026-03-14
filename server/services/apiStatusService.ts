@@ -228,26 +228,24 @@ let swsStats = {
 
 async function checkSimplyWallStHealth() {
   try {
-    const res = await fetch('https://simplywall.st/stocks/ae/diversified-financials/dfm-emaar/emaar-properties-pjsc-shares', {
-      signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    });
-    if (res.ok) {
-      swsStats.connected = true;
-      swsStats.error = null;
-      swsStats.lastSuccessfulFetch = new Date().toISOString();
+    // Use the SWS service's own health check which goes through Scrapfly
+    const { checkSWSHealth } = await import('./simplyWallStService');
+    const status = await checkSWSHealth();
+    swsStats.connected = status.connected;
+    swsStats.error = status.error;
+    swsStats.lastChecked = status.lastChecked;
+    if (status.connected) {
+      swsStats.lastSuccessfulFetch = status.lastSuccessfulFetch;
       swsStats.totalRequests++;
     } else {
-      swsStats.connected = false;
-      swsStats.error = `HTTP ${res.status}`;
       swsStats.failedRequests++;
     }
   } catch (e: any) {
     swsStats.connected = false;
     swsStats.error = e.message || 'Connection failed';
     swsStats.failedRequests++;
+    swsStats.lastChecked = new Date().toISOString();
   }
-  swsStats.lastChecked = new Date().toISOString();
   return swsStats;
 }
 
@@ -488,9 +486,9 @@ export async function checkAllApiHealth(): Promise<ApiStatusDashboard> {
       apiKeyConfigured: true,
       stocksCovered: 170,
       extra: {
-        scrapingVia: 'Direct (no proxy needed)',
+        scrapingVia: 'Scrapfly ASP (Cloudflare bypass)',
         cacheTTL: '24 hours',
-        dataFormat: 'Next.js __NEXT_DATA__ JSON',
+        dataFormat: 'window.__REACT_QUERY_STATE__ JSON',
       },
     },
   ];
@@ -666,7 +664,7 @@ export function getApiStatusSnapshot(): ApiStatusDashboard {
       requiresApiKey: false,
       apiKeyConfigured: true,
       stocksCovered: 170,
-      extra: { scrapingVia: 'Direct (no proxy)' },
+      extra: { scrapingVia: 'Scrapfly ASP (Cloudflare bypass)', dataFormat: 'window.__REACT_QUERY_STATE__ JSON' },
     },
   ];
 
