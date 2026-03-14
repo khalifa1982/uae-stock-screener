@@ -18,8 +18,7 @@ const REACTION_EMOJIS = ["👍", "❤️", "😂", "🔥", "📈", "📉"];
 function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
   return (
     <div
-      className="absolute bottom-full left-0 mb-2 rounded-lg shadow-xl p-3 z-50 w-[280px] border border-border"
-      style={{ backgroundColor: "oklch(0.14 0.014 260)" }}
+      className="absolute bottom-full left-0 mb-2 rounded-lg shadow-xl p-3 z-50 w-[280px] border border-border bg-popover text-popover-foreground"
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground">Quick Emojis</span>
@@ -54,8 +53,7 @@ function ReactionBar({
 }) {
   return (
     <div
-      className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shadow-lg border border-border/50 animate-in fade-in zoom-in-95 duration-150"
-      style={{ backgroundColor: "oklch(0.16 0.014 260)" }}
+      className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shadow-lg border border-border/50 animate-in fade-in zoom-in-95 duration-150 bg-popover text-popover-foreground"
     >
       {REACTION_EMOJIS.map((emoji) => (
         <button
@@ -286,8 +284,7 @@ function MessageBubble({
 function OnlineUsersPanel({ users, onClose }: { users: OnlineUser[]; onClose: () => void }) {
   return (
     <div
-      className="absolute top-0 right-0 w-48 h-full border-l border-border z-50 flex flex-col"
-      style={{ backgroundColor: "oklch(0.12 0.014 260)" }}
+      className="absolute top-0 right-0 w-48 h-full border-l border-border z-50 flex flex-col bg-popover text-popover-foreground"
     >
       <div className="flex items-center justify-between p-3 border-b border-border">
         <span className="text-xs font-semibold">Online ({users.length})</span>
@@ -510,8 +507,7 @@ export function LiveChat() {
   // ─── Chat panel (when open) ──────────────────────────────────────
   return (
     <div
-      className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-[200] w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-lg border border-border shadow-2xl flex flex-col overflow-hidden"
-      style={{ backgroundColor: "oklch(0.10 0.014 260)" }}
+      className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-[200] w-full md:w-[360px] h-[100dvh] md:h-[520px] md:rounded-lg border border-border shadow-2xl flex flex-col overflow-hidden bg-card text-card-foreground"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-primary text-primary-foreground shrink-0">
@@ -619,7 +615,7 @@ export function LiveChat() {
       )}
 
       {/* Input area */}
-      <div className="shrink-0 border-t border-border px-2 py-2 relative" style={{ backgroundColor: "oklch(0.12 0.014 260)" }}>
+      <div className="shrink-0 border-t border-border px-2 py-2 relative bg-card">
         {showEmoji && (
           <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} />
         )}

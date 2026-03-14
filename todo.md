@@ -1151,3 +1151,9 @@
 - [x] Built and pushed Docker image v10.7 to DockerHub
 - [x] Deployed v10.7 to Northflank - ALL 7/7 sources connected!
 - [x] Scrapfly Credit Monitor: 430,265 credits remaining
+
+## Phase 46 - UI Bug Fixes
+- [x] Fix chat box styling in light/white mode - replaced 5 hardcoded dark OKLCH backgrounds with theme-aware CSS vars (bg-card, bg-popover)
+- [x] Fix volume bars invisible in dark mode chart - fixed OKLCH opacity syntax (was appending hex "55" to OKLCH string), now uses proper OKLCH alpha channel
+- [x] Fix brush/navigator bar visibility - changed from near-black tooltip color to visible grid color
+- [x] Updated version to v10.7.1

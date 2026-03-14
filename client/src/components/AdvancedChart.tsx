@@ -57,7 +57,9 @@ const NEON = {
   cyan: "oklch(0.82 0.16 195)",
   cyanDim: "oklch(0.72 0.18 195)",
   green: "oklch(0.78 0.2 155)",
+  greenDim: "oklch(0.78 0.2 155 / 45%)",
   red: "oklch(0.65 0.24 25)",
+  redDim: "oklch(0.65 0.24 25 / 45%)",
   purple: "oklch(0.68 0.2 300)",
   gold: "oklch(0.82 0.16 80)",
   grid: "oklch(0.18 0.012 260)",
@@ -478,7 +480,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
         macdSignal: macd?.signal ?? null,
         macdHist: macd?.histogram ?? null,
         rsi: rsi ?? null,
-        volColor: isUp ? NEON.green : NEON.red,
+        volColor: isUp ? NEON.greenDim : NEON.redDim,
         candleBottom,
         candleBody,
         candleHigh: d.high ?? candleTop,
@@ -822,8 +824,8 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 <Brush
                   dataKey="date"
                   height={20}
-                  stroke={NEON.cyanDim + "44"}
-                  fill={NEON.tooltip}
+                  stroke={NEON.cyanDim}
+                  fill="oklch(0.18 0.012 260)"
                   tickFormatter={() => ""}
                   startIndex={brushRange.startIndex}
                   endIndex={brushRange.endIndex}
@@ -903,7 +905,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                 />
                 <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
                   {mergedData.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.volColor + "55"} />
+                    <Cell key={idx} fill={entry.volColor} />
                   ))}
                 </Bar>
               </BarChart>
