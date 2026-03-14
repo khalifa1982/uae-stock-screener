@@ -3,6 +3,7 @@ import express from "express";
 import { startVolumeMonitor } from "../volumeMonitor";
 import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { startAbboudScanner } from "../services/abboudAlertScanner";
+import { startCreditMonitor } from "../services/scrapflyCreditMonitor";
 import { initWebSocketServer } from "../services/tdWebSocketService";
 import { initChatWebSocket } from "../services/chatService";
 import { createServer } from "http";
@@ -75,6 +76,8 @@ async function startServer() {
     startMarketSummaryScheduler();
     // Start the Abboud AI alert scanner
     startAbboudScanner();
+    // Start Scrapfly credit monitor (checks every 6h, alerts when low)
+    startCreditMonitor();
   });
 }
 

@@ -8,11 +8,13 @@ import {
   Globe, Key, Loader2, RefreshCw, Server, Shield, Wifi, WifiOff, Zap,
   BarChart3, TrendingUp, ChevronDown, ChevronUp, ArrowRight,
   LineChart, PieChart, Brain, Bell, Users, Layers,
+  CreditCard, Gauge, RotateCcw, HardDrive,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import { Progress } from "@/components/ui/progress";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -682,6 +684,12 @@ export default function Admin() {
         )}
       </div>
 
+      {/* ── Scrapfly Credit Monitor ── */}
+      <ScrapflyCreditMonitorPanel />
+
+      {/* ── Cache Hit/Miss Metrics ── */}
+      <CacheMetricsPanel />
+
       {/* Data Flow Diagram */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
@@ -695,5 +703,318 @@ export default function Admin() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ─── Scrapfly Credit Monitor Panel ──────────────────────────────────
+
+function ScrapflyCreditMonitorPanel() {
+  const creditQuery = trpc.admin.creditMonitor.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
+  });
+  const utils = trpc.useUtils();
+  const forceCheck = trpc.admin.forceCheckCredits.useMutation({
+    onSuccess: () => {
+      utils.admin.creditMonitor.invalidate();
+      toast.success("Credit check completed");
+    },
+    onError: () => toast.error("Failed to check credits"),
+  });
+
+  const data = creditQuery.data;
+  const credits = data?.currentCredits;
+  const total = data?.totalCredits;
+  const usagePercent = credits != null && total != null && total > 0
+    ? ((total - credits) / total) * 100
+    : 0;
+
+  const creditColor = credits == null
+    ? "text-muted-foreground"
+    : credits < 250
+    ? "text-red-400"
+    : credits < 1000
+    ? "text-amber-400"
+    : "text-emerald-400";
+
+  const progressColor = credits == null
+    ? "bg-muted"
+    : credits < 250
+    ? "bg-red-500"
+    : credits < 1000
+    ? "bg-amber-500"
+    : "bg-emerald-500";
+
+  return (
+    <Card className="bg-card/50 border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-orange-400" />
+            <CardTitle className="text-xs">Scrapfly Credit Monitor</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            {data?.running && (
+              <Badge className="text-[9px] bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
+                <Activity className="w-3 h-3" /> Active
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => forceCheck.mutate()}
+              disabled={forceCheck.isPending}
+              className="h-7 text-xs gap-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${forceCheck.isPending ? "animate-spin" : ""}`} />
+              Check Now
+            </Button>
+          </div>
+        </div>
+        <CardDescription>
+          Monitors Scrapfly.io API credits and sends alerts when below threshold (warning &lt; 1,000 / critical &lt; 250)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {creditQuery.isLoading ? (
+          <Skeleton className="h-32 w-full rounded-md" />
+        ) : data ? (
+          <div className="space-y-4">
+            {/* Credit gauge */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className={`text-2xl font-bold ${creditColor}`}>
+                    {credits != null ? credits.toLocaleString() : "—"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    of {total != null ? total.toLocaleString() : "—"} credits
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${progressColor}`}
+                    style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] text-muted-foreground">
+                    {usagePercent.toFixed(1)}% used
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {data.usedCredits != null ? data.usedCredits.toLocaleString() : "—"} consumed
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="bg-background/50 rounded p-2 text-center">
+                <div className="text-[10px] text-muted-foreground">Checks</div>
+                <div className="text-xs font-semibold">{data.checkCount}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2 text-center">
+                <div className="text-[10px] text-muted-foreground">Alerts Sent</div>
+                <div className="text-xs font-semibold text-amber-400">{data.alertsSent}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2 text-center">
+                <div className="text-[10px] text-muted-foreground">Last Check</div>
+                <div className="text-xs font-medium">{formatTimeAgo(data.lastCheck)}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2 text-center">
+                <div className="text-[10px] text-muted-foreground">Last Alert</div>
+                <div className="text-xs font-medium">
+                  {data.lastAlertSent ? (
+                    <span className={data.lastAlertLevel === "critical" ? "text-red-400" : "text-amber-400"}>
+                      {data.lastAlertLevel?.toUpperCase()} {formatTimeAgo(data.lastAlertSent)}
+                    </span>
+                  ) : "None"}
+                </div>
+              </div>
+            </div>
+
+            {/* Threshold indicators */}
+            {credits != null && credits < 1000 && (
+              <div className={`p-2.5 rounded border ${
+                credits < 250
+                  ? "bg-red-500/10 border-red-500/20"
+                  : "bg-amber-500/10 border-amber-500/20"
+              }`}>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className={`w-4 h-4 ${
+                    credits < 250 ? "text-red-400" : "text-amber-400"
+                  }`} />
+                  <span className={`text-xs ${
+                    credits < 250 ? "text-red-300" : "text-amber-300"
+                  }`}>
+                    {credits < 250
+                      ? "CRITICAL: Credits extremely low! Scraping services will stop when credits reach 0."
+                      : "WARNING: Credits running low. Consider topping up your Scrapfly account."}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {data.errors > 0 && (
+              <div className="text-[10px] text-muted-foreground">
+                Errors: {data.errors} {data.lastError && `— ${data.lastError}`}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground text-xs p-4">
+            Failed to load credit monitor data
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Cache Metrics Panel ────────────────────────────────────────────
+
+function CacheMetricsPanel() {
+  const cacheQuery = trpc.admin.cacheMetrics.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  });
+  const utils = trpc.useUtils();
+  const resetMutation = trpc.admin.resetCacheMetrics.useMutation({
+    onSuccess: () => {
+      utils.admin.cacheMetrics.invalidate();
+      toast.success("Cache metrics reset");
+    },
+  });
+
+  const data = cacheQuery.data;
+
+  return (
+    <Card className="bg-card/50 border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <HardDrive className="w-4 h-4 text-blue-400" />
+            <CardTitle className="text-xs">Cache Hit/Miss Metrics</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => utils.admin.cacheMetrics.invalidate()}
+              className="h-7 text-xs gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => resetMutation.mutate()}
+              disabled={resetMutation.isPending}
+              className="h-7 text-xs gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset
+            </Button>
+          </div>
+        </div>
+        <CardDescription>
+          Cache hit rates per data source — higher rates mean fewer API calls and faster responses
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {cacheQuery.isLoading ? (
+          <Skeleton className="h-48 w-full rounded-md" />
+        ) : data ? (
+          <div className="space-y-4">
+            {/* Overall summary */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="bg-background/50 rounded p-2.5 text-center">
+                <div className="text-[10px] text-muted-foreground">Overall Hit Rate</div>
+                <div className="text-lg font-bold text-foreground">{data.totals.overallHitRate}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2.5 text-center">
+                <div className="text-[10px] text-muted-foreground">Total Hits</div>
+                <div className="text-sm font-semibold text-emerald-400">{data.totals.totalHits.toLocaleString()}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2.5 text-center">
+                <div className="text-[10px] text-muted-foreground">Total Misses</div>
+                <div className="text-sm font-semibold text-red-400">{data.totals.totalMisses.toLocaleString()}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2.5 text-center">
+                <div className="text-[10px] text-muted-foreground">Total Requests</div>
+                <div className="text-sm font-semibold">{data.totals.totalRequests.toLocaleString()}</div>
+              </div>
+              <div className="bg-background/50 rounded p-2.5 text-center">
+                <div className="text-[10px] text-muted-foreground">Cached Entries</div>
+                <div className="text-sm font-semibold text-blue-400">{data.totals.totalCacheEntries}</div>
+              </div>
+            </div>
+
+            {/* Per-service breakdown */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="text-left p-2 text-muted-foreground font-medium">Service</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">Hit Rate</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">Hits</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">Misses</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">Requests</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">Entries</th>
+                    <th className="text-right p-2 text-muted-foreground font-medium">TTL</th>
+                    <th className="text-left p-2 text-muted-foreground font-medium">Visual</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {data.services.map((svc) => {
+                    const hitNum = parseFloat(svc.hitRate) || 0;
+                    const barColor = hitNum >= 80
+                      ? "bg-emerald-500"
+                      : hitNum >= 50
+                      ? "bg-amber-500"
+                      : hitNum > 0
+                      ? "bg-red-500"
+                      : "bg-muted";
+                    return (
+                      <tr key={svc.serviceId}>
+                        <td className="p-2 text-foreground font-medium">{svc.serviceName}</td>
+                        <td className="p-2 text-right">
+                          <span className={`font-semibold ${
+                            hitNum >= 80 ? "text-emerald-400" :
+                            hitNum >= 50 ? "text-amber-400" :
+                            hitNum > 0 ? "text-red-400" : "text-muted-foreground"
+                          }`}>
+                            {svc.hitRate}
+                          </span>
+                        </td>
+                        <td className="p-2 text-right text-emerald-400">{svc.cacheHits}</td>
+                        <td className="p-2 text-right text-red-400">{svc.cacheMisses}</td>
+                        <td className="p-2 text-right text-foreground">{svc.totalRequests}</td>
+                        <td className="p-2 text-right text-blue-400">{svc.cacheSize || "—"}</td>
+                        <td className="p-2 text-right text-muted-foreground">{svc.cacheTTL}</td>
+                        <td className="p-2 w-24">
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${barColor}`}
+                              style={{ width: `${Math.min(hitNum, 100)}%` }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground text-xs p-4">
+            Failed to load cache metrics
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

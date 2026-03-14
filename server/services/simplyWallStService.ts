@@ -5,6 +5,8 @@
  * Falls back to cached data when scraping is blocked.
  */
 
+import { recordCacheHit, recordCacheMiss } from "./cacheMetricsService";
+
 export interface SWSCompanyData {
   ticker: string;
   name: string;
@@ -74,8 +76,10 @@ export async function fetchSWSCompanyData(
   // Check cache first
   const cached = companyCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    recordCacheHit("simplywall");
     return cached.data;
   }
+  recordCacheMiss("simplywall");
 
   try {
     totalRequests++;

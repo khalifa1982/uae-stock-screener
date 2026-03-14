@@ -1098,3 +1098,23 @@
 - [x] New Data Flow Diagram with 3 tiers: External Sources → Processing Layer → Application Features
 - [x] Data Source Mapping table showing which source powers each feature/tab
 - [x] Updated vitest tests: 17 tests covering all 7 sources, type distribution, and field validation
+
+## Phase 44 - Admin Improvements: Credits Monitor, Cache Metrics, Docker Deploy
+
+### Feature 1: Scrapfly Credit Monitoring Alerts
+- [ ] Add Scrapfly account credit check to backend (query remaining credits)
+- [ ] Alert admin via notifyOwner when credits drop below threshold (e.g., 1000)
+- [ ] Display current Scrapfly credit balance on admin page
+- [ ] Periodic credit check (every hour or on health check)
+
+### Feature 2: Cache Hit/Miss Metrics on Admin Page
+- [ ] Add cache hit/miss counters to in-memory cache service
+- [ ] Track per-source cache stats (hits, misses, hit rate %)
+- [ ] Display cache metrics section on admin page with per-source breakdown
+- [ ] Show total cache hit rate, memory usage, and TTL info
+
+### Feature 3: Docker Deployment to Northflank
+- [ ] Create Dockerfile for the UAE Stock Screener project
+- [ ] Build Docker image and push to DockerHub
+- [ ] Deploy to Northflank via API or dashboard
+- [ ] Update version number in website footer

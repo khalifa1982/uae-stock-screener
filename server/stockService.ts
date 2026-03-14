@@ -6,6 +6,8 @@
  * Profile data: TradingView scanner (all fields)
  */
 
+import { recordCacheHit, recordCacheMiss } from "./services/cacheMetricsService";
+
 // ─── In-memory cache ────────────────────────────────────────────────
 interface CacheEntry {
   data: any[];
@@ -17,11 +19,16 @@ const MEMORY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export function getFromMemoryCache(key: string): any[] | null {
   const entry = memoryCache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL) {
-    memoryCache.delete(key);
+  if (!entry) {
+    recordCacheMiss("twelvedata");
     return null;
   }
+  if (Date.now() - entry.timestamp > MEMORY_CACHE_TTL) {
+    memoryCache.delete(key);
+    recordCacheMiss("twelvedata");
+    return null;
+  }
+  recordCacheHit("twelvedata");
   return entry.data;
 }
 

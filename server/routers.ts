@@ -9,6 +9,8 @@ import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatch
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
+import { getCreditMonitorStatus, forceCheckCredits } from "./services/scrapflyCreditMonitor";
+import { getCacheMetrics, resetCacheMetrics } from "./services/cacheMetricsService";
 import { fetchAllTVStocks, fetchTVStocksByTickers, getTradingViewStats } from "./services/tradingViewService";
 import { getTwelveDataStats } from "./services/twelveDataService";
 // Simply Wall St and Yahoo Finance removed - using TradingView + TwelveData only
@@ -1423,6 +1425,27 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         const stocks = await fetchTVStocksByTickers(input.tickers);
         return { count: stocks.length, stocks };
       }),
+
+    // Scrapfly credit monitor status
+    creditMonitor: publicProcedure.query(() => {
+      return getCreditMonitorStatus();
+    }),
+
+    // Force credit check (admin action)
+    forceCheckCredits: publicProcedure.mutation(async () => {
+      return forceCheckCredits();
+    }),
+
+    // Cache metrics from all services
+    cacheMetrics: publicProcedure.query(() => {
+      return getCacheMetrics();
+    }),
+
+    // Reset cache metrics counters
+    resetCacheMetrics: publicProcedure.mutation(() => {
+      resetCacheMetrics();
+      return { success: true };
+    }),
   }),
 
   // ─── TwelveData endpoints (UAE only) ──────────────────────────────

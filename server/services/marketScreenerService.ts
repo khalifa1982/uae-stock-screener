@@ -4,6 +4,7 @@
  * Uses Scrapfly.io for web scraping
  */
 import { scrapflyFetch } from "./scrapflyService";
+import { recordCacheHit, recordCacheMiss } from "./cacheMetricsService";
 
 // ─── URL Slug Mapping ───────────────────────────────────────────────────────
 // MarketScreener uses company-specific URL slugs like EMAAR-PROPERTIES-9059234
@@ -322,8 +323,10 @@ export async function fetchMSData(
   // Check cache
   const cached = dataCache.get(cacheKey);
   if (cached && Date.now() < cached.expiry) {
+    recordCacheHit("marketscreener");
     return cached.data;
   }
+  recordCacheMiss("marketscreener");
   
   const result: MSFullData = {
     ownership: null,

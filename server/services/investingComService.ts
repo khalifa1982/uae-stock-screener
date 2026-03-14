@@ -4,6 +4,7 @@
  * Uses Scrapfly.io for web scraping with JS rendering
  */
 import { scrapflyFetch } from "./scrapflyService";
+import { recordCacheHit, recordCacheMiss } from "./cacheMetricsService";
 
 // ─── URL Slug Mapping ───────────────────────────────────────────────────────
 // Investing.com uses truncated company name slugs like "emaar-properti"
@@ -258,8 +259,10 @@ export async function fetchINVData(
   // Check cache
   const cached = dataCache.get(cacheKey);
   if (cached && Date.now() < cached.expiry) {
+    recordCacheHit("investingcom");
     return cached.data;
   }
+  recordCacheMiss("investingcom");
 
   const result: INVFullData = {
     dividends: null,

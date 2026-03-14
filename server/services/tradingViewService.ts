@@ -9,6 +9,8 @@
  * all moving averages, pivot points, performance, and volatility.
  */
 
+import { recordCacheHit, recordCacheMiss } from "./cacheMetricsService";
+
 const TV_SCANNER_URL = 'https://scanner.tradingview.com/uae/scan';
 
 // ─── Column definitions (100 confirmed working columns) ─────────────
@@ -476,8 +478,10 @@ export function getMASignal(maValue: number | null, close: number | null): 'Buy'
  */
 export async function fetchAllTVStocks(): Promise<TVStockData[]> {
   if (cachedData.length > 0 && Date.now() - cacheTimestamp < CACHE_TTL) {
+    recordCacheHit("tradingview");
     return cachedData;
   }
+  recordCacheMiss("tradingview");
 
   try {
     totalRequests++;
