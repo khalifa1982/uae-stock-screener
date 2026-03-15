@@ -1165,7 +1165,8 @@
 - [x] Added search-based URL discovery fallback when primary URL returns 404
 - [x] Updated getSWSStats() to include urlMapSize and discoveredUrls count
 - [x] Updated getCanonicalUrlCache() to include both static map and discovered URLs
-- [ ] Export to GitHub via Management UI
-- [ ] Build Docker image v10.8.1 with improved SWS service
+- [ ] Push code to GitHub repository
+- [ ] Build Docker image v10.8.1 and push to DockerHub
 - [ ] Deploy v10.8.1 to Northflank
-- [ ] Trigger bulk population and verify high success rate
+- [ ] Trigger SWS bulk population on live site
+- [ ] Verify deployment and SWS data population
