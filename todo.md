@@ -1157,3 +1157,15 @@
 - [x] Fix volume bars invisible in dark mode chart - fixed OKLCH opacity syntax (was appending hex "55" to OKLCH string), now uses proper OKLCH alpha channel
 - [x] Fix brush/navigator bar visibility - changed from near-black tooltip color to visible grid color
 - [x] Updated version to v10.7.1
+
+## Phase 48 - SWS URL Mapping & Improved Discovery
+- [x] Built complete SWS canonical URL mapping for all 170 UAE stocks (swsUrlMap.ts)
+- [x] Mapped stock sectors to SWS sector slugs (Banking→banks, Real Estate→real-estate-management-and-development, etc.)
+- [x] Rewrote simplyWallStService.ts v3 with 3-tier URL resolution: discovered cache → static map → constructed fallback
+- [x] Added search-based URL discovery fallback when primary URL returns 404
+- [x] Updated getSWSStats() to include urlMapSize and discoveredUrls count
+- [x] Updated getCanonicalUrlCache() to include both static map and discovered URLs
+- [ ] Export to GitHub via Management UI
+- [ ] Build Docker image v10.8.1 with improved SWS service
+- [ ] Deploy v10.8.1 to Northflank
+- [ ] Trigger bulk population and verify high success rate

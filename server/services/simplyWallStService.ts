@@ -1,9 +1,10 @@
 /**
- * Simply Wall St Service (v2 - Scrapfly-powered)
+ * Simply Wall St Service (v3 - URL Map + Scrapfly ASP)
  *
  * Provides company valuation snowflake scores, risk analysis, and fair value estimates.
+ * Uses a pre-built URL mapping for all 170 UAE stocks to avoid 404 errors.
+ * Falls back to search-based URL discovery when the mapped URL fails.
  * Uses Scrapfly.io with ASP (Anti-Scraping Protection) to bypass Cloudflare.
- * Parses window.__REACT_QUERY_STATE__ from the rendered page for rich data.
  *
  * Data extracted:
  * - Snowflake scores (Value, Future, Past, Health, Dividend)
@@ -16,6 +17,7 @@
 
 import { scrapflyFetch } from "./scrapflyService";
 import { recordCacheHit, recordCacheMiss } from "./cacheMetricsService";
+import { SWS_URL_MAP } from "./swsUrlMap";
 
 export interface SWSCompanyData {
   ticker: string;
@@ -80,28 +82,44 @@ const companyCache = new Map<
 >();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (data changes slowly)
 
-// ─── URL builders ────────────────────────────────────────────────────
+// Cache for discovered canonical URLs (overrides the static map when corrected)
+const discoveredUrlCache = new Map<string, string>();
+
+// ─── URL Resolution ──────────────────────────────────────────────────
 
 /**
- * Build the SWS stock page URL.
- * Format: /stocks/ae/{sector}/{exchange}-{ticker}/{company-slug}-shares
- * Since we don't always know the sector/slug, we use the canonical_url from previous fetches
- * or fall back to a search-based approach.
+ * Get the best URL for a stock. Priority:
+ * 1. Previously discovered canonical URL (from successful scrape)
+ * 2. Pre-built URL map (170 entries with sector-aware slugs)
+ * 3. Constructed URL from name slugification (last resort)
  */
+function getStockUrl(symbol: string, exchange: string, name: string): string {
+  const key = `${exchange}:${symbol}`;
 
-// Map of known canonical URLs (populated from successful fetches)
-const canonicalUrlCache = new Map<string, string>();
+  // 1. Check discovered URL cache (from previous successful fetches)
+  if (discoveredUrlCache.has(key)) {
+    return `https://simplywall.st${discoveredUrlCache.get(key)}`;
+  }
 
-function buildSWSSearchUrl(symbol: string): string {
-  // Use the SWS search/autocomplete to find the correct page
-  return `https://simplywall.st/stocks/ae?query=${encodeURIComponent(symbol)}`;
+  // 2. Check pre-built URL map
+  if (SWS_URL_MAP[key]) {
+    return `https://simplywall.st${SWS_URL_MAP[key]}`;
+  }
+
+  // 3. Construct URL from name (last resort)
+  const slug = name
+    .toLowerCase()
+    .replace(/\b(pjsc|psc|p\.j\.s\.c\.?|p\.s\.c\.?|plc|llc|ltd)\b/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `https://simplywall.st/stocks/ae/diversified-financials/${exchange.toLowerCase()}-${symbol.toLowerCase()}/${slug}-shares`;
 }
 
 // ─── Data Extraction ─────────────────────────────────────────────────
 
 /**
  * Parse window.__REACT_QUERY_STATE__ from the rendered HTML page.
- * This contains all the company data including scores, analysis, and peers.
  */
 function parseReactQueryState(html: string): any | null {
   const marker = "window.__REACT_QUERY_STATE__ = ";
@@ -110,7 +128,6 @@ function parseReactQueryState(html: string): any | null {
 
   const jsonStart = idx + marker.length;
 
-  // Find the matching closing brace
   let braceCount = 0;
   let jsonEnd = jsonStart;
   for (let i = jsonStart; i < html.length; i++) {
@@ -125,7 +142,6 @@ function parseReactQueryState(html: string): any | null {
   }
 
   const raw = html.slice(jsonStart, jsonEnd);
-  // Replace JS-specific values that aren't valid JSON
   const cleaned = raw
     .replace(/\bundefined\b/g, "null")
     .replace(/\bNaN\b/g, "null")
@@ -152,39 +168,31 @@ function extractCompanyData(
   const queries = rqs?.queries;
   if (!Array.isArray(queries) || queries.length === 0) return null;
 
-  // Query 0 is typically the main company data
   const mainQuery = queries[0];
   const companyRaw = mainQuery?.state?.data?.data;
   if (!companyRaw) return null;
 
-  // Extract scores from the score object
   const scoreObj = companyRaw.score?.data || {};
   const snowflakeData = scoreObj.snowflake?.data || {};
-
-  // Extract analysis data - check both paths
   const analysisExtended = companyRaw.analysis?.data?.extended?.data || {};
   const analysisBase = companyRaw.analysis?.data || {};
 
-  // Extract risk checks
   const checks = companyRaw.checks || [];
   const passedChecks = checks.filter((c: any) => c?.pass === true).length;
 
-  // Determine risk level from checks
   let riskLevel: string | null = null;
-  const failedChecks = checks.length - passedChecks;
+  const failedChecksCount = checks.length - passedChecks;
   if (checks.length > 0) {
-    if (failedChecks <= 1) riskLevel = "Low";
-    else if (failedChecks <= 3) riskLevel = "Medium";
+    if (failedChecksCount <= 1) riskLevel = "Low";
+    else if (failedChecksCount <= 3) riskLevel = "Medium";
     else riskLevel = "High";
   }
 
-  // Extract risk factor descriptions
   const riskFactors = checks
     .filter((c: any) => c?.pass === false)
     .map((c: any) => c?.name || c?.description || "Unknown risk")
     .slice(0, 10);
 
-  // Get scores - try multiple locations
   const scores = analysisExtended.scores || scoreObj || {};
   const valueScore = scores.value ?? null;
   const futureScore = scores.future ?? null;
@@ -193,21 +201,18 @@ function extractCompanyData(
   const dividendScore = scores.income ?? scores.dividend ?? null;
   const totalScoreRaw = scores.total ?? null;
 
-  // Also try Query 1 (CompanySummary) for alternative score data
   let altScores: any = null;
   if (queries.length > 1) {
     const q1 = queries[1];
     altScores = q1?.state?.data?.Company?.score || null;
   }
 
-  // Use alt scores as fallback
   const finalValue = valueScore ?? altScores?.value ?? null;
   const finalFuture = futureScore ?? altScores?.future ?? null;
   const finalPast = pastScore ?? altScores?.past ?? null;
   const finalHealth = healthScore ?? altScores?.health ?? null;
   const finalDividend = dividendScore ?? altScores?.dividend ?? null;
 
-  // Calculate total if not available
   const finalTotal =
     totalScoreRaw ??
     (finalValue != null &&
@@ -218,7 +223,6 @@ function extractCompanyData(
       ? finalValue + finalFuture + finalPast + finalHealth + finalDividend
       : null);
 
-  // Valuation data lives in analysisBase (not extended)
   const sharePrice = analysisBase.share_price ?? companyRaw.share_price ?? null;
   const intrinsicDiscount = analysisBase.intrinsic_discount ?? null;
   const pe = analysisBase.pe ?? null;
@@ -226,18 +230,17 @@ function extractCompanyData(
   const peg = analysisBase.peg ?? null;
   const marketCap = analysisBase.market_cap ?? null;
 
-  // Fair value from intrinsic discount
   let fairValue: number | null = null;
   let undervaluedPercent: number | null = null;
   if (sharePrice != null && intrinsicDiscount != null) {
     fairValue = sharePrice / (1 + intrinsicDiscount);
-    undervaluedPercent = -intrinsicDiscount * 100; // positive = undervalued
+    undervaluedPercent = -intrinsicDiscount * 100;
   }
 
-  // Store canonical URL for future use
+  // Store canonical URL for future use (overrides static map)
   const canonicalUrl = companyRaw.canonical_url || null;
   if (canonicalUrl) {
-    canonicalUrlCache.set(`${exchange}:${symbol}`, canonicalUrl);
+    discoveredUrlCache.set(`${exchange}:${symbol}`, canonicalUrl);
   }
 
   return {
@@ -268,11 +271,109 @@ function extractCompanyData(
   };
 }
 
+// ─── Scrape Helper ───────────────────────────────────────────────────
+
+/**
+ * Attempt to scrape a SWS URL and extract company data.
+ */
+async function tryScrapeUrl(
+  url: string,
+  symbol: string,
+  exchange: string,
+  name: string
+): Promise<{ data: SWSCompanyData | null; status: number }> {
+  try {
+    const result = await scrapflyFetch(url, {
+      asp: true,
+      renderJs: true,
+      country: "ae",
+      cache: false,
+      timeout: 45000,
+      retries: 1,
+    });
+
+    if (result.status === 200) {
+      const rqs = parseReactQueryState(result.content);
+      if (rqs) {
+        const data = extractCompanyData(rqs, symbol, exchange, name);
+        return { data, status: result.status };
+      }
+      return { data: null, status: result.status };
+    }
+    return { data: null, status: result.status };
+  } catch (e: any) {
+    const statusMatch = e.message?.match(/HTTP (\d+)/);
+    const status = statusMatch ? parseInt(statusMatch[1]) : 0;
+    return { data: null, status };
+  }
+}
+
+// ─── Search-based URL Discovery ──────────────────────────────────────
+
+/**
+ * Use the SWS listing page to discover the canonical URL for a stock.
+ */
+async function discoverUrlViaSearch(
+  symbol: string,
+  exchange: string,
+  _name: string
+): Promise<string | null> {
+  try {
+    const searchUrl = `https://simplywall.st/stocks/ae?query=${encodeURIComponent(symbol)}`;
+
+    const result = await scrapflyFetch(searchUrl, {
+      asp: true,
+      renderJs: true,
+      country: "ae",
+      cache: true,
+      cacheTtl: 86400,
+      timeout: 45000,
+      retries: 1,
+    });
+
+    if (result.status === 200) {
+      // Try exact match first
+      const linkPattern = new RegExp(
+        `href="(/stocks/ae/[^"]*/${exchange.toLowerCase()}-${symbol.toLowerCase()}/[^"]*-shares)`,
+        "i"
+      );
+      const match = result.content.match(linkPattern);
+      if (match) {
+        const discoveredPath = match[1].split("?")[0];
+        console.log(`[SWS] Discovered URL for ${exchange}:${symbol}: ${discoveredPath}`);
+        discoveredUrlCache.set(`${exchange}:${symbol}`, discoveredPath);
+        return `https://simplywall.st${discoveredPath}`;
+      }
+
+      // Try broader match
+      const broadPattern = new RegExp(
+        `href="(/stocks/ae/[^"]*-shares[^"]*)`,
+        "gi"
+      );
+      let broadMatch;
+      const exchangeSymLower = `${exchange.toLowerCase()}-${symbol.toLowerCase()}`;
+      while ((broadMatch = broadPattern.exec(result.content)) !== null) {
+        if (broadMatch[1].includes(exchangeSymLower)) {
+          const discoveredPath = broadMatch[1].split("?")[0];
+          console.log(`[SWS] Discovered URL (broad) for ${exchange}:${symbol}: ${discoveredPath}`);
+          discoveredUrlCache.set(`${exchange}:${symbol}`, discoveredPath);
+          return `https://simplywall.st${discoveredPath}`;
+        }
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.error(`[SWS] Search discovery failed for ${exchange}:${symbol}:`, (e as Error).message);
+    return null;
+  }
+}
+
 // ─── Public API ──────────────────────────────────────────────────────
 
 /**
  * Fetch company data from Simply Wall St via Scrapfly.
- * Uses ASP (Anti-Scraping Protection) to bypass Cloudflare.
+ * Uses pre-built URL mapping + search-based fallback for URL discovery.
  * Returns cached data when available (24h TTL).
  */
 export async function fetchSWSCompanyData(
@@ -297,70 +398,62 @@ export async function fetchSWSCompanyData(
     // Determine the URL to scrape
     let url: string;
     if (canonicalUrl) {
-      url = `https://simplywall.st${canonicalUrl}`;
-    } else if (canonicalUrlCache.has(cacheKey)) {
-      url = `https://simplywall.st${canonicalUrlCache.get(cacheKey)}`;
+      url = canonicalUrl.startsWith("http") ? canonicalUrl : `https://simplywall.st${canonicalUrl}`;
     } else {
-      // Fall back to a search-based approach - we'll need the canonical URL
-      // For now, try a common pattern
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-      url = `https://simplywall.st/stocks/ae/diversified-financials/${exchange.toLowerCase()}-${symbol.toLowerCase()}/${slug}-shares`;
+      url = getStockUrl(symbol, exchange, name);
     }
 
-    // Fetch via Scrapfly with ASP and JS rendering
-    const result = await scrapflyFetch(url, {
-      asp: true,
-      renderJs: true,
-      country: "ae",
-      cache: false, // Don't use Scrapfly cache - we have our own
-      timeout: 45000,
-      retries: 1,
-    });
+    console.log(`[SWS] Fetching ${cacheKey}: ${url}`);
 
-    if (result.status === 200) {
-      // Parse the React Query State
-      const rqs = parseReactQueryState(result.content);
-      if (rqs) {
-        const data = extractCompanyData(rqs, symbol, exchange, name);
-        if (data) {
-          companyCache.set(cacheKey, { data, timestamp: Date.now() });
+    // Attempt 1: Try the primary URL (from URL map or discovered cache)
+    const { data, status } = await tryScrapeUrl(url, symbol, exchange, name);
+
+    if (data) {
+      companyCache.set(cacheKey, { data, timestamp: Date.now() });
+      lastStatus = {
+        connected: true,
+        lastChecked: new Date().toISOString(),
+        error: null,
+        method: "scrapfly-asp",
+        lastSuccessfulFetch: new Date().toISOString(),
+        cachedCompanies: companyCache.size,
+      };
+      return data;
+    }
+
+    // Attempt 2: If 404, try search-based URL discovery
+    if (status === 404 || status === 0) {
+      console.log(`[SWS] Primary URL failed (${status}) for ${cacheKey}, trying search discovery...`);
+
+      const discoveredUrl = await discoverUrlViaSearch(symbol, exchange, name);
+      if (discoveredUrl) {
+        totalRequests++;
+        const result2 = await tryScrapeUrl(discoveredUrl, symbol, exchange, name);
+        if (result2.data) {
+          companyCache.set(cacheKey, { data: result2.data, timestamp: Date.now() });
           lastStatus = {
             connected: true,
             lastChecked: new Date().toISOString(),
             error: null,
-            method: "scrapfly-asp",
+            method: "scrapfly-asp+search",
             lastSuccessfulFetch: new Date().toISOString(),
             cachedCompanies: companyCache.size,
           };
-          return data;
+          return result2.data;
         }
       }
-
-      // Page loaded but no data found
-      failedRequests++;
-      lastStatus = {
-        connected: false,
-        lastChecked: new Date().toISOString(),
-        error: "Page loaded but __REACT_QUERY_STATE__ not found or empty",
-        method: "scrapfly-asp",
-        lastSuccessfulFetch: lastStatus.lastSuccessfulFetch,
-        cachedCompanies: companyCache.size,
-      };
-    } else {
-      failedRequests++;
-      lastStatus = {
-        connected: false,
-        lastChecked: new Date().toISOString(),
-        error: `HTTP ${result.status}`,
-        method: "scrapfly-asp",
-        lastSuccessfulFetch: lastStatus.lastSuccessfulFetch,
-        cachedCompanies: companyCache.size,
-      };
     }
+
+    // All attempts failed
+    failedRequests++;
+    lastStatus = {
+      connected: false,
+      lastChecked: new Date().toISOString(),
+      error: `HTTP ${status} - Could not find valid SWS page for ${cacheKey}`,
+      method: "scrapfly-asp",
+      lastSuccessfulFetch: lastStatus.lastSuccessfulFetch,
+      cachedCompanies: companyCache.size,
+    };
 
     return cached?.data || null;
   } catch (e: any) {
@@ -383,9 +476,9 @@ export async function fetchSWSCompanyData(
 export async function checkSWSHealth(): Promise<SWSServiceStatus> {
   try {
     totalRequests++;
-    // Use a known working URL
+    // Use a known working URL from the URL map
     const testUrl =
-      "https://simplywall.st/stocks/ae/commercial-services/dfm-upp/union-properties-shares";
+      "https://simplywall.st/stocks/ae/real-estate-management-and-development/dfm-emaar/emaar-properties-shares";
 
     const result = await scrapflyFetch(testUrl, {
       asp: true,
@@ -451,6 +544,8 @@ export function getSWSStats() {
           ).toFixed(1) + "%"
         : "N/A",
     cachedCompanies: companyCache.size,
+    urlMapSize: Object.keys(SWS_URL_MAP).length,
+    discoveredUrls: discoveredUrlCache.size,
   };
 }
 
@@ -459,8 +554,12 @@ export function getSWSStats() {
  */
 export function getCanonicalUrlCache(): Record<string, string> {
   const result: Record<string, string> = {};
-  canonicalUrlCache.forEach((value, key) => {
+  // Include both static map and discovered URLs
+  for (const [key, value] of Object.entries(SWS_URL_MAP)) {
     result[key] = value;
+  }
+  discoveredUrlCache.forEach((value, key) => {
+    result[key] = value + " (discovered)";
   });
   return result;
 }
