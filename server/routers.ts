@@ -13,7 +13,7 @@ import { getCreditMonitorStatus, forceCheckCredits } from "./services/scrapflyCr
 import { getCacheMetrics, resetCacheMetrics } from "./services/cacheMetricsService";
 import { fetchAllTVStocks, fetchTVStocksByTickers, getTradingViewStats } from "./services/tradingViewService";
 import { getTwelveDataStats } from "./services/twelveDataService";
-// Simply Wall St and Yahoo Finance removed - using TradingView + TwelveData only
+import { fetchSWSCompanyData, getSWSStats, checkSWSHealth, getCanonicalUrlCache } from "./services/simplyWallStService";
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
@@ -1446,6 +1446,73 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       resetCacheMetrics();
       return { success: true };
     }),
+
+    // SWS stats
+    swsStats: publicProcedure.query(() => {
+      return getSWSStats();
+    }),
+
+    // SWS health check
+    swsHealth: publicProcedure.query(async () => {
+      return checkSWSHealth();
+    }),
+
+    // SWS URL cache
+    swsUrlCache: publicProcedure.query(() => {
+      return getCanonicalUrlCache();
+    }),
+
+    // SWS bulk populate - fetches data for all stocks
+    swsBulkPopulate: publicProcedure.mutation(async () => {
+      const BATCH_SIZE = 5;
+      const DELAY_MS = 3000;
+      const results: { symbol: string; exchange: string; success: boolean; error?: string }[] = [];
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < ALL_STOCKS.length; i += BATCH_SIZE) {
+        const batch = ALL_STOCKS.slice(i, i + BATCH_SIZE);
+        const batchPromises = batch.map(async (stock) => {
+          try {
+            const data = await fetchSWSCompanyData(stock.symbol, stock.exchange, stock.name);
+            if (data) {
+              successCount++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, success: true });
+            } else {
+              failCount++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, success: false, error: "No data returned" });
+            }
+          } catch (e: any) {
+            failCount++;
+            results.push({ symbol: stock.symbol, exchange: stock.exchange, success: false, error: e.message });
+          }
+        });
+        await Promise.all(batchPromises);
+        // Delay between batches to avoid rate limiting
+        if (i + BATCH_SIZE < ALL_STOCKS.length) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+      }
+
+      return {
+        total: ALL_STOCKS.length,
+        success: successCount,
+        failed: failCount,
+        successRate: ((successCount / ALL_STOCKS.length) * 100).toFixed(1) + "%",
+        results,
+        stats: getSWSStats(),
+      };
+    }),
+
+    // Fetch SWS data for a single stock
+    swsFetchStock: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.string() }))
+      .query(async ({ input }) => {
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol && s.exchange === input.exchange);
+        if (!stock) throw new Error("Stock not found");
+        const data = await fetchSWSCompanyData(stock.symbol, stock.exchange, stock.name);
+        return data;
+      }),
   }),
 
   // ─── TwelveData endpoints (UAE only) ──────────────────────────────
