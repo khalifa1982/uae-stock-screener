@@ -1176,5 +1176,10 @@
 - [x] Fix SWS showing Disconnected on admin page
 
 ## Phase 49 - Fix Price Spectrum Not Showing All Prices & Quantities
-- [ ] Investigate Price Spectrum component display issue
-- [ ] Fix Price Spectrum to show all prices and quantities correctly
+- [x] Investigate Price Spectrum component display issue
+- [x] Fix Price Spectrum to show all prices and quantities correctly
+
+## Phase 49b - Fix Price Spectrum Showing Inaccurate Prices Outside Limits
+- [ ] Fix Price Spectrum showing fabricated prices below limit down and above limit up
+- [ ] Ensure bid/ask levels respect daily trading limits (limit up/limit down)
+- [ ] Use actual DFM/ADX order book data if available instead of synthetic levels

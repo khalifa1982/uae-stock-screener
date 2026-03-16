@@ -160,6 +160,8 @@ export interface OrderBookData {
   dayLow: number;
   high52Week: number;
   low52Week: number;
+  limitDown: number;
+  limitUp: number;
   bids: OrderBookEntry[];
   asks: OrderBookEntry[];
   lastTradeTime: string | null;
@@ -210,6 +212,11 @@ export async function buildOrderBook(
   let lastTradeTime: string | null = null;
   let dataSource: 'live' | 'delayed' = 'delayed';
 
+  // DFM real data for limit bounds
+  let dfmDayHigh = 0;
+  let dfmDayLow = 0;
+  let dfmRefPrice = 0;
+
   // Try to get real DFM data
   if (exchange === 'DFM') {
     const dfmData = await fetchDFMStock(symbol);
@@ -224,6 +231,9 @@ export async function buildOrderBook(
       vwap = dfmData.averagePrice;
       lastTradeTime = dfmData.lastTradeTime;
       dataSource = 'live';
+      dfmDayHigh = dfmData.highestPrice;
+      dfmDayLow = dfmData.lowestPrice;
+      dfmRefPrice = dfmData.referencePrice || dfmData.previousClose;
     }
   }
 
@@ -243,13 +253,35 @@ export async function buildOrderBook(
   const change = tvData?.changeAbs ?? 0;
   const changePercent = tvData?.change ?? 0;
 
-  // Build order book depth levels with granular price levels
+  // === DAILY LIMIT BOUNDS ===
+  // UAE markets (DFM/ADX) have +/-10% daily limits from reference price
+  const refPrice = dfmRefPrice || previousClose || price;
+  const LIMIT_PCT = 0.10;
+  const limitDown = Math.round(refPrice * (1 - LIMIT_PCT) * 1000) / 1000;
+  const limitUp = Math.round(refPrice * (1 + LIMIT_PCT) * 1000) / 1000;
+
+  // Use actual day range from DFM if available, otherwise use limit bounds
+  // The actual traded range is the tightest bound we should show
+  const dayLow = dfmDayLow > 0 ? dfmDayLow : (tvData?.low ?? limitDown);
+  const dayHigh = dfmDayHigh > 0 ? dfmDayHigh : (tvData?.high ?? limitUp);
+
+  // Floor/ceiling for price spectrum: use the wider of day range and a small buffer
+  // but never exceed the daily limit
+  const tickSize = price >= 50 ? 0.05 : price >= 10 ? 0.05 : price >= 1 ? 0.01 : 0.001;
+  const spectrumFloor = Math.max(limitDown, Math.round((dayLow - tickSize * 2) / tickSize) * tickSize);
+  const spectrumCeiling = Math.min(limitUp, Math.round((dayHigh + tickSize * 2) / tickSize) * tickSize);
+
+  // Build order book depth levels within the valid price range
   const bids: OrderBookEntry[] = [];
   const asks: OrderBookEntry[] = [];
 
-  // Determine tick size based on price
-  const tickSize = price >= 50 ? 0.05 : price >= 10 ? 0.05 : price >= 1 ? 0.01 : 0.001;
-  const NUM_LEVELS = 10; // 10 levels on each side for a full spectrum
+  // Calculate how many levels fit within the valid range
+  const bidStart = bidPrice > 0 ? bidPrice : price - tickSize;
+  const askStart = askPrice > 0 ? askPrice : price + tickSize;
+  const maxBidLevels = Math.max(1, Math.floor((bidStart - spectrumFloor) / tickSize) + 1);
+  const maxAskLevels = Math.max(1, Math.floor((spectrumCeiling - askStart) / tickSize) + 1);
+  const NUM_BID_LEVELS = Math.min(15, maxBidLevels);
+  const NUM_ASK_LEVELS = Math.min(15, maxAskLevels);
 
   // Seeded random for deterministic volume generation per symbol
   let seed = 0;
@@ -259,25 +291,24 @@ export async function buildOrderBook(
   // Collect key technical levels for volume emphasis
   const supportLevels = new Set(
     [tvData?.pivotS1, tvData?.pivotS2, tvData?.pivotS3, tvData?.bbLower, tvData?.sma20, tvData?.sma50]
-      .filter((v): v is number => v != null && v > 0 && v < price)
+      .filter((v): v is number => v != null && v > 0 && v < price && v >= spectrumFloor)
       .map(v => Math.round(v / tickSize) * tickSize)
   );
   const resistanceLevels = new Set(
     [tvData?.pivotR1, tvData?.pivotR2, tvData?.pivotR3, tvData?.bbUpper]
-      .filter((v): v is number => v != null && v > 0 && v > price)
+      .filter((v): v is number => v != null && v > 0 && v > price && v <= spectrumCeiling)
       .map(v => Math.round(v / tickSize) * tickSize)
   );
 
   // Average volume per level as baseline
   const avgVolPerLevel = Math.max(1000, Math.round(totalVolume / 50));
 
-  // === BID LEVELS (below price) ===
-  const bidStart = bidPrice > 0 ? bidPrice : price - tickSize;
+  // === BID LEVELS (below price, down to spectrumFloor) ===
   let cumBidVol = 0;
 
-  for (let i = 0; i < NUM_LEVELS; i++) {
+  for (let i = 0; i < NUM_BID_LEVELS; i++) {
     const levelPrice = Math.round((bidStart - i * tickSize) * 1000) / 1000;
-    if (levelPrice <= 0) break;
+    if (levelPrice < spectrumFloor || levelPrice <= 0) break;
 
     // Volume: real data for first level if available, otherwise generate
     let qty: number;
@@ -308,12 +339,12 @@ export async function buildOrderBook(
     });
   }
 
-  // === ASK LEVELS (above price) ===
-  const askStart = askPrice > 0 ? askPrice : price + tickSize;
+  // === ASK LEVELS (above price, up to spectrumCeiling) ===
   let cumAskVol = 0;
 
-  for (let i = 0; i < NUM_LEVELS; i++) {
+  for (let i = 0; i < NUM_ASK_LEVELS; i++) {
     const levelPrice = Math.round((askStart + i * tickSize) * 1000) / 1000;
+    if (levelPrice > spectrumCeiling) break;
 
     let qty: number;
     let orders: number;
@@ -358,10 +389,12 @@ export async function buildOrderBook(
     totalValue,
     totalTrades,
     vwap: vwap || price,
-    dayHigh: tvData?.high ?? price,
-    dayLow: tvData?.low ?? price,
+    dayHigh: dfmDayHigh > 0 ? dfmDayHigh : (tvData?.high ?? price),
+    dayLow: dfmDayLow > 0 ? dfmDayLow : (tvData?.low ?? price),
     high52Week: 0,
     low52Week: 0,
+    limitDown,
+    limitUp,
     bids,
     asks,
     lastTradeTime,
