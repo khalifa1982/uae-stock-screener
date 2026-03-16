@@ -478,7 +478,7 @@ export async function checkSWSHealth(): Promise<SWSServiceStatus> {
     totalRequests++;
     // Use a known working URL from the URL map
     const testUrl =
-      "https://simplywall.st/stocks/ae/real-estate-management-and-development/dfm-emaar/emaar-properties-shares";
+      "https://simplywall.st/stocks/ae/real-estate-management-and-development/dfm-emaar/emaar-properties-pjsc-shares";
 
     const result = await scrapflyFetch(testUrl, {
       asp: true,

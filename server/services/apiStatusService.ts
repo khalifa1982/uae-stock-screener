@@ -229,21 +229,24 @@ let swsStats = {
 async function checkSimplyWallStHealth() {
   try {
     // Use the SWS service's own health check which goes through Scrapfly
-    const { checkSWSHealth } = await import('./simplyWallStService');
+    const { checkSWSHealth, getSWSStats } = await import('./simplyWallStService');
     const status = await checkSWSHealth();
+    const realStats = getSWSStats();
+    // Use the real stats from the SWS service (includes bulk populate counts)
     swsStats.connected = status.connected;
     swsStats.error = status.error;
     swsStats.lastChecked = status.lastChecked;
+    swsStats.totalRequests = realStats.totalRequests;
+    swsStats.failedRequests = realStats.failedRequests;
     if (status.connected) {
       swsStats.lastSuccessfulFetch = status.lastSuccessfulFetch;
-      swsStats.totalRequests++;
-    } else {
-      swsStats.failedRequests++;
+    } else if (realStats.status.lastSuccessfulFetch) {
+      // Even if health check fails, show last successful fetch from bulk populate
+      swsStats.lastSuccessfulFetch = realStats.status.lastSuccessfulFetch;
     }
   } catch (e: any) {
     swsStats.connected = false;
     swsStats.error = e.message || 'Connection failed';
-    swsStats.failedRequests++;
     swsStats.lastChecked = new Date().toISOString();
   }
   return swsStats;

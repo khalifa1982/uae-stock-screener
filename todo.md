@@ -1170,3 +1170,7 @@
 - [ ] Deploy v10.8.1 to Northflank
 - [ ] Trigger SWS bulk population on live site
 - [ ] Verify deployment and SWS data population
+
+## Phase 48b - Fix SWS Disconnected Status
+- [ ] Fix SWS health check URL returning 404
+- [ ] Fix SWS showing Disconnected on admin page
