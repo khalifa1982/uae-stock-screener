@@ -1172,5 +1172,9 @@
 - [ ] Verify deployment and SWS data population
 
 ## Phase 48b - Fix SWS Disconnected Status
-- [ ] Fix SWS health check URL returning 404
-- [ ] Fix SWS showing Disconnected on admin page
+- [x] Fix SWS health check URL returning 404
+- [x] Fix SWS showing Disconnected on admin page
+
+## Phase 49 - Fix Price Spectrum Not Showing All Prices & Quantities
+- [ ] Investigate Price Spectrum component display issue
+- [ ] Fix Price Spectrum to show all prices and quantities correctly

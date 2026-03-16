@@ -243,92 +243,101 @@ export async function buildOrderBook(
   const change = tvData?.changeAbs ?? 0;
   const changePercent = tvData?.change ?? 0;
 
-  // Build order book depth levels from real data + technical levels
+  // Build order book depth levels with granular price levels
   const bids: OrderBookEntry[] = [];
   const asks: OrderBookEntry[] = [];
 
-  // Use pivot points and technical levels as price levels
-  const supportLevels = [
-    tvData?.pivotS1, tvData?.pivotS2, tvData?.pivotS3,
-    tvData?.bbLower, tvData?.sma20, tvData?.sma50,
-  ].filter((v): v is number => v != null && v > 0 && v < price);
+  // Determine tick size based on price
+  const tickSize = price >= 50 ? 0.05 : price >= 10 ? 0.05 : price >= 1 ? 0.01 : 0.001;
+  const NUM_LEVELS = 10; // 10 levels on each side for a full spectrum
 
-  const resistanceLevels = [
-    tvData?.pivotR1, tvData?.pivotR2, tvData?.pivotR3,
-    tvData?.bbUpper,
-  ].filter((v): v is number => v != null && v > 0 && v > price);
+  // Seeded random for deterministic volume generation per symbol
+  let seed = 0;
+  for (let i = 0; i < symbol.length; i++) seed = ((seed << 5) - seed + symbol.charCodeAt(i)) | 0;
+  const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
-  // Add real bid if available
-  if (bidPrice > 0) {
+  // Collect key technical levels for volume emphasis
+  const supportLevels = new Set(
+    [tvData?.pivotS1, tvData?.pivotS2, tvData?.pivotS3, tvData?.bbLower, tvData?.sma20, tvData?.sma50]
+      .filter((v): v is number => v != null && v > 0 && v < price)
+      .map(v => Math.round(v / tickSize) * tickSize)
+  );
+  const resistanceLevels = new Set(
+    [tvData?.pivotR1, tvData?.pivotR2, tvData?.pivotR3, tvData?.bbUpper]
+      .filter((v): v is number => v != null && v > 0 && v > price)
+      .map(v => Math.round(v / tickSize) * tickSize)
+  );
+
+  // Average volume per level as baseline
+  const avgVolPerLevel = Math.max(1000, Math.round(totalVolume / 50));
+
+  // === BID LEVELS (below price) ===
+  const bidStart = bidPrice > 0 ? bidPrice : price - tickSize;
+  let cumBidVol = 0;
+
+  for (let i = 0; i < NUM_LEVELS; i++) {
+    const levelPrice = Math.round((bidStart - i * tickSize) * 1000) / 1000;
+    if (levelPrice <= 0) break;
+
+    // Volume: real data for first level if available, otherwise generate
+    let qty: number;
+    let orders: number;
+    const isLive = i === 0 && bidVolume > 0 && dataSource === 'live';
+
+    if (isLive) {
+      qty = bidVolume;
+      orders = Math.max(1, Math.ceil(qty / 10000));
+    } else {
+      // Volume increases slightly with distance (more passive orders further from price)
+      // Technical levels get a volume boost
+      const distMultiplier = 1 + (i * 0.15);
+      const techBoost = supportLevels.has(Math.round(levelPrice / tickSize) * tickSize) ? 2.5 : 1;
+      const randomFactor = 0.5 + rand() * 1.0;
+      qty = Math.round(avgVolPerLevel * distMultiplier * techBoost * randomFactor);
+      orders = Math.max(1, Math.round(qty / (3000 + rand() * 7000)));
+    }
+
+    cumBidVol += qty;
     bids.push({
-      price: bidPrice,
-      quantity: bidVolume,
-      orders: bidVolume > 0 ? Math.max(1, Math.ceil(bidVolume / 10000)) : 0,
-      total: bidVolume,
-      side: 'bid',
-      source: dataSource === 'live' ? 'live' : 'derived',
-    });
-  }
-
-  // Add support levels as bid levels (derived)
-  let cumBidVol = bidVolume;
-  const sortedSupports = Array.from(new Set(supportLevels))
-    .sort((a, b) => b - a) // highest first (closest to price)
-    .slice(0, 5);
-
-  for (const level of sortedSupports) {
-    if (Math.abs(level - bidPrice) < 0.001) continue; // Skip if same as real bid
-    // Estimate volume based on distance from price (closer = more volume)
-    const distancePct = Math.abs(price - level) / price;
-    // Deterministic volume estimation based on distance from price
-    const levelIdx = sortedSupports.indexOf(level);
-    const baseFraction = 0.08 - (levelIdx * 0.01);
-    const estimatedVol = Math.round(totalVolume * Math.max(0.02, baseFraction) * (1 - distancePct));
-    const orders = Math.max(1, Math.ceil(estimatedVol / 5000));
-    cumBidVol += estimatedVol;
-    bids.push({
-      price: level,
-      quantity: estimatedVol,
+      price: levelPrice,
+      quantity: qty,
       orders,
       total: cumBidVol,
       side: 'bid',
-      source: 'derived',
+      source: isLive ? 'live' : 'derived',
     });
   }
 
-  // Add real ask if available
-  if (askPrice > 0) {
-    asks.push({
-      price: askPrice,
-      quantity: askVolume,
-      orders: askVolume > 0 ? Math.max(1, Math.ceil(askVolume / 10000)) : 0,
-      total: askVolume,
-      side: 'ask',
-      source: dataSource === 'live' ? 'live' : 'derived',
-    });
-  }
+  // === ASK LEVELS (above price) ===
+  const askStart = askPrice > 0 ? askPrice : price + tickSize;
+  let cumAskVol = 0;
 
-  // Add resistance levels as ask levels (derived)
-  let cumAskVol = askVolume;
-  const sortedResistances = Array.from(new Set(resistanceLevels))
-    .sort((a, b) => a - b) // lowest first (closest to price)
-    .slice(0, 5);
+  for (let i = 0; i < NUM_LEVELS; i++) {
+    const levelPrice = Math.round((askStart + i * tickSize) * 1000) / 1000;
 
-  for (const level of sortedResistances) {
-    if (Math.abs(level - askPrice) < 0.001) continue;
-    const distancePct = Math.abs(level - price) / price;
-    const levelIdx = sortedResistances.indexOf(level);
-    const baseFraction = 0.08 - (levelIdx * 0.01);
-    const estimatedVol = Math.round(totalVolume * Math.max(0.02, baseFraction) * (1 - distancePct));
-    const orders = Math.max(1, Math.ceil(estimatedVol / 5000));
-    cumAskVol += estimatedVol;
+    let qty: number;
+    let orders: number;
+    const isLive = i === 0 && askVolume > 0 && dataSource === 'live';
+
+    if (isLive) {
+      qty = askVolume;
+      orders = Math.max(1, Math.ceil(qty / 10000));
+    } else {
+      const distMultiplier = 1 + (i * 0.15);
+      const techBoost = resistanceLevels.has(Math.round(levelPrice / tickSize) * tickSize) ? 2.5 : 1;
+      const randomFactor = 0.5 + rand() * 1.0;
+      qty = Math.round(avgVolPerLevel * distMultiplier * techBoost * randomFactor);
+      orders = Math.max(1, Math.round(qty / (3000 + rand() * 7000)));
+    }
+
+    cumAskVol += qty;
     asks.push({
-      price: level,
-      quantity: estimatedVol,
+      price: levelPrice,
+      quantity: qty,
       orders,
       total: cumAskVol,
       side: 'ask',
-      source: 'derived',
+      source: isLive ? 'live' : 'derived',
     });
   }
 
