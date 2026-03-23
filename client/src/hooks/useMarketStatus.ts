@@ -57,9 +57,9 @@ export function useAutoRefreshInterval(): number | false {
     const update = () => {
       const s = getMarketStatus();
       if (s.phase === "open" || s.phase === "pre-close") {
-        setInterval_(30 * 1000); // 30 seconds during trading
+        setInterval_(5 * 1000); // 5 seconds during trading for near-realtime updates
       } else if (s.phase === "pre-open") {
-        setInterval_(60 * 1000); // 60 seconds during pre-open
+        setInterval_(15 * 1000); // 15 seconds during pre-open
       } else {
         // Closed, holiday, or weekend - no auto-refresh
         setInterval_(false);

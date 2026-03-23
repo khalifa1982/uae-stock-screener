@@ -1180,6 +1180,10 @@
 - [x] Fix Price Spectrum to show all prices and quantities correctly
 
 ## Phase 49b - Fix Price Spectrum Showing Inaccurate Prices Outside Limits
-- [ ] Fix Price Spectrum showing fabricated prices below limit down and above limit up
-- [ ] Ensure bid/ask levels respect daily trading limits (limit up/limit down)
+- [x] Fix Price Spectrum showing fabricated prices below limit down and above limit up
+- [x] Ensure bid/ask levels respect daily trading limits (limit up/limit down)
 - [ ] Use actual DFM/ADX order book data if available instead of synthetic levels
+
+## Phase 50 - Fix Dashboard Tables & Ticker Bar Refresh
+- [ ] Fix Most Active table to show current price + % change instead of volume
+- [ ] Update ticker bar refresh interval to 1 second for instant price updates

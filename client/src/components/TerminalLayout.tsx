@@ -102,8 +102,8 @@ function TickerItem({ symbol, price, changePercent, flashDir }: {
 function TickerBar() {
   // 1. Load initial snapshot data (baseline prices + change %)
   const { data: snapshots } = trpc.stocks.fetchAll.useQuery(undefined, {
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 5_000,
+    refetchInterval: 10_000,
   });
 
   // 2. Subscribe to WebSocket for ALL stocks

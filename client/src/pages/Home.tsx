@@ -70,7 +70,7 @@ export default function Home() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const autoRefreshInterval = useAutoRefreshInterval();
-  const fastRefresh = autoRefreshInterval ? 5_000 : undefined;
+  const fastRefresh = autoRefreshInterval || undefined;
 
   const { data: stocks, isLoading } = trpc.stocks.fetchAll.useQuery(
     { exchange },
@@ -281,7 +281,7 @@ export default function Home() {
                   <Logo logoUrl={s.logoUrl} symbol={s.symbol} />
                   <span className="font-mono font-semibold text-foreground">{s.symbol}</span>
                   <span className="flex-1 truncate text-muted-foreground text-[9px]">{s.name}</span>
-                  <span className="font-mono text-muted-foreground">{fmtLg(s.volume)}</span>
+                  <span className="font-mono text-foreground/80">{fmt(s.price)}</span>
                   <Chg value={s.changePercent} />
                 </div>
               ))}
