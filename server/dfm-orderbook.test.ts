@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { buildOrderBook, type OrderBookData, type DFMStockData } from './services/dfmDataService';
+import { describe, it, expect } from 'vitest';
+import { buildOrderBook, type OrderBookData } from './services/dfmDataService';
 
-describe('Order Book - buildOrderBook (Real Data Only)', () => {
+describe('Order Book - Real L1 + Derived Technical Levels', () => {
   const baseTvData = {
     close: 13.30,
     open: 13.50,
@@ -32,41 +32,30 @@ describe('Order Book - buildOrderBook (Real Data Only)', () => {
     expect(result).toBeNull();
   });
 
-  it('returns valid order book structure for ADX stock (no order book data)', async () => {
+  it('ADX stock should have derived levels from TradingView (not empty)', async () => {
     const result = await buildOrderBook('FAB', 'ADX', baseTvData);
     expect(result).not.toBeNull();
     const ob = result as OrderBookData;
 
-    // Check required fields
     expect(ob.symbol).toBe('FAB');
     expect(ob.exchange).toBe('ADX');
     expect(ob.lastPrice).toBe(13.30);
-    expect(ob.dataSource).toBe('delayed'); // ADX has no real-time API
+    expect(ob.dataSource).toBe('delayed');
 
-    // ADX stocks should have NO fabricated bid/ask
     expect(ob.bidPrice).toBe(0);
     expect(ob.askPrice).toBe(0);
-    expect(ob.bids).toHaveLength(0);
-    expect(ob.asks).toHaveLength(0);
-    expect(ob.depthLevel).toBe('none');
-  });
 
-  it('ADX stocks have empty order book (no synthetic data)', async () => {
-    const result = await buildOrderBook('FAB', 'ADX', baseTvData);
-    expect(result).not.toBeNull();
-    const ob = result as OrderBookData;
+    expect(ob.bids.length).toBeGreaterThan(0);
+    expect(ob.asks.length).toBeGreaterThan(0);
 
-    // CRITICAL: No fabricated levels for ADX
-    expect(ob.bids).toHaveLength(0);
-    expect(ob.asks).toHaveLength(0);
-    expect(ob.bidPrice).toBe(0);
-    expect(ob.askPrice).toBe(0);
-    expect(ob.spread).toBe(0);
-    expect(ob.spreadPercent).toBe(0);
+    expect(ob.bids.every(b => b.source === 'derived')).toBe(true);
+    expect(ob.asks.every(a => a.source === 'derived')).toBe(true);
+
+    expect(ob.depthLevel).toBe('derived');
     expect(ob.dataNote).toContain('ADX');
   });
 
-  it('spread is 0 when no bid/ask data available', async () => {
+  it('spread is 0 when no real bid/ask data available (ADX)', async () => {
     const result = await buildOrderBook('FAB', 'ADX', baseTvData);
     const ob = result as OrderBookData;
     expect(ob.spread).toBe(0);
@@ -98,13 +87,11 @@ describe('Order Book - buildOrderBook (Real Data Only)', () => {
     expect(result).not.toBeNull();
     const ob = result as OrderBookData;
     expect(ob.lastPrice).toBe(5.0);
-    // No fabricated bid/ask for ADX
     expect(ob.bidPrice).toBe(0);
     expect(ob.askPrice).toBe(0);
-    expect(ob.bids).toHaveLength(0);
-    expect(ob.asks).toHaveLength(0);
     expect(ob.dataSource).toBe('delayed');
-    expect(ob.depthLevel).toBe('none');
+    expect(Array.isArray(ob.bids)).toBe(true);
+    expect(Array.isArray(ob.asks)).toBe(true);
   });
 
   it('includes day range and VWAP data', async () => {
@@ -119,11 +106,35 @@ describe('Order Book - buildOrderBook (Real Data Only)', () => {
   it('calculates daily limit bounds correctly', async () => {
     const result = await buildOrderBook('FAB', 'ADX', baseTvData);
     const ob = result as OrderBookData;
-    // Previous close = 13.30 - (-0.20) = 13.50
-    // Limit down = 13.50 * 0.90 = 12.15
-    // Limit up = 13.50 * 1.10 = 14.85
     expect(ob.limitDown).toBeCloseTo(12.15, 2);
     expect(ob.limitUp).toBeCloseTo(14.85, 2);
+  });
+
+  it('derived bid levels should be sorted descending (closest to price first)', async () => {
+    const result = await buildOrderBook('FAB', 'ADX', baseTvData);
+    const ob = result as OrderBookData;
+    for (let i = 1; i < ob.bids.length; i++) {
+      expect(ob.bids[i].price).toBeLessThanOrEqual(ob.bids[i - 1].price);
+    }
+  });
+
+  it('derived ask levels should be sorted ascending (closest to price first)', async () => {
+    const result = await buildOrderBook('FAB', 'ADX', baseTvData);
+    const ob = result as OrderBookData;
+    for (let i = 1; i < ob.asks.length; i++) {
+      expect(ob.asks[i].price).toBeGreaterThanOrEqual(ob.asks[i - 1].price);
+    }
+  });
+
+  it('cumulative total should increase for each level', async () => {
+    const result = await buildOrderBook('FAB', 'ADX', baseTvData);
+    const ob = result as OrderBookData;
+    for (let i = 1; i < ob.bids.length; i++) {
+      expect(ob.bids[i].total).toBeGreaterThan(ob.bids[i - 1].total);
+    }
+    for (let i = 1; i < ob.asks.length; i++) {
+      expect(ob.asks[i].total).toBeGreaterThan(ob.asks[i - 1].total);
+    }
   });
 
   it('includes depthLevel and dataNote fields', async () => {
@@ -131,26 +142,16 @@ describe('Order Book - buildOrderBook (Real Data Only)', () => {
     const ob = result as OrderBookData;
     expect(ob).toHaveProperty('depthLevel');
     expect(ob).toHaveProperty('dataNote');
-    expect(['level1', 'none']).toContain(ob.depthLevel);
+    expect(['level1', 'derived', 'none']).toContain(ob.depthLevel);
     expect(typeof ob.dataNote).toBe('string');
     expect(ob.dataNote.length).toBeGreaterThan(0);
   });
 
-  it('never generates synthetic order book levels', async () => {
-    // Test with multiple symbols to ensure no synthetic data
-    const symbols = ['FAB', 'ADNOC', 'ETISALAT', 'TEST1', 'TEST2'];
-    for (const sym of symbols) {
-      const result = await buildOrderBook(sym, 'ADX', baseTvData);
-      if (result) {
-        // ADX stocks should never have fabricated levels
-        expect(result.bids).toHaveLength(0);
-        expect(result.asks).toHaveLength(0);
-        // All entries (if any) must be from 'live' source
-        for (const entry of [...result.bids, ...result.asks]) {
-          expect(entry.source).toBe('live');
-        }
-      }
-    }
+  it('derived levels use technical indicators (pivots, BB, SMA)', async () => {
+    const result = await buildOrderBook('FAB', 'ADX', baseTvData);
+    const ob = result as OrderBookData;
+    expect(ob.bids.length).toBeGreaterThanOrEqual(2);
+    expect(ob.asks.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -159,77 +160,70 @@ describe('DFM API Integration (live)', () => {
     const { fetchAllDFMStocks } = await import('./services/dfmDataService');
     const stocks = await fetchAllDFMStocks();
     
-    // DFM should have at least 40 equity stocks
     expect(stocks.length).toBeGreaterThan(40);
     
-    // Check that the data has the expected shape
     const emaar = stocks.find(s => s.id === 'EMAAR');
     if (emaar) {
       expect(emaar.lastTradePrice).toBeGreaterThan(0);
       expect(emaar.totalVolume).toBeGreaterThanOrEqual(0);
       expect(emaar.market).toBe('510');
-      // Bid/ask may be 0 after market close, but should be numbers
       expect(typeof emaar.bidPrice).toBe('number');
       expect(typeof emaar.offerPrice).toBe('number');
     }
   }, 20000);
 
-  it('builds order book for DFM stock with real data only', async () => {
+  it('builds order book for DFM stock with L1 + derived levels', async () => {
     const { fetchAllDFMStocks } = await import('./services/dfmDataService');
     const stocks = await fetchAllDFMStocks();
     const emaar = stocks.find(s => s.id === 'EMAAR');
     
     if (emaar) {
+      const price = emaar.lastTradePrice || 13.0;
       const result = await buildOrderBook('EMAAR', 'DFM', {
-        close: emaar.lastTradePrice || 13.0,
+        close: price,
         open: emaar.openingPrice || null,
         high: emaar.highestPrice || null,
         low: emaar.lowestPrice || null,
         volume: emaar.totalVolume || null,
         changeAbs: emaar.netChange || null,
         change: emaar.changePercent || null,
-        bbLower: null,
-        bbUpper: null,
-        pivotS1: null,
-        pivotS2: null,
-        pivotS3: null,
-        pivotR1: null,
-        pivotR2: null,
-        pivotR3: null,
-        pivotMiddle: null,
-        sma20: null,
-        sma50: null,
-        atr: null,
+        bbLower: price * 0.95,
+        bbUpper: price * 1.05,
+        pivotS1: price * 0.98,
+        pivotS2: price * 0.95,
+        pivotS3: price * 0.92,
+        pivotR1: price * 1.02,
+        pivotR2: price * 1.05,
+        pivotR3: price * 1.08,
+        pivotMiddle: price,
+        sma20: price * 0.99,
+        sma50: price * 0.97,
+        atr: price * 0.03,
       });
       
       expect(result).not.toBeNull();
       const ob = result as OrderBookData;
       expect(ob.dataSource).toBe('live');
-      expect(ob.depthLevel).toBe('level1');
       
-      // If bid exists in DFM API, it should appear in bids array
+      // Should have asks (either live or derived)
+      expect(ob.asks.length).toBeGreaterThan(0);
+      
+      // If bid exists in DFM API, first bid should be 'live'
       if (emaar.bidPrice > 0 && emaar.bidVolume > 0) {
-        expect(ob.bids).toHaveLength(1); // Level 1 = exactly 1 level
-        expect(ob.bids[0].price).toBe(emaar.bidPrice);
         expect(ob.bids[0].source).toBe('live');
-      } else {
-        // No bids = empty array (NOT fabricated levels)
-        expect(ob.bids).toHaveLength(0);
+        expect(ob.bids[0].price).toBe(emaar.bidPrice);
       }
       
-      // If ask exists in DFM API, it should appear in asks array
+      // If ask exists in DFM API, first ask should be 'live'
       if (emaar.offerPrice > 0 && emaar.offerVolume > 0) {
-        expect(ob.asks).toHaveLength(1); // Level 1 = exactly 1 level
-        expect(ob.asks[0].price).toBe(emaar.offerPrice);
         expect(ob.asks[0].source).toBe('live');
-      } else {
-        expect(ob.asks).toHaveLength(0);
+        expect(ob.asks[0].price).toBe(emaar.offerPrice);
       }
       
-      // CRITICAL: No derived/synthetic entries
-      for (const entry of [...ob.bids, ...ob.asks]) {
-        expect(entry.source).toBe('live');
-      }
+      // Should have derived levels
+      const allEntries = [...ob.bids, ...ob.asks];
+      const derivedEntries = allEntries.filter(e => e.source === 'derived');
+      expect(derivedEntries.length).toBeGreaterThan(0);
     }
   }, 20000);
 

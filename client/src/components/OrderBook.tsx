@@ -3,14 +3,14 @@
  * 
  * 4 tabs matching professional trading platforms:
  * 1. Summary - Key metrics, best bid/ask, volume, day stats
- * 2. Price Spectrum - Visual bid/ask with REAL data only (Level 1)
- * 3. MBP (Market by Price) - Real order book data (Level 1 only)
+ * 2. Price Spectrum - Visual bid/ask depth chart with bars
+ * 3. MBP (Market by Price) - Full order book table
  * 4. Time & Sales - Recent trade history (estimated from day data)
  * 
- * IMPORTANT: Shows ONLY real data from DFM API.
- * No synthetic/fabricated order book levels.
- * DFM provides Level 1 (best bid/ask) only.
- * ADX has no public order book API.
+ * Data Sources:
+ * - DFM API: Real Level 1 (best bid/ask) — marked as "LIVE"
+ * - TradingView: Derived levels from pivots, BB, S/R — marked as "Derived"
+ * - ADX: Derived levels only (no public API)
  */
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,15 +84,21 @@ function useFlash(value: number | undefined) {
   return flash;
 }
 
-// ─── No Data Placeholder ──────────────────────────────────────────
+// ─── Source Badge ──────────────────────────────────────────────────
 
-function NoDepthData({ message, icon: Icon = Info }: { message: string; icon?: typeof Info }) {
+function SourceBadge({ source }: { source: string }) {
+  if (source === "live") {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-1 py-0.5 rounded bg-gain/15 text-gain border border-gain/20">
+        <span className="w-1 h-1 rounded-full bg-gain animate-pulse" />
+        LIVE
+      </span>
+    );
+  }
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <Icon className="h-8 w-8 text-muted-foreground/40 mb-3" />
-      <p className="text-xs text-muted-foreground font-medium mb-1">No Depth Data Available</p>
-      <p className="text-[10px] text-muted-foreground/60 max-w-[280px] leading-relaxed">{message}</p>
-    </div>
+    <span className="inline-flex items-center text-[8px] font-medium px-1 py-0.5 rounded bg-primary/10 text-primary/70 border border-primary/15">
+      S/R
+    </span>
   );
 }
 
@@ -114,8 +120,14 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
   const hasAsks = (orderBook?.asks?.length ?? 0) > 0;
   const hasAnyDepth = hasBids || hasAsks;
 
+  const liveBids = orderBook?.bids?.filter((b: any) => b.source === 'live') ?? [];
+  const liveAsks = orderBook?.asks?.filter((a: any) => a.source === 'live') ?? [];
+  const hasLiveData = liveBids.length > 0 || liveAsks.length > 0;
+
   const totalBidVol = orderBook?.bids?.reduce((s: number, b: any) => s + b.quantity, 0) ?? 0;
   const totalAskVol = orderBook?.asks?.reduce((s: number, a: any) => s + a.quantity, 0) ?? 0;
+  const liveBidVol = liveBids.reduce((s: number, b: any) => s + b.quantity, 0);
+  const liveAskVol = liveAsks.reduce((s: number, a: any) => s + a.quantity, 0);
   const buyPressure = totalBidVol + totalAskVol > 0 ? (totalBidVol / (totalBidVol + totalAskVol)) * 100 : 50;
 
   // Generate estimated time & sales from day data
@@ -238,9 +250,14 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
           <Badge variant={orderBook.dataSource === "live" ? "default" : "secondary"} className="text-[9px]">
             {orderBook.dataSource === "live" ? <><Wifi className="h-2.5 w-2.5 mr-0.5" /> LIVE</> : <><WifiOff className="h-2.5 w-2.5 mr-0.5" /> Delayed</>}
           </Badge>
-          {orderBook.dataSource === "live" && (
+          {hasLiveData && (
+            <Badge variant="outline" className="text-[9px] border-gain/30 text-gain/70">
+              L1 + S/R
+            </Badge>
+          )}
+          {!hasLiveData && hasAnyDepth && (
             <Badge variant="outline" className="text-[9px] border-primary/30 text-primary/70">
-              Level 1
+              S/R Levels
             </Badge>
           )}
         </div>
@@ -367,7 +384,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                 </div>
               </div>
 
-              {/* Buy/Sell Pressure — only show if we have real bid AND ask data */}
+              {/* Buy/Sell Pressure */}
               {hasBids && hasAsks ? (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex justify-between text-[11px]">
@@ -382,7 +399,9 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <div className="h-full bg-gain/70 transition-all duration-500" style={{ width: `${buyPressure}%` }} />
                     <div className="h-full bg-loss/70 transition-all duration-500" style={{ width: `${100 - buyPressure}%` }} />
                   </div>
-                  <p className="text-[9px] text-muted-foreground/50 text-center">Based on Level 1 best bid/ask volume</p>
+                  <p className="text-[9px] text-muted-foreground/50 text-center">
+                    {hasLiveData ? "Based on live L1 + derived support/resistance levels" : "Based on derived support/resistance levels"}
+                  </p>
                 </div>
               ) : (
                 <div className="pt-1 text-center">
@@ -404,30 +423,42 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
               <div className="text-xs font-semibold mb-3 flex items-center gap-1.5">
                 <BarChart3 className="h-3.5 w-3.5 text-primary" />
                 {symbol} Price Spectrum
-                <Badge variant="outline" className="text-[8px] ml-auto border-amber-500/30 text-amber-500/70">
-                  Level 1 Only
-                </Badge>
+                <div className="ml-auto flex items-center gap-1">
+                  {hasLiveData && (
+                    <Badge variant="outline" className="text-[8px] border-gain/30 text-gain/70">
+                      L1 Live
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[8px] border-primary/30 text-primary/60">
+                    S/R Levels
+                  </Badge>
+                </div>
               </div>
 
               {hasAnyDepth ? (
                 <div className="space-y-0">
-                  {/* Ask level (top, red) — only real data */}
-                  {orderBook.asks?.map((level: any, i: number) => {
+                  {/* Ask levels (top, red) — sorted ascending (furthest from price first) */}
+                  {[...(orderBook.asks ?? [])].reverse().map((level: any, i: number) => {
                     const maxVol = Math.max(
                       ...(orderBook.bids?.map((b: any) => b.quantity) ?? [0]),
                       ...(orderBook.asks?.map((a: any) => a.quantity) ?? [0]),
                       1
                     );
+                    const isLive = level.source === 'live';
                     return (
-                      <div key={`ask-${i}`} className="grid grid-cols-[1fr_70px_1fr] items-center h-10 group hover:bg-loss/5 transition-colors">
-                        <div />
-                        <div className="text-center text-xs font-mono font-medium text-loss">{fmtPrice(level.price)}</div>
+                      <div key={`ask-${i}`} className="grid grid-cols-[1fr_80px_1fr] items-center h-9 group hover:bg-loss/5 transition-colors">
+                        <div className="flex justify-end pr-1">
+                          <SourceBadge source={level.source} />
+                        </div>
+                        <div className={`text-center text-xs font-mono font-medium text-loss ${isLive ? "font-bold" : "opacity-80"}`}>
+                          {fmtPrice(level.price)}
+                        </div>
                         <div className="flex items-center h-full">
                           <div
-                            className="h-7 bg-loss/30 border-r-2 border-loss/70 transition-all duration-300 flex items-center px-2 rounded-r"
-                            style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '80px' }}
+                            className={`h-6 transition-all duration-300 flex items-center px-2 rounded-r ${isLive ? "bg-loss/40 border-r-2 border-loss" : "bg-loss/15 border-r border-loss/40 border-dashed"}`}
+                            style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '60px' }}
                           >
-                            <span className="text-[11px] font-mono text-loss whitespace-nowrap font-medium">
+                            <span className={`text-[10px] font-mono whitespace-nowrap ${isLive ? "text-loss font-semibold" : "text-loss/70"}`}>
                               {fmtVol(level.quantity)}
                             </span>
                           </div>
@@ -437,66 +468,68 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   })}
 
                   {/* Separator: Last Price */}
-                  <div className="grid grid-cols-[1fr_70px_1fr] items-center h-10 bg-primary/5 border-y border-primary/20 my-1">
+                  <div className="grid grid-cols-[1fr_80px_1fr] items-center h-10 bg-primary/5 border-y border-primary/20 my-1">
                     <div className="text-right pr-2 text-[10px] text-muted-foreground">Last Price</div>
                     <div className={`text-center text-sm font-mono font-bold ${flashClass(priceFlash)}`}>{fmtPrice(orderBook.lastPrice)}</div>
                     <div />
                   </div>
 
-                  {/* Bid level (bottom, green) — only real data */}
+                  {/* Bid levels (bottom, green) */}
                   {orderBook.bids?.map((level: any, i: number) => {
                     const maxVol = Math.max(
                       ...(orderBook.bids?.map((b: any) => b.quantity) ?? [0]),
                       ...(orderBook.asks?.map((a: any) => a.quantity) ?? [0]),
                       1
                     );
+                    const isLive = level.source === 'live';
                     return (
-                      <div key={`bid-${i}`} className="grid grid-cols-[1fr_70px_1fr] items-center h-10 group hover:bg-gain/5 transition-colors">
+                      <div key={`bid-${i}`} className="grid grid-cols-[1fr_80px_1fr] items-center h-9 group hover:bg-gain/5 transition-colors">
                         <div className="flex items-center justify-end h-full">
                           <div
-                            className="h-7 bg-gain/30 border-l-2 border-gain/70 transition-all duration-300 flex items-center justify-end px-2 rounded-l"
-                            style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '80px' }}
+                            className={`h-6 transition-all duration-300 flex items-center justify-end px-2 rounded-l ${isLive ? "bg-gain/40 border-l-2 border-gain" : "bg-gain/15 border-l border-gain/40 border-dashed"}`}
+                            style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '60px' }}
                           >
-                            <span className="text-[11px] font-mono text-gain whitespace-nowrap font-medium">
+                            <span className={`text-[10px] font-mono whitespace-nowrap ${isLive ? "text-gain font-semibold" : "text-gain/70"}`}>
                               {fmtVol(level.quantity)}
                             </span>
                           </div>
                         </div>
-                        <div className="text-center text-xs font-mono font-medium text-gain">{fmtPrice(level.price)}</div>
-                        <div />
+                        <div className={`text-center text-xs font-mono font-medium text-gain ${isLive ? "font-bold" : "opacity-80"}`}>
+                          {fmtPrice(level.price)}
+                        </div>
+                        <div className="flex pl-1">
+                          <SourceBadge source={level.source} />
+                        </div>
                       </div>
                     );
                   })}
-
-                  {/* Empty side indicators */}
-                  {!hasAsks && (
-                    <div className="text-center py-3 text-[11px] text-muted-foreground/60 border-b border-border/20">
-                      <AlertTriangle className="h-3 w-3 inline mr-1 text-amber-500/60" />
-                      No offers in market
-                    </div>
-                  )}
-                  {!hasBids && (
-                    <div className="text-center py-3 text-[11px] text-muted-foreground/60 border-t border-border/20">
-                      <AlertTriangle className="h-3 w-3 inline mr-1 text-amber-500/60" />
-                      No bids in market
-                    </div>
-                  )}
                 </div>
-              ) : exchange === "DFM" ? (
-                <NoDepthData
-                  message="No bid or ask orders currently in the market for this stock. This can happen outside trading hours or for illiquid stocks."
-                  icon={AlertTriangle}
-                />
               ) : (
-                <NoDepthData
-                  message="ADX does not provide a public order book API. Only price data from TradingView is available."
-                />
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <AlertTriangle className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                  <p className="text-xs text-muted-foreground font-medium mb-1">No Depth Data Available</p>
+                  <p className="text-[10px] text-muted-foreground/60 max-w-[280px] leading-relaxed">
+                    {exchange === "DFM"
+                      ? "No bid or ask orders currently in the market for this stock."
+                      : "ADX does not provide a public order book API."}
+                  </p>
+                </div>
               )}
 
-              {/* Limit bounds info */}
-              <div className="mt-3 pt-2 border-t border-border/20 flex justify-between text-[10px] text-muted-foreground/60">
-                <span>Limit Down: {fmtPrice(orderBook.limitDown)}</span>
-                <span>Limit Up: {fmtPrice(orderBook.limitUp)}</span>
+              {/* Legend + Limit bounds */}
+              <div className="mt-3 pt-2 border-t border-border/20 space-y-1.5">
+                <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground/60">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> LIVE = DFM real-time
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50" /> S/R = Support/Resistance derived
+                  </span>
+                </div>
+                <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                  <span>Limit Down: {fmtPrice(orderBook.limitDown)}</span>
+                  <span>Limit Up: {fmtPrice(orderBook.limitUp)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -509,9 +542,16 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
               <div className="text-xs font-semibold mb-3 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-primary" />
                 MBP — {symbol}
-                <Badge variant="outline" className="text-[8px] ml-auto border-amber-500/30 text-amber-500/70">
-                  Level 1 Only
-                </Badge>
+                <div className="ml-auto flex items-center gap-1">
+                  {hasLiveData && (
+                    <Badge variant="outline" className="text-[8px] border-gain/30 text-gain/70">
+                      L1 Live
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[8px] border-primary/30 text-primary/60">
+                    S/R Levels
+                  </Badge>
+                </div>
               </div>
 
               {hasAnyDepth ? (
@@ -521,28 +561,34 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <table className="w-full text-[11px] font-mono">
                       <thead>
                         <tr className="border-b border-border/30">
-                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Orders</th>
+                          <th className="text-center py-1.5 px-1 text-muted-foreground font-medium w-8">Src</th>
+                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Ord</th>
                           <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Size</th>
                           <th className="text-right py-1.5 px-2 text-gain font-semibold">Bid</th>
                           <th className="w-px bg-border/30" />
                           <th className="text-left py-1.5 px-2 text-loss font-semibold">Offer</th>
                           <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Size</th>
-                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Orders</th>
+                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Ord</th>
+                          <th className="text-center py-1.5 px-1 text-muted-foreground font-medium w-8">Src</th>
                         </tr>
                       </thead>
                       <tbody>
                         {Array.from({ length: Math.max(orderBook.bids?.length ?? 0, orderBook.asks?.length ?? 0, 1) }).map((_, i) => {
                           const bid = orderBook.bids?.[i];
                           const ask = orderBook.asks?.[i];
+                          const bidIsLive = bid?.source === 'live';
+                          const askIsLive = ask?.source === 'live';
                           return (
-                            <tr key={i} className="border-b border-border/10 hover:bg-secondary/20 transition-colors">
-                              <td className="py-2 px-2 text-muted-foreground">{bid ? `~${bid.orders}` : ""}</td>
-                              <td className="py-2 px-2 text-right text-gain font-medium">{bid ? fmtVol(bid.quantity) : ""}</td>
-                              <td className="py-2 px-2 text-right text-gain font-semibold text-sm">{bid ? fmtPrice(bid.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
+                            <tr key={i} className={`border-b border-border/10 hover:bg-secondary/20 transition-colors ${bidIsLive || askIsLive ? "bg-secondary/10" : ""}`}>
+                              <td className="py-1.5 px-1 text-center">{bid ? <SourceBadge source={bid.source} /> : ""}</td>
+                              <td className="py-1.5 px-2 text-muted-foreground">{bid ? `~${bid.orders}` : ""}</td>
+                              <td className={`py-1.5 px-2 text-right font-medium ${bidIsLive ? "text-gain font-bold" : "text-gain/70"}`}>{bid ? fmtVol(bid.quantity) : ""}</td>
+                              <td className={`py-1.5 px-2 text-right font-semibold text-sm ${bidIsLive ? "text-gain" : "text-gain/70"}`}>{bid ? fmtPrice(bid.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
                               <td className="w-px bg-border/30" />
-                              <td className="py-2 px-2 text-loss font-semibold text-sm">{ask ? fmtPrice(ask.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
-                              <td className="py-2 px-2 text-loss font-medium">{ask ? fmtVol(ask.quantity) : ""}</td>
-                              <td className="py-2 px-2 text-right text-muted-foreground">{ask ? `~${ask.orders}` : ""}</td>
+                              <td className={`py-1.5 px-2 font-semibold text-sm ${askIsLive ? "text-loss" : "text-loss/70"}`}>{ask ? fmtPrice(ask.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
+                              <td className={`py-1.5 px-2 font-medium ${askIsLive ? "text-loss font-bold" : "text-loss/70"}`}>{ask ? fmtVol(ask.quantity) : ""}</td>
+                              <td className="py-1.5 px-2 text-right text-muted-foreground">{ask ? `~${ask.orders}` : ""}</td>
+                              <td className="py-1.5 px-1 text-center">{ask ? <SourceBadge source={ask.source} /> : ""}</td>
                             </tr>
                           );
                         })}
@@ -555,32 +601,41 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <div>
                       <span className="text-muted-foreground">Total Bids </span>
                       <span className="text-gain font-bold">{hasBids ? fmtVol(totalBidVol) : "0"}</span>
+                      {liveBidVol > 0 && liveBidVol !== totalBidVol && (
+                        <span className="text-[9px] text-gain/50 ml-1">(Live: {fmtVol(liveBidVol)})</span>
+                      )}
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Offers </span>
                       <span className="text-loss font-bold">{hasAsks ? fmtVol(totalAskVol) : "0"}</span>
+                      {liveAskVol > 0 && liveAskVol !== totalAskVol && (
+                        <span className="text-[9px] text-loss/50 ml-1">(Live: {fmtVol(liveAskVol)})</span>
+                      )}
                     </div>
                   </div>
                 </>
-              ) : exchange === "DFM" ? (
-                <NoDepthData
-                  message="No bid or ask orders currently in the market. The DFM public API provides Level 1 data only (best bid/ask). Full depth (Level 2) requires a paid market data subscription."
-                  icon={AlertTriangle}
-                />
               ) : (
-                <NoDepthData
-                  message="ADX does not provide a public order book API. Market depth data is not available for this exchange."
-                />
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <AlertTriangle className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                  <p className="text-xs text-muted-foreground font-medium mb-1">No Depth Data Available</p>
+                  <p className="text-[10px] text-muted-foreground/60 max-w-[280px] leading-relaxed">
+                    {exchange === "DFM"
+                      ? "No bid or ask orders currently in the market. The DFM public API provides Level 1 data only."
+                      : "ADX does not provide a public order book API."}
+                  </p>
+                </div>
               )}
 
               {/* Data source note */}
               <div className="mt-3 pt-2 border-t border-border/20">
-                <p className="text-[9px] text-muted-foreground/50 text-center flex items-center justify-center gap-1">
-                  <Info className="h-2.5 w-2.5" />
-                  {exchange === "DFM"
-                    ? "Showing real Level 1 data from DFM API. Only best bid/ask available from public API."
-                    : "No order book data available for ADX stocks."}
-                </p>
+                <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground/50">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> LIVE = DFM exchange data
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50" /> S/R = Pivot & BB derived levels
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -667,8 +722,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
       {/* Data source note */}
       <p className="text-[10px] text-muted-foreground/60 text-center italic">
         {orderBook.dataSource === "live"
-          ? "Live Level 1 data from Dubai Financial Market (DFM). Best bid/ask only — full depth requires paid subscription."
-          : "Price data from TradingView. Order book data not available for this exchange."}
+          ? "Live L1 data from DFM. Support/resistance levels derived from TradingView pivot points & Bollinger Bands."
+          : "Price data from TradingView. Support/resistance levels derived from pivot points & Bollinger Bands."}
       </p>
     </div>
   );
@@ -683,7 +738,7 @@ export function PriceBook({ symbol, exchange, price, change, volume, high, low }
   price: number | null;
   change: number | null;
   volume: number | null;
-  high: number | null;
+  high?: number | null;
   low: number | null;
 }) {
   const { data: orderBook } = trpc.stocks.orderBook.useQuery(

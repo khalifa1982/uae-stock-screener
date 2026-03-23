@@ -1204,4 +1204,17 @@
 - [x] Rewrote 12 order book tests to validate no synthetic data generation
 - [x] All 12 tests passing, 553/556 total tests passing
 - [x] Updated version to v10.8.7
-- [ ] Deploy v10.8.7 to production
+- [x] Deploy v10.8.7 to production — confirmed live on uae.market
+
+## Phase 51b - Restore Full Order Book Depth with Derived Levels
+- [x] Investigated DFM API — confirmed only Level 1 (best bid/ask) available, no depth endpoint
+- [x] Checked DFM MarketDepth, TwelveData, FMP, EODHD — none provide UAE L2 data
+- [x] Rebuilt buildOrderBook with real L1 + derived technical levels (pivots, BB, SMA, S/R)
+- [x] Derived levels clearly labeled as 'derived' source, live data as 'live'
+- [x] ADX stocks now show derived levels from TradingView (not empty)
+- [x] Updated OrderBook UI with full depth display, source badges (LIVE / S/R)
+- [x] Price Spectrum shows solid bars for live, dashed for derived
+- [x] MBP table shows source column for each level
+- [x] All 14 order book tests passing
+- [x] Updated version to v10.8.8
+- [ ] Deploy v10.8.8 to production
