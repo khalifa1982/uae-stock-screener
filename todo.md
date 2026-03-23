@@ -1185,5 +1185,5 @@
 - [ ] Use actual DFM/ADX order book data if available instead of synthetic levels
 
 ## Phase 50 - Fix Dashboard Tables & Ticker Bar Refresh
-- [ ] Fix Most Active table to show current price + % change instead of volume
-- [ ] Update ticker bar refresh interval to 1 second for instant price updates
+- [x] Fix Most Active table to show current price + % change instead of volume
+- [x] Update ticker bar refresh interval to 5 seconds for faster price updates
