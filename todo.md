@@ -1187,3 +1187,21 @@
 ## Phase 50 - Fix Dashboard Tables & Ticker Bar Refresh
 - [x] Fix Most Active table to show current price + % change instead of volume
 - [x] Update ticker bar refresh interval to 5 seconds for faster price updates
+
+## Phase 51 - Replace Synthetic Order Book with Real DFM API Data
+- [x] Research DFM API for real order book depth/market depth endpoints
+- [x] Confirmed DFM public API only provides Level 1 (best bid/ask) — no full depth
+- [x] Rewrote buildOrderBook to use ONLY real DFM API data (no synthetic generation)
+- [x] When bidPrice=0, show EMPTY bids (no fabricated levels)
+- [x] When askPrice=0, show EMPTY asks (no fabricated levels)
+- [x] ADX stocks show no order book data (ADX has no public API)
+- [x] Added depthLevel and dataNote fields to OrderBookData interface
+- [x] Updated Price Spectrum to show only real bid/ask (Level 1 badge)
+- [x] Updated MBP to show only real data with 'Level 1 Only' indicator
+- [x] Added 'Estimated' badge and disclaimer to Time & Sales tab
+- [x] Added empty state messages for no bids/asks scenarios
+- [x] Updated OrderBook header with Level 1 badge
+- [x] Rewrote 12 order book tests to validate no synthetic data generation
+- [x] All 12 tests passing, 553/556 total tests passing
+- [x] Updated version to v10.8.7
+- [ ] Deploy v10.8.7 to production

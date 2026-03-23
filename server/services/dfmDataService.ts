@@ -5,6 +5,10 @@
  * 
  * This is the ONLY source of real bid/ask data for UAE stocks.
  * ADX does not expose a public API (Cloudflare-protected).
+ * 
+ * IMPORTANT: The DFM public API only provides Level 1 data (best bid/ask).
+ * Full order book depth (Level 2) is NOT available from the public API.
+ * We show ONLY real data — no synthetic/fabricated levels.
  */
 
 const DFM_API_URL = 'https://api2.dfm.ae/mw/v1/stocks';
@@ -127,8 +131,7 @@ export async function fetchDFMStock(symbol: string): Promise<DFMStockData | null
 }
 
 /**
- * Get order book data for a stock (DFM only provides best bid/ask, not full depth)
- * We return the best bid/ask from the official API
+ * Order book entry — only from REAL data sources
  */
 export interface OrderBookEntry {
   price: number;
@@ -166,12 +169,20 @@ export interface OrderBookData {
   asks: OrderBookEntry[];
   lastTradeTime: string | null;
   dataSource: 'live' | 'delayed';
+  /** Indicates the depth of order book data available */
+  depthLevel: 'level1' | 'none';
+  /** Human-readable note about data availability */
+  dataNote: string;
 }
 
 /**
- * Build order book data for a stock
- * For DFM stocks: uses real bid/ask from DFM API
- * For ADX stocks: derives from TradingView price data
+ * Build order book data for a stock using ONLY real data.
+ * 
+ * DFM stocks: Level 1 data (best bid/ask) from the official DFM API.
+ * ADX stocks: No order book data available (ADX has no public API).
+ * 
+ * NO SYNTHETIC DATA IS GENERATED. If there are no bids, bids array is empty.
+ * If there are no asks, asks array is empty.
  */
 export async function buildOrderBook(
   symbol: string,
@@ -211,16 +222,22 @@ export async function buildOrderBook(
   let vwap = 0;
   let lastTradeTime: string | null = null;
   let dataSource: 'live' | 'delayed' = 'delayed';
+  let depthLevel: 'level1' | 'none' = 'none';
+  let dataNote = '';
 
-  // DFM real data for limit bounds
+  // DFM real data
   let dfmDayHigh = 0;
   let dfmDayLow = 0;
   let dfmRefPrice = 0;
+  let dfmHigh52 = 0;
+  let dfmLow52 = 0;
 
   // Try to get real DFM data
   if (exchange === 'DFM') {
     const dfmData = await fetchDFMStock(symbol);
     if (dfmData) {
+      // Use ONLY real bid/ask from DFM API
+      // If bidPrice is 0, it means there are NO bids in the market — we show empty
       bidPrice = dfmData.bidPrice;
       bidVolume = dfmData.bidVolume;
       askPrice = dfmData.offerPrice;
@@ -234,18 +251,21 @@ export async function buildOrderBook(
       dfmDayHigh = dfmData.highestPrice;
       dfmDayLow = dfmData.lowestPrice;
       dfmRefPrice = dfmData.referencePrice || dfmData.previousClose;
+      dfmHigh52 = dfmData.high52Week;
+      dfmLow52 = dfmData.low52Week;
+
+      // DFM provides Level 1 (best bid/ask only)
+      depthLevel = 'level1';
+      dataNote = 'Level 1 data from DFM API (best bid/ask only). Full order book depth requires a paid subscription.';
+    } else {
+      dataNote = 'DFM API data temporarily unavailable.';
     }
+  } else {
+    // ADX stocks — no public API available
+    dataNote = 'ADX does not provide a public order book API. Price data from TradingView.';
   }
 
-  // If no real bid/ask, derive from price data
-  if (bidPrice === 0 && askPrice === 0) {
-    const atr = tvData?.atr ?? price * 0.02;
-    const tickSize = price >= 10 ? 0.05 : price >= 1 ? 0.01 : 0.001;
-    bidPrice = Math.max(0, price - tickSize);
-    askPrice = price + tickSize;
-    dataSource = 'delayed';
-  }
-
+  // Calculate spread only from real data
   const spread = askPrice > 0 && bidPrice > 0 ? askPrice - bidPrice : 0;
   const spreadPercent = bidPrice > 0 ? (spread / bidPrice) * 100 : 0;
   const previousClose = tvData?.close != null && tvData?.changeAbs != null
@@ -254,121 +274,39 @@ export async function buildOrderBook(
   const changePercent = tvData?.change ?? 0;
 
   // === DAILY LIMIT BOUNDS ===
-  // UAE markets (DFM/ADX) have +/-10% daily limits from reference price
   const refPrice = dfmRefPrice || previousClose || price;
   const LIMIT_PCT = 0.10;
   const limitDown = Math.round(refPrice * (1 - LIMIT_PCT) * 1000) / 1000;
   const limitUp = Math.round(refPrice * (1 + LIMIT_PCT) * 1000) / 1000;
 
-  // Use actual day range from DFM if available, otherwise use limit bounds
-  // The actual traded range is the tightest bound we should show
-  const dayLow = dfmDayLow > 0 ? dfmDayLow : (tvData?.low ?? limitDown);
-  const dayHigh = dfmDayHigh > 0 ? dfmDayHigh : (tvData?.high ?? limitUp);
+  const dayLow = dfmDayLow > 0 ? dfmDayLow : (tvData?.low ?? price);
+  const dayHigh = dfmDayHigh > 0 ? dfmDayHigh : (tvData?.high ?? price);
 
-  // Floor/ceiling for price spectrum: use the wider of day range and a small buffer
-  // but never exceed the daily limit
-  const tickSize = price >= 50 ? 0.05 : price >= 10 ? 0.05 : price >= 1 ? 0.01 : 0.001;
-  const spectrumFloor = Math.max(limitDown, Math.round((dayLow - tickSize * 2) / tickSize) * tickSize);
-  const spectrumCeiling = Math.min(limitUp, Math.round((dayHigh + tickSize * 2) / tickSize) * tickSize);
-
-  // Build order book depth levels within the valid price range
+  // === BUILD ORDER BOOK WITH REAL DATA ONLY ===
   const bids: OrderBookEntry[] = [];
   const asks: OrderBookEntry[] = [];
 
-  // Calculate how many levels fit within the valid range
-  const bidStart = bidPrice > 0 ? bidPrice : price - tickSize;
-  const askStart = askPrice > 0 ? askPrice : price + tickSize;
-  const maxBidLevels = Math.max(1, Math.floor((bidStart - spectrumFloor) / tickSize) + 1);
-  const maxAskLevels = Math.max(1, Math.floor((spectrumCeiling - askStart) / tickSize) + 1);
-  const NUM_BID_LEVELS = Math.min(15, maxBidLevels);
-  const NUM_ASK_LEVELS = Math.min(15, maxAskLevels);
-
-  // Seeded random for deterministic volume generation per symbol
-  let seed = 0;
-  for (let i = 0; i < symbol.length; i++) seed = ((seed << 5) - seed + symbol.charCodeAt(i)) | 0;
-  const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-
-  // Collect key technical levels for volume emphasis
-  const supportLevels = new Set(
-    [tvData?.pivotS1, tvData?.pivotS2, tvData?.pivotS3, tvData?.bbLower, tvData?.sma20, tvData?.sma50]
-      .filter((v): v is number => v != null && v > 0 && v < price && v >= spectrumFloor)
-      .map(v => Math.round(v / tickSize) * tickSize)
-  );
-  const resistanceLevels = new Set(
-    [tvData?.pivotR1, tvData?.pivotR2, tvData?.pivotR3, tvData?.bbUpper]
-      .filter((v): v is number => v != null && v > 0 && v > price && v <= spectrumCeiling)
-      .map(v => Math.round(v / tickSize) * tickSize)
-  );
-
-  // Average volume per level as baseline
-  const avgVolPerLevel = Math.max(1000, Math.round(totalVolume / 50));
-
-  // === BID LEVELS (below price, down to spectrumFloor) ===
-  let cumBidVol = 0;
-
-  for (let i = 0; i < NUM_BID_LEVELS; i++) {
-    const levelPrice = Math.round((bidStart - i * tickSize) * 1000) / 1000;
-    if (levelPrice < spectrumFloor || levelPrice <= 0) break;
-
-    // Volume: real data for first level if available, otherwise generate
-    let qty: number;
-    let orders: number;
-    const isLive = i === 0 && bidVolume > 0 && dataSource === 'live';
-
-    if (isLive) {
-      qty = bidVolume;
-      orders = Math.max(1, Math.ceil(qty / 10000));
-    } else {
-      // Volume increases slightly with distance (more passive orders further from price)
-      // Technical levels get a volume boost
-      const distMultiplier = 1 + (i * 0.15);
-      const techBoost = supportLevels.has(Math.round(levelPrice / tickSize) * tickSize) ? 2.5 : 1;
-      const randomFactor = 0.5 + rand() * 1.0;
-      qty = Math.round(avgVolPerLevel * distMultiplier * techBoost * randomFactor);
-      orders = Math.max(1, Math.round(qty / (3000 + rand() * 7000)));
-    }
-
-    cumBidVol += qty;
+  // Only add a bid level if there is a REAL bid from DFM API
+  if (bidPrice > 0 && bidVolume > 0) {
     bids.push({
-      price: levelPrice,
-      quantity: qty,
-      orders,
-      total: cumBidVol,
+      price: bidPrice,
+      quantity: bidVolume,
+      orders: Math.max(1, Math.ceil(bidVolume / 10000)), // Estimate orders from volume
+      total: bidVolume,
       side: 'bid',
-      source: isLive ? 'live' : 'derived',
+      source: 'live',
     });
   }
 
-  // === ASK LEVELS (above price, up to spectrumCeiling) ===
-  let cumAskVol = 0;
-
-  for (let i = 0; i < NUM_ASK_LEVELS; i++) {
-    const levelPrice = Math.round((askStart + i * tickSize) * 1000) / 1000;
-    if (levelPrice > spectrumCeiling) break;
-
-    let qty: number;
-    let orders: number;
-    const isLive = i === 0 && askVolume > 0 && dataSource === 'live';
-
-    if (isLive) {
-      qty = askVolume;
-      orders = Math.max(1, Math.ceil(qty / 10000));
-    } else {
-      const distMultiplier = 1 + (i * 0.15);
-      const techBoost = resistanceLevels.has(Math.round(levelPrice / tickSize) * tickSize) ? 2.5 : 1;
-      const randomFactor = 0.5 + rand() * 1.0;
-      qty = Math.round(avgVolPerLevel * distMultiplier * techBoost * randomFactor);
-      orders = Math.max(1, Math.round(qty / (3000 + rand() * 7000)));
-    }
-
-    cumAskVol += qty;
+  // Only add an ask level if there is a REAL ask from DFM API
+  if (askPrice > 0 && askVolume > 0) {
     asks.push({
-      price: levelPrice,
-      quantity: qty,
-      orders,
-      total: cumAskVol,
+      price: askPrice,
+      quantity: askVolume,
+      orders: Math.max(1, Math.ceil(askVolume / 10000)), // Estimate orders from volume
+      total: askVolume,
       side: 'ask',
-      source: isLive ? 'live' : 'derived',
+      source: 'live',
     });
   }
 
@@ -389,16 +327,18 @@ export async function buildOrderBook(
     totalValue,
     totalTrades,
     vwap: vwap || price,
-    dayHigh: dfmDayHigh > 0 ? dfmDayHigh : (tvData?.high ?? price),
-    dayLow: dfmDayLow > 0 ? dfmDayLow : (tvData?.low ?? price),
-    high52Week: 0,
-    low52Week: 0,
+    dayHigh,
+    dayLow,
+    high52Week: dfmHigh52,
+    low52Week: dfmLow52,
     limitDown,
     limitUp,
     bids,
     asks,
     lastTradeTime,
     dataSource,
+    depthLevel,
+    dataNote,
   };
 }
 
