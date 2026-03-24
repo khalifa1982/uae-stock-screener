@@ -19,7 +19,7 @@ import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
 import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
-import { buildOrderBook, fetchAllDFMStocks, getDFMStats } from "./services/dfmDataService";
+import { buildOrderBook, fetchAllDFMStocks, fetchDFMStock, getDFMStats, type DFMStockData } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
 import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt, toggleMessageReaction, ALLOWED_REACTION_EMOJIS } from "./services/chatService";
 import { fetchSAOverview, fetchSAFinancials, fetchSADividends, getSAStats, clearSACache } from "./services/stockAnalysisService";
@@ -31,6 +31,58 @@ import { getEarningsTranscript } from "./services/earningsTranscriptService";
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
 const refreshInProgress = new Set<string>();
+
+/**
+ * Overlay DFM real-time prices on top of TradingView EOD data.
+ * TradingView Scanner returns end-of-day data (yesterday's close during market hours).
+ * DFM API returns real-time intraday data for DFM-listed stocks.
+ * This function merges them: TV provides fundamentals/technicals, DFM provides live prices.
+ */
+function applyDFMLiveOverlay(snapshot: any, dfmData: DFMStockData): any {
+  // Only overlay if DFM has a valid last trade price (> 0 means stock traded today)
+  if (!dfmData || dfmData.lastTradePrice <= 0) return snapshot;
+  
+  const prevClose = dfmData.previousClose || snapshot.previousClose;
+  const price = dfmData.lastTradePrice;
+  const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : snapshot.changePercent;
+  
+  return {
+    ...snapshot,
+    price,
+    previousClose: prevClose,
+    open: dfmData.openingPrice > 0 ? dfmData.openingPrice : snapshot.open,
+    dayHigh: dfmData.highestPrice > 0 ? dfmData.highestPrice : snapshot.dayHigh,
+    dayLow: dfmData.lowestPrice > 0 ? dfmData.lowestPrice : snapshot.dayLow,
+    volume: dfmData.totalVolume > 0 ? dfmData.totalVolume : snapshot.volume,
+    changePercent,
+    // Keep all TV fundamentals/technicals (PE, EPS, RSI, SMA, etc.)
+  };
+}
+
+/**
+ * Apply DFM live overlay to an array of stock results.
+ * Fetches DFM data once and overlays on all DFM stocks in the array.
+ */
+async function applyDFMOverlayToResults(results: any[]): Promise<any[]> {
+  try {
+    const dfmStocks = await fetchAllDFMStocks();
+    if (dfmStocks.length === 0) return results;
+    
+    const dfmMap = new Map<string, DFMStockData>();
+    for (const d of dfmStocks) dfmMap.set(d.id, d);
+    
+    return results.map(snap => {
+      if (snap.exchange === 'DFM') {
+        const dfmData = dfmMap.get(snap.symbol);
+        if (dfmData) return applyDFMLiveOverlay(snap, dfmData);
+      }
+      return snap;
+    });
+  } catch (e) {
+    // DFM overlay is optional — return original results if it fails
+    return results;
+  }
+}
 
 /**
  * Map TradingView data to our internal snapshot format.
@@ -99,20 +151,33 @@ async function backgroundRefresh(exchange: string) {
   refreshInProgress.add(key);
   
   try {
-    console.log(`[Performance] Starting background refresh for ${exchange} via TradingView...`);
+    console.log(`[Performance] Starting background refresh for ${exchange} via TradingView + DFM live overlay...`);
     const startTime = Date.now();
     
     // PRIMARY: Fetch ALL stocks from TradingView Scanner (covers both ADX & DFM)
+    // TradingView provides fundamentals, technicals, and EOD prices
     const tvStocks = await fetchAllTVStocks();
     
     // Build a map from TV ticker to TV data: "ADX:IHC" → data
     const tvMap = new Map<string, any>();
     for (const tv of tvStocks) {
-      // TV ticker format: "ADX:IHC" or "DFM:EMAAR"
       const parts = tv.ticker.split(':');
       if (parts.length === 2) {
         tvMap.set(`${parts[0]}:${parts[1]}`, tv);
       }
+    }
+    
+    // LIVE OVERLAY: Fetch DFM real-time prices (covers all DFM stocks)
+    // DFM API returns intraday live prices, which are more current than TV during market hours
+    let dfmMap = new Map<string, DFMStockData>();
+    try {
+      const dfmStocks = await fetchAllDFMStocks();
+      for (const d of dfmStocks) {
+        dfmMap.set(d.id, d);
+      }
+      console.log(`[Performance] DFM live overlay: ${dfmStocks.length} stocks fetched`);
+    } catch (e) {
+      console.warn(`[Performance] DFM live overlay failed, using TV data only`);
     }
     
     const freshResults: any[] = [];
@@ -123,17 +188,45 @@ async function backgroundRefresh(exchange: string) {
       const tvData = tvMap.get(tvKey);
       
       if (tvData) {
-        const snapshot = tvToSnapshot(tvData, stock);
+        let snapshot = tvToSnapshot(tvData, stock);
+        // Apply DFM live price overlay for DFM stocks
+        if (stock.exchange === 'DFM') {
+          const dfmData = dfmMap.get(stock.symbol);
+          if (dfmData) {
+            snapshot = applyDFMLiveOverlay(snapshot, dfmData);
+          }
+        }
         try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
         freshResults.push(snapshot);
       } else {
-        // Stock not found in TradingView, push with null data
+        // Stock not found in TradingView — try DFM data directly for DFM stocks
+        if (stock.exchange === 'DFM') {
+          const dfmData = dfmMap.get(stock.symbol);
+          if (dfmData && dfmData.lastTradePrice > 0) {
+            const snapshot = {
+              symbol: stock.symbol, exchange: stock.exchange, name: stock.name,
+              sector: stock.sector, yahooSymbol: stock.yahooSymbol, logoUrl: null, description: null,
+              price: dfmData.lastTradePrice,
+              previousClose: dfmData.previousClose,
+              open: dfmData.openingPrice > 0 ? dfmData.openingPrice : null,
+              dayHigh: dfmData.highestPrice > 0 ? dfmData.highestPrice : null,
+              dayLow: dfmData.lowestPrice > 0 ? dfmData.lowestPrice : null,
+              volume: dfmData.totalVolume > 0 ? dfmData.totalVolume : null,
+              avgVolume: null, marketCap: null, pe: null, eps: null,
+              week52High: dfmData.high52Week > 0 ? dfmData.high52Week : null,
+              week52Low: dfmData.low52Week > 0 ? dfmData.low52Week : null,
+              dividendYield: null, beta: null,
+              changePercent: dfmData.changePercent,
+              rsi: null, sma20: null, sma50: null, ema12: null, ema26: null, volumeRatio: null,
+            };
+            try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
+            freshResults.push(snapshot);
+            continue;
+          }
+        }
         freshResults.push({
-          symbol: stock.symbol,
-          exchange: stock.exchange,
-          name: stock.name,
-          sector: stock.sector,
-          yahooSymbol: stock.yahooSymbol,
+          symbol: stock.symbol, exchange: stock.exchange, name: stock.name,
+          sector: stock.sector, yahooSymbol: stock.yahooSymbol,
           price: null, previousClose: null, open: null, dayHigh: null, dayLow: null,
           volume: null, avgVolume: null, marketCap: null, pe: null, eps: null,
           week52High: null, week52Low: null, dividendYield: null, beta: null,
@@ -148,7 +241,8 @@ async function backgroundRefresh(exchange: string) {
     
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     const matched = freshResults.filter(r => r.price != null).length;
-    console.log(`[Performance] Background refresh for ${exchange} completed in ${elapsed}s (${matched}/${freshResults.length} stocks with data)`);
+    const dfmOverlaid = freshResults.filter(r => (r as any)._dfmLive).length;
+    console.log(`[Performance] Background refresh for ${exchange} completed in ${elapsed}s (${matched}/${freshResults.length} stocks with data, DFM live: ${dfmMap.size})`);
   } catch (e) {
     console.warn(`[Performance] Background refresh failed for ${exchange}:`, e);
   } finally {
@@ -225,14 +319,30 @@ export const appRouter = router({
         const cached = await getStockSnapshot(input.symbol, input.exchange);
         if (cached && cached.updatedAt) {
           const age = Date.now() - new Date(cached.updatedAt).getTime();
-          if (age < 5 * 60 * 1000 && cached.price) return cached;
+          if (age < 5 * 60 * 1000 && cached.price) {
+            // Apply DFM live overlay even on cached data
+            if (stock.exchange === 'DFM') {
+              try {
+                const dfmData = await fetchDFMStock(stock.symbol);
+                if (dfmData) return applyDFMLiveOverlay(cached, dfmData);
+              } catch (e) { /* fallback to cached */ }
+            }
+            return cached;
+          }
         }
         
-        // PRIMARY: TradingView
+        // PRIMARY: TradingView + DFM overlay
         const tvKey = `${stock.exchange}:${stock.symbol}`;
         const tvStocks = await fetchTVStocksByTickers([tvKey]);
         if (tvStocks.length > 0) {
-          const snapshot = tvToSnapshot(tvStocks[0], stock);
+          let snapshot = tvToSnapshot(tvStocks[0], stock);
+          // Apply DFM live overlay for DFM stocks
+          if (stock.exchange === 'DFM') {
+            try {
+              const dfmData = await fetchDFMStock(stock.symbol);
+              if (dfmData) snapshot = applyDFMLiveOverlay(snapshot, dfmData);
+            } catch (e) { /* use TV data */ }
+          }
           try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
           return snapshot;
         }
@@ -257,7 +367,9 @@ export const appRouter = router({
         if (!forceRefresh) {
           const memCached = getFromMemoryCache(cacheKey);
           if (memCached && memCached.length > 0) {
-            return memCached;
+            // Always apply DFM live overlay on cached data for freshest prices
+            const overlaid = await applyDFMOverlayToResults(memCached);
+            return overlaid;
           }
         }
         
@@ -267,10 +379,13 @@ export const appRouter = router({
           const expectedCount = exchange === "ADX" ? ADX_STOCKS.length : exchange === "DFM" ? DFM_STOCKS.length : ALL_STOCKS.length;
           // Only use DB cache if it has a reasonable number of stocks (>80% coverage)
           if (cached.length > expectedCount * 0.8) {
-            const results = cached.map(snap => {
+            let results = cached.map(snap => {
               const info = ALL_STOCKS.find(s => s.symbol === snap.symbol);
               return { ...snap, name: info?.name, sector: info?.sector, yahooSymbol: info?.yahooSymbol };
             });
+            
+            // Apply DFM live overlay for fresh prices
+            results = await applyDFMOverlayToResults(results);
             
             // Store in memory cache for next request
             setMemoryCache(cacheKey, results);
@@ -285,7 +400,7 @@ export const appRouter = router({
               backgroundRefresh(exchange).catch(() => {});
             }
             
-            // Return stale data immediately while refresh happens in background
+            // Return fresh-overlaid data
             return results;
           } else if (cached.length > 0) {
             // DB has partial data - trigger background refresh to fill gaps
@@ -302,6 +417,13 @@ export const appRouter = router({
           if (parts.length === 2) tvMap.set(`${parts[0]}:${parts[1]}`, tv);
         }
         
+        // Fetch DFM live data for overlay
+        let dfmMap = new Map<string, DFMStockData>();
+        try {
+          const dfmStocks = await fetchAllDFMStocks();
+          for (const d of dfmStocks) dfmMap.set(d.id, d);
+        } catch (e) { /* DFM overlay optional */ }
+        
         const stocks = exchange === "ADX" ? ADX_STOCKS : exchange === "DFM" ? DFM_STOCKS : ALL_STOCKS;
         const results = [];
         for (const stock of stocks) {
@@ -309,10 +431,35 @@ export const appRouter = router({
           const tvData = tvMap.get(tvKey);
           
           if (tvData) {
-            const snapshot = tvToSnapshot(tvData, stock);
+            let snapshot = tvToSnapshot(tvData, stock);
+            // Apply DFM live overlay for DFM stocks
+            if (stock.exchange === 'DFM') {
+              const dfmData = dfmMap.get(stock.symbol);
+              if (dfmData) snapshot = applyDFMLiveOverlay(snapshot, dfmData);
+            }
             try { await upsertStockSnapshot(snapshot); } catch (e) { /* ignore */ }
             results.push(snapshot);
           } else {
+            // Try DFM data directly for DFM stocks not in TV
+            if (stock.exchange === 'DFM') {
+              const dfmData = dfmMap.get(stock.symbol);
+              if (dfmData && dfmData.lastTradePrice > 0) {
+                results.push({
+                  symbol: stock.symbol, exchange: stock.exchange, name: stock.name,
+                  sector: stock.sector, yahooSymbol: stock.yahooSymbol, logoUrl: null, description: null,
+                  price: dfmData.lastTradePrice, previousClose: dfmData.previousClose,
+                  open: dfmData.openingPrice > 0 ? dfmData.openingPrice : null,
+                  dayHigh: dfmData.highestPrice > 0 ? dfmData.highestPrice : null,
+                  dayLow: dfmData.lowestPrice > 0 ? dfmData.lowestPrice : null,
+                  volume: dfmData.totalVolume > 0 ? dfmData.totalVolume : null,
+                  avgVolume: null, marketCap: null, pe: null, eps: null,
+                  week52High: null, week52Low: null, dividendYield: null, beta: null,
+                  changePercent: dfmData.changePercent,
+                  rsi: null, sma20: null, sma50: null, ema12: null, ema26: null, volumeRatio: null,
+                });
+                continue;
+              }
+            }
             results.push({
               symbol: stock.symbol, exchange: stock.exchange, name: stock.name,
               sector: stock.sector, yahooSymbol: stock.yahooSymbol,
@@ -353,7 +500,7 @@ export const appRouter = router({
         const tvStocks = await fetchTVStocksByTickers([tvKey]);
         if (tvStocks.length > 0) {
           const tvData = tvStocks[0];
-          return {
+          let result: any = {
             ...stock,
             price: tvData.close ?? null,
             previousClose: tvData.close != null && tvData.changeAbs != null ? tvData.close - tvData.changeAbs : null,
@@ -382,6 +529,16 @@ export const appRouter = router({
             macdSignal: tvData.macdSignal ?? null,
             recommendAll: tvData.recommendAll ?? null,
           };
+          
+          // Apply DFM live overlay for DFM stocks (real-time prices)
+          if (stock.exchange === 'DFM') {
+            try {
+              const dfmData = await fetchDFMStock(stock.symbol);
+              if (dfmData) result = applyDFMLiveOverlay(result, dfmData);
+            } catch (e) { /* use TV data */ }
+          }
+          
+          return result;
         }
         
         // FALLBACK: TwelveData quote
@@ -733,6 +890,9 @@ export const appRouter = router({
           });
         }
         
+        // Apply DFM live overlay for fresh prices
+        stocks = await applyDFMOverlayToResults(stocks);
+        
         // Filter stocks with price data and valid change %
         const withData = stocks.filter((s: any) => s.price != null && s.changePercent != null);
         
@@ -773,6 +933,9 @@ export const appRouter = router({
             return { symbol: stock.symbol, exchange: stock.exchange, name: stock.name, sector: stock.sector, price: null, changePercent: null, volume: null };
           });
         }
+        
+        // Apply DFM live overlay for fresh prices
+        stocks = await applyDFMOverlayToResults(stocks);
         
         // Build CSV
         const headers = ['Symbol', 'Name', 'Exchange', 'Sector', 'Price (AED)', 'Change %', 'Volume', 'Market Cap', 'P/E', 'EPS', '52W High', '52W Low', 'RSI', 'SMA20', 'SMA50'];

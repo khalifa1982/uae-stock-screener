@@ -1217,4 +1217,16 @@
 - [x] MBP table shows source column for each level
 - [x] All 14 order book tests passing
 - [x] Updated version to v10.8.8
-- [ ] Deploy v10.8.8 to production
+- [x] Deploy v10.8.8 to production — confirmed live on uae.market
+
+## Phase 52 - Fix Live Price Accuracy Issue
+- [x] Investigated: TradingView Scanner returns EOD data, not intraday live prices
+- [x] DFM API returns real-time intraday data (confirmed EMAAR 12.10 vs TV 11.40)
+- [x] Created applyDFMLiveOverlay() — merges DFM live prices with TV fundamentals/technicals
+- [x] Created applyDFMOverlayToResults() — batch overlay for stock lists
+- [x] Applied DFM overlay to: fetchAll, fetchOne, detail, topMovers, exportCSV, backgroundRefresh
+- [x] DFM stocks: real-time prices from DFM API overlaid on TV fundamentals
+- [x] ADX stocks: TV data only (no free public API for ADX intraday)
+- [x] 6 DFM overlay tests passing
+- [x] Updated version to v10.8.9
+- [ ] Deploy v10.8.9 to production
