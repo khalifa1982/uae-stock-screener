@@ -1229,4 +1229,21 @@
 - [x] ADX stocks: TV data only (no free public API for ADX intraday)
 - [x] 6 DFM overlay tests passing
 - [x] Updated version to v10.8.9
-- [ ] Deploy v10.8.9 to production
+- [x] Deploy v10.8.9 to production — confirmed live, EMAAR now shows 12.15 matching DFM API 12.15
+
+## Phase 52b - Fix Last Price Accuracy Issue
+- [x] Investigated: live site was still on v10.8.8, DFM overlay was in v10.8.9
+- [x] Deployed v10.8.9 to Northflank — prices now match DFM API
+- [x] Confirmed EMAAR 12.15 on both DFM API and uae.market
+
+## Phase 53 - Ticker Bar Improvements (v10.9.0)
+- [x] Created formatStockPrice() — smart decimals: 3 when 3rd digit non-zero, else 2
+- [x] Applied smart formatting to ticker bar TickerItem component
+- [x] Updated Home.tsx fmt() to use smart decimal formatting
+- [x] Updated StockDetail.tsx formatNumber() to use smart decimal formatting
+- [x] Added stocks.dfmTicker endpoint — lightweight DFM polling every 5s
+- [x] Ticker bar now uses DFM polling > WebSocket > snapshot priority for prices
+- [x] Flash animations trigger on both DFM polling AND WebSocket price changes
+- [x] 15 ticker tests passing (formatStockPrice + DFM ticker endpoint)
+- [x] Updated version to v10.9.0
+- [ ] Deploy v10.9.0 to production

@@ -477,6 +477,27 @@ export const appRouter = router({
         return results;
       }),
 
+    // Fast DFM ticker endpoint — lightweight, returns only price + change for all DFM stocks
+    // Used by the ticker bar for real-time updates every 5 seconds
+    dfmTicker: publicProcedure.query(async () => {
+      try {
+        const dfmStocks = await fetchAllDFMStocks();
+        const result: Record<string, { price: number; changePercent: number; previousClose: number }> = {};
+        for (const d of dfmStocks) {
+          if (d.lastTradePrice > 0) {
+            result[d.id] = {
+              price: d.lastTradePrice,
+              changePercent: d.changePercent,
+              previousClose: d.previousClose,
+            };
+          }
+        }
+        return result;
+      } catch (e) {
+        return {} as Record<string, { price: number; changePercent: number; previousClose: number }>;
+      }
+    }),
+
     chart: publicProcedure
       .input(z.object({
         symbol: z.string(),

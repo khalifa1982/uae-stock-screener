@@ -22,8 +22,14 @@ import { toast } from "sonner";
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name";
 type SortDir = "asc" | "desc";
 
-function fmt(num: number | null | undefined, d = 3): string {
+function fmt(num: number | null | undefined, d?: number): string {
   if (num == null || isNaN(num)) return "—";
+  // Smart decimals: if 3rd decimal is non-zero, show 3; otherwise show 2
+  if (d === undefined) {
+    const rounded = Math.round(num * 1000) / 1000;
+    const third = Math.round((rounded * 1000) % 10);
+    d = third !== 0 ? 3 : 2;
+  }
   return num.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 

@@ -40,8 +40,14 @@ import {
 import { ALL_STOCKS } from "../../../shared/stockData";
 
 // ─── Formatters ────────────────────────────────────────────────────
-function formatNumber(num: number | null | undefined, decimals = 3): string {
+function formatNumber(num: number | null | undefined, decimals?: number): string {
   if (num == null || isNaN(num)) return "—";
+  // Smart decimals: if 3rd decimal is non-zero, show 3; otherwise show 2
+  if (decimals === undefined) {
+    const rounded = Math.round(num * 1000) / 1000;
+    const third = Math.round((rounded * 1000) % 10);
+    decimals = third !== 0 ? 3 : 2;
+  }
   return num.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 

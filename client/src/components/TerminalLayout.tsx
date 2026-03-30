@@ -70,6 +70,21 @@ const mobileNavItems = [
    SCROLLING TICKER BAR — Live WebSocket Prices
    ═══════════════════════════════════════════════════════════════════ */
 
+/**
+ * Smart price formatter: preserves the actual decimal precision of each stock.
+ * - Prices < 1 with 3+ meaningful decimals → show 3 decimals (e.g., 0.222)
+ * - Prices with 3rd decimal != 0 → show 3 decimals (e.g., 1.125)
+ * - Otherwise → show 2 decimals (e.g., 12.15)
+ */
+function formatStockPrice(price: number): string {
+  // Round to 3 decimals first to avoid floating point noise
+  const rounded = Math.round(price * 1000) / 1000;
+  const third = Math.round((rounded * 1000) % 10);
+  // If the 3rd decimal is non-zero, show 3 decimals
+  if (third !== 0) return rounded.toFixed(3);
+  return rounded.toFixed(2);
+}
+
 /** Single ticker item that flashes on price change */
 function TickerItem({ symbol, price, changePercent, flashDir }: {
   symbol: string;
@@ -83,7 +98,7 @@ function TickerItem({ symbol, price, changePercent, flashDir }: {
     <span className="ticker-item">
       <span className="ticker-symbol">{symbol}</span>
       <span className={`ticker-price font-mono ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}>
-        {price.toFixed(2)}
+        {formatStockPrice(price)}
       </span>
       <span
         className={`ticker-change font-mono ${
@@ -92,7 +107,7 @@ function TickerItem({ symbol, price, changePercent, flashDir }: {
       >
         {isUp ? "▲" : isDown ? "▼" : ""}
         {isUp ? "+" : ""}
-        {changePercent.toFixed(2)}%
+        {changePercent.toFixed(changePercent !== 0 && Math.abs(changePercent) < 0.1 ? 3 : 2)}%
       </span>
       <span className="ticker-divider">│</span>
     </span>
@@ -103,48 +118,58 @@ function TickerBar() {
   // 1. Load initial snapshot data (baseline prices + change %)
   const { data: snapshots } = trpc.stocks.fetchAll.useQuery(undefined, {
     staleTime: 5_000,
-    refetchInterval: 10_000,
+    refetchInterval: 15_000,
   });
 
-  // 2. Subscribe to WebSocket for ALL stocks
+  // 2. Fast DFM polling for real-time price updates (every 5s)
+  const { data: dfmLive } = trpc.stocks.dfmTicker.useQuery(undefined, {
+    staleTime: 3_000,
+    refetchInterval: 5_000,
+  });
+
+  // 3. Subscribe to WebSocket for ALL stocks (TwelveData)
   const allSymbols = useMemo(() => ALL_STOCKS.map(s => s.symbol), []);
   const allExchanges = useMemo(() => ALL_STOCKS.map(s => s.exchange), []);
   const { prices: wsPrices } = useRealtimePrices(allSymbols, allExchanges);
 
-  // 3. Track flash state per symbol
+  // 4. Track flash state per symbol
   const [flashes, setFlashes] = useState<Record<string, "up" | "down">>({});
   const prevPricesRef = useRef<Record<string, number>>({});
   const flashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Detect price changes from WS and trigger flash
-  useEffect(() => {
+  // Detect price changes from BOTH WebSocket AND DFM polling
+  const triggerFlash = useCallback((sym: string, newPrice: number) => {
     const prev = prevPricesRef.current;
-    const newFlashes: Record<string, "up" | "down"> = {};
-    let hasNew = false;
+    if (prev[sym] !== undefined && newPrice !== prev[sym]) {
+      const dir = newPrice > prev[sym] ? "up" as const : "down" as const;
+      setFlashes(f => ({ ...f, [sym]: dir }));
+      // Clear flash after 800ms
+      if (flashTimersRef.current[sym]) clearTimeout(flashTimersRef.current[sym]);
+      flashTimersRef.current[sym] = setTimeout(() => {
+        setFlashes(f => {
+          const copy = { ...f };
+          delete copy[sym];
+          return copy;
+        });
+      }, 800);
+    }
+    prev[sym] = newPrice;
+  }, []);
 
+  // Flash on WebSocket price changes
+  useEffect(() => {
     for (const [sym, data] of Object.entries(wsPrices)) {
-      if (prev[sym] !== undefined && data.price !== prev[sym]) {
-        const dir = data.price > prev[sym] ? "up" : "down";
-        newFlashes[sym] = dir;
-        hasNew = true;
-
-        // Clear flash after 800ms
-        if (flashTimersRef.current[sym]) clearTimeout(flashTimersRef.current[sym]);
-        flashTimersRef.current[sym] = setTimeout(() => {
-          setFlashes(f => {
-            const copy = { ...f };
-            delete copy[sym];
-            return copy;
-          });
-        }, 800);
-      }
-      prev[sym] = data.price;
+      triggerFlash(sym, data.price);
     }
+  }, [wsPrices, triggerFlash]);
 
-    if (hasNew) {
-      setFlashes(f => ({ ...f, ...newFlashes }));
+  // Flash on DFM polling price changes
+  useEffect(() => {
+    if (!dfmLive) return;
+    for (const [sym, data] of Object.entries(dfmLive)) {
+      triggerFlash(sym, data.price);
     }
-  }, [wsPrices]);
+  }, [dfmLive, triggerFlash]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -155,7 +180,7 @@ function TickerBar() {
 
   const [isPaused, setIsPaused] = useState(false);
 
-  // 4. Build merged ticker list: snapshot data overlaid with WS live prices
+  // 5. Build merged ticker list: snapshot data overlaid with live prices
   const tickerStocks = useMemo(() => {
     if (!snapshots || snapshots.length === 0) return [];
     const withPrice = snapshots.filter((s: any) => s.price && s.price > 0);
@@ -166,17 +191,23 @@ function TickerBar() {
     return sorted;
   }, [snapshots]);
 
-  // Merge WS prices on top of snapshot data
+  // Merge live prices: DFM polling > WebSocket > snapshot
   const getLivePrice = useCallback((stock: any) => {
+    // Priority 1: DFM fast polling (most reliable for DFM stocks)
+    const dfm = dfmLive?.[stock.symbol];
+    if (dfm && dfm.price > 0) {
+      return { price: dfm.price, changePercent: dfm.changePercent };
+    }
+    // Priority 2: WebSocket (TwelveData)
     const ws = wsPrices[stock.symbol];
     if (ws && ws.price > 0) {
-      // Recalculate change % from WS price vs previous close
       const prevClose = stock.previousClose || (stock.price - (stock.price * (stock.changePercent || 0) / 100));
       const liveChangePercent = prevClose > 0 ? ((ws.price - prevClose) / prevClose) * 100 : (stock.changePercent || 0);
       return { price: ws.price, changePercent: liveChangePercent };
     }
+    // Priority 3: Snapshot data
     return { price: stock.price, changePercent: stock.changePercent || 0 };
-  }, [wsPrices]);
+  }, [wsPrices, dfmLive]);
 
   if (tickerStocks.length === 0) return null;
 
