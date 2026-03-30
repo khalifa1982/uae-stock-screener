@@ -1247,3 +1247,16 @@
 - [x] 15 ticker tests passing (formatStockPrice + DFM ticker endpoint)
 - [x] Updated version to v10.9.0
 - [ ] Deploy v10.9.0 to production
+
+## Phase 54 - Fix Order Book: Remove Fake S/R Levels, Add Volume/Value (v10.9.1)
+- [x] Removed ALL derived S/R levels from buildOrderBook backend
+- [x] DFM stocks: only real Level 1 bid/ask from DFM API (max 1 each)
+- [x] ADX stocks: empty bids/asks (no public API)
+- [x] Summary tab now shows Volume, Value, Trades, VWAP, Open, High, Low, Day Range, 52W High/Low, Prev Close
+- [x] Price Spectrum shows only real L1 bars with BID/ASK labels
+- [x] MBP table shows only real L1 row (no S/R rows)
+- [x] Removed all S/R badges and legends
+- [x] Fix applies to ALL symbols (DFM and ADX)
+- [x] 13 order book tests passing
+- [x] Updated version to v10.9.1
+- [ ] Deploy v10.9.1 to production

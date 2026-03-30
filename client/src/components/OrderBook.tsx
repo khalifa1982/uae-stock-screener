@@ -2,15 +2,13 @@
  * Exchange-Style Order Book Component
  * 
  * 4 tabs matching professional trading platforms:
- * 1. Summary - Key metrics, best bid/ask, volume, day stats
- * 2. Price Spectrum - Visual bid/ask depth chart with bars
- * 3. MBP (Market by Price) - Full order book table
+ * 1. Summary - Key metrics: best bid/ask, volume, value, trades, day stats
+ * 2. Price Spectrum - Visual bid/ask depth chart (real L1 only)
+ * 3. MBP (Market by Price) - Order book table (real L1 only)
  * 4. Time & Sales - Recent trade history (estimated from day data)
  * 
- * Data Sources:
- * - DFM API: Real Level 1 (best bid/ask) — marked as "LIVE"
- * - TradingView: Derived levels from pivots, BB, S/R — marked as "Derived"
- * - ADX: Derived levels only (no public API)
+ * Data Source: DFM API real-time Level 1 (best bid/ask) only.
+ * No synthetic, derived, or estimated order book levels.
  */
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen, ArrowUp, ArrowDown, Activity,
   Wifi, WifiOff, TrendingUp, TrendingDown, BarChart3,
-  Clock, Layers, LayoutGrid, Zap, Info, AlertTriangle,
+  Clock, Layers, LayoutGrid, Zap, AlertTriangle,
 } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -27,7 +25,10 @@ import { trpc } from "@/lib/trpc";
 // ─── Formatters ────────────────────────────────────────────────────
 
 function fmtPrice(p: number): string {
-  return p.toFixed(3);
+  const rounded = Math.round(p * 1000) / 1000;
+  const third = Math.round((rounded * 1000) % 10);
+  if (third !== 0) return rounded.toFixed(3);
+  return rounded.toFixed(2);
 }
 
 function fmtVol(v: number): string {
@@ -84,24 +85,6 @@ function useFlash(value: number | undefined) {
   return flash;
 }
 
-// ─── Source Badge ──────────────────────────────────────────────────
-
-function SourceBadge({ source }: { source: string }) {
-  if (source === "live") {
-    return (
-      <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-1 py-0.5 rounded bg-gain/15 text-gain border border-gain/20">
-        <span className="w-1 h-1 rounded-full bg-gain animate-pulse" />
-        LIVE
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center text-[8px] font-medium px-1 py-0.5 rounded bg-primary/10 text-primary/70 border border-primary/15">
-      S/R
-    </span>
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // MAIN ORDER BOOK COMPONENT
 // ═══════════════════════════════════════════════════════════════════
@@ -120,14 +103,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
   const hasAsks = (orderBook?.asks?.length ?? 0) > 0;
   const hasAnyDepth = hasBids || hasAsks;
 
-  const liveBids = orderBook?.bids?.filter((b: any) => b.source === 'live') ?? [];
-  const liveAsks = orderBook?.asks?.filter((a: any) => a.source === 'live') ?? [];
-  const hasLiveData = liveBids.length > 0 || liveAsks.length > 0;
-
   const totalBidVol = orderBook?.bids?.reduce((s: number, b: any) => s + b.quantity, 0) ?? 0;
   const totalAskVol = orderBook?.asks?.reduce((s: number, a: any) => s + a.quantity, 0) ?? 0;
-  const liveBidVol = liveBids.reduce((s: number, b: any) => s + b.quantity, 0);
-  const liveAskVol = liveAsks.reduce((s: number, a: any) => s + a.quantity, 0);
   const buyPressure = totalBidVol + totalAskVol > 0 ? (totalBidVol / (totalBidVol + totalAskVol)) * 100 : 50;
 
   // Generate estimated time & sales from day data
@@ -155,8 +132,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
     const priceRange = dayH - dayL;
     const tickSize = lastP >= 10 ? 0.05 : lastP >= 1 ? 0.01 : 0.001;
 
-    let currentPrice = dayOpen;
-    const priceStep = (lastP - dayOpen) / Math.max(numTrades, 1);
+    let currentPrice = dayOpen as number;
+    const priceStep = (lastP - (dayOpen as number)) / Math.max(numTrades, 1);
 
     for (let i = 0; i < numTrades; i++) {
       const progress = i / numTrades;
@@ -177,7 +154,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
       const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
       currentPrice += priceStep + (rand() - 0.5) * priceRange * 0.02;
-      currentPrice = Math.max(dayL, Math.min(dayH, currentPrice));
+      currentPrice = Math.max(dayL as number, Math.min(dayH as number, currentPrice));
       const tradePrice = Math.round(currentPrice / tickSize) * tickSize;
 
       const volMultiplier = (progress < 0.15 || progress > 0.85) ? 2.5 : 1;
@@ -250,14 +227,9 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
           <Badge variant={orderBook.dataSource === "live" ? "default" : "secondary"} className="text-[9px]">
             {orderBook.dataSource === "live" ? <><Wifi className="h-2.5 w-2.5 mr-0.5" /> LIVE</> : <><WifiOff className="h-2.5 w-2.5 mr-0.5" /> Delayed</>}
           </Badge>
-          {hasLiveData && (
+          {orderBook.depthLevel === 'level1' && (
             <Badge variant="outline" className="text-[9px] border-gain/30 text-gain/70">
-              L1 + S/R
-            </Badge>
-          )}
-          {!hasLiveData && hasAnyDepth && (
-            <Badge variant="outline" className="text-[9px] border-primary/30 text-primary/70">
-              S/R Levels
+              Level 1
             </Badge>
           )}
         </div>
@@ -303,12 +275,11 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   </div>
                 </div>
                 <div className="text-right text-xs font-mono space-y-0.5">
-                  <div><span className="text-muted-foreground">Trades: </span><span className="font-medium">{orderBook.totalTrades.toLocaleString()}</span></div>
                   <div><span className="text-muted-foreground">Last: </span><span className="font-medium">{fmtTime(orderBook.lastTradeTime)}</span></div>
                 </div>
               </div>
 
-              {/* Key Stats Grid */}
+              {/* Row 1: Best Bid / Best Offer / Spread / VWAP */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="stat-cell">
                   <span className="stat-label">Best Bid</span>
@@ -331,21 +302,41 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   </span>
                 </div>
                 <div className="stat-cell">
-                  <span className="stat-label">Volume</span>
-                  <span className="stat-value">{fmtVol(orderBook.totalVolume)}</span>
+                  <span className="stat-label">Spread</span>
+                  <span className="stat-value">
+                    {orderBook.bidPrice > 0 && orderBook.askPrice > 0 ? (
+                      <>{fmtPrice(orderBook.spread)} <span className="text-[10px] opacity-70">({orderBook.spreadPercent.toFixed(2)}%)</span></>
+                    ) : "—"}
+                  </span>
                 </div>
                 <div className="stat-cell">
-                  <span className="stat-label">Turnover</span>
-                  <span className="stat-value">{orderBook.totalValue > 0 ? fmtValue(orderBook.totalValue) : "—"}</span>
+                  <span className="stat-label">VWAP</span>
+                  <span className="stat-value">{fmtPrice(orderBook.vwap)}</span>
                 </div>
               </div>
 
-              {/* Second Row */}
+              {/* Row 2: Volume / Value / Trades / Prev Close */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="stat-cell">
+                  <span className="stat-label">Volume</span>
+                  <span className="stat-value">{orderBook.totalVolume > 0 ? fmtVol(orderBook.totalVolume) : "—"}</span>
+                </div>
+                <div className="stat-cell">
+                  <span className="stat-label">Value</span>
+                  <span className="stat-value">{orderBook.totalValue > 0 ? fmtValue(orderBook.totalValue) : "—"}</span>
+                </div>
+                <div className="stat-cell">
+                  <span className="stat-label">Trades</span>
+                  <span className="stat-value">{orderBook.totalTrades > 0 ? orderBook.totalTrades.toLocaleString() : "—"}</span>
+                </div>
                 <div className="stat-cell">
                   <span className="stat-label">Prev Close</span>
                   <span className="stat-value">{fmtPrice(orderBook.previousClose)}</span>
                 </div>
+              </div>
+
+              {/* Row 3: Open / High / Low / Range */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="stat-cell">
                   <span className="stat-label">Open</span>
                   <span className="stat-value">{open ? fmtPrice(open) : "—"}</span>
@@ -358,22 +349,14 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   <span className="stat-label">Low</span>
                   <span className="stat-value">{fmtPrice(orderBook.dayLow)}</span>
                 </div>
+                <div className="stat-cell">
+                  <span className="stat-label">Day Range</span>
+                  <span className="stat-value text-[10px]">{fmtPrice(orderBook.dayLow)} — {fmtPrice(orderBook.dayHigh)}</span>
+                </div>
               </div>
 
-              {/* Third Row */}
+              {/* Row 4: 52W High / 52W Low / Limit Down / Limit Up */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="stat-cell">
-                  <span className="stat-label">VWAP</span>
-                  <span className="stat-value">{fmtPrice(orderBook.vwap)}</span>
-                </div>
-                <div className="stat-cell">
-                  <span className="stat-label">Spread</span>
-                  <span className="stat-value">
-                    {orderBook.bidPrice > 0 && orderBook.askPrice > 0 ? (
-                      <>{fmtPrice(orderBook.spread)} <span className="text-[10px] opacity-70">({orderBook.spreadPercent.toFixed(2)}%)</span></>
-                    ) : "—"}
-                  </span>
-                </div>
                 <div className="stat-cell">
                   <span className="stat-label">52W High</span>
                   <span className="stat-value">{orderBook.high52Week > 0 ? fmtPrice(orderBook.high52Week) : "—"}</span>
@@ -381,6 +364,14 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                 <div className="stat-cell">
                   <span className="stat-label">52W Low</span>
                   <span className="stat-value">{orderBook.low52Week > 0 ? fmtPrice(orderBook.low52Week) : "—"}</span>
+                </div>
+                <div className="stat-cell">
+                  <span className="stat-label">Limit Down</span>
+                  <span className="stat-value text-loss">{fmtPrice(orderBook.limitDown)}</span>
+                </div>
+                <div className="stat-cell">
+                  <span className="stat-label">Limit Up</span>
+                  <span className="stat-value text-gain">{fmtPrice(orderBook.limitUp)}</span>
                 </div>
               </div>
 
@@ -400,7 +391,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <div className="h-full bg-loss/70 transition-all duration-500" style={{ width: `${100 - buyPressure}%` }} />
                   </div>
                   <p className="text-[9px] text-muted-foreground/50 text-center">
-                    {hasLiveData ? "Based on live L1 + derived support/resistance levels" : "Based on derived support/resistance levels"}
+                    Based on DFM Level 1 bid/ask volume
                   </p>
                 </div>
               ) : (
@@ -423,42 +414,39 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
               <div className="text-xs font-semibold mb-3 flex items-center gap-1.5">
                 <BarChart3 className="h-3.5 w-3.5 text-primary" />
                 {symbol} Price Spectrum
-                <div className="ml-auto flex items-center gap-1">
-                  {hasLiveData && (
-                    <Badge variant="outline" className="text-[8px] border-gain/30 text-gain/70">
-                      L1 Live
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="text-[8px] border-primary/30 text-primary/60">
-                    S/R Levels
+                {orderBook.dataSource === "live" && (
+                  <Badge variant="outline" className="text-[8px] ml-auto border-gain/30 text-gain/70">
+                    DFM Live
                   </Badge>
-                </div>
+                )}
               </div>
 
               {hasAnyDepth ? (
                 <div className="space-y-0">
-                  {/* Ask levels (top, red) — sorted ascending (furthest from price first) */}
+                  {/* Ask levels (top, red) */}
                   {[...(orderBook.asks ?? [])].reverse().map((level: any, i: number) => {
                     const maxVol = Math.max(
                       ...(orderBook.bids?.map((b: any) => b.quantity) ?? [0]),
                       ...(orderBook.asks?.map((a: any) => a.quantity) ?? [0]),
                       1
                     );
-                    const isLive = level.source === 'live';
                     return (
                       <div key={`ask-${i}`} className="grid grid-cols-[1fr_80px_1fr] items-center h-9 group hover:bg-loss/5 transition-colors">
                         <div className="flex justify-end pr-1">
-                          <SourceBadge source={level.source} />
+                          <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-1 py-0.5 rounded bg-loss/15 text-loss border border-loss/20">
+                            <span className="w-1 h-1 rounded-full bg-loss animate-pulse" />
+                            ASK
+                          </span>
                         </div>
-                        <div className={`text-center text-xs font-mono font-medium text-loss ${isLive ? "font-bold" : "opacity-80"}`}>
+                        <div className="text-center text-xs font-mono font-bold text-loss">
                           {fmtPrice(level.price)}
                         </div>
                         <div className="flex items-center h-full">
                           <div
-                            className={`h-6 transition-all duration-300 flex items-center px-2 rounded-r ${isLive ? "bg-loss/40 border-r-2 border-loss" : "bg-loss/15 border-r border-loss/40 border-dashed"}`}
+                            className="h-6 transition-all duration-300 flex items-center px-2 rounded-r bg-loss/40 border-r-2 border-loss"
                             style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '60px' }}
                           >
-                            <span className={`text-[10px] font-mono whitespace-nowrap ${isLive ? "text-loss font-semibold" : "text-loss/70"}`}>
+                            <span className="text-[10px] font-mono whitespace-nowrap text-loss font-semibold">
                               {fmtVol(level.quantity)}
                             </span>
                           </div>
@@ -481,24 +469,26 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                       ...(orderBook.asks?.map((a: any) => a.quantity) ?? [0]),
                       1
                     );
-                    const isLive = level.source === 'live';
                     return (
                       <div key={`bid-${i}`} className="grid grid-cols-[1fr_80px_1fr] items-center h-9 group hover:bg-gain/5 transition-colors">
                         <div className="flex items-center justify-end h-full">
                           <div
-                            className={`h-6 transition-all duration-300 flex items-center justify-end px-2 rounded-l ${isLive ? "bg-gain/40 border-l-2 border-gain" : "bg-gain/15 border-l border-gain/40 border-dashed"}`}
+                            className="h-6 transition-all duration-300 flex items-center justify-end px-2 rounded-l bg-gain/40 border-l-2 border-gain"
                             style={{ width: `${Math.min((level.quantity / maxVol) * 100, 100)}%`, minWidth: '60px' }}
                           >
-                            <span className={`text-[10px] font-mono whitespace-nowrap ${isLive ? "text-gain font-semibold" : "text-gain/70"}`}>
+                            <span className="text-[10px] font-mono whitespace-nowrap text-gain font-semibold">
                               {fmtVol(level.quantity)}
                             </span>
                           </div>
                         </div>
-                        <div className={`text-center text-xs font-mono font-medium text-gain ${isLive ? "font-bold" : "opacity-80"}`}>
+                        <div className="text-center text-xs font-mono font-bold text-gain">
                           {fmtPrice(level.price)}
                         </div>
                         <div className="flex pl-1">
-                          <SourceBadge source={level.source} />
+                          <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-1 py-0.5 rounded bg-gain/15 text-gain border border-gain/20">
+                            <span className="w-1 h-1 rounded-full bg-gain animate-pulse" />
+                            BID
+                          </span>
                         </div>
                       </div>
                     );
@@ -510,20 +500,17 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   <p className="text-xs text-muted-foreground font-medium mb-1">No Depth Data Available</p>
                   <p className="text-[10px] text-muted-foreground/60 max-w-[280px] leading-relaxed">
                     {exchange === "DFM"
-                      ? "No bid or ask orders currently in the market for this stock."
+                      ? "No active bid or ask orders currently in the market for this stock."
                       : "ADX does not provide a public order book API."}
                   </p>
                 </div>
               )}
 
-              {/* Legend + Limit bounds */}
+              {/* Limit bounds */}
               <div className="mt-3 pt-2 border-t border-border/20 space-y-1.5">
                 <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground/60">
                   <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> LIVE = DFM real-time
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50" /> S/R = Support/Resistance derived
+                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> Real-time DFM exchange data
                   </span>
                 </div>
                 <div className="flex justify-between text-[10px] text-muted-foreground/60">
@@ -542,16 +529,11 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
               <div className="text-xs font-semibold mb-3 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-primary" />
                 MBP — {symbol}
-                <div className="ml-auto flex items-center gap-1">
-                  {hasLiveData && (
-                    <Badge variant="outline" className="text-[8px] border-gain/30 text-gain/70">
-                      L1 Live
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="text-[8px] border-primary/30 text-primary/60">
-                    S/R Levels
+                {orderBook.dataSource === "live" && (
+                  <Badge variant="outline" className="text-[8px] ml-auto border-gain/30 text-gain/70">
+                    DFM Live
                   </Badge>
-                </div>
+                )}
               </div>
 
               {hasAnyDepth ? (
@@ -561,34 +543,28 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <table className="w-full text-[11px] font-mono">
                       <thead>
                         <tr className="border-b border-border/30">
-                          <th className="text-center py-1.5 px-1 text-muted-foreground font-medium w-8">Src</th>
-                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Ord</th>
-                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Size</th>
+                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Orders</th>
+                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Bid Vol</th>
                           <th className="text-right py-1.5 px-2 text-gain font-semibold">Bid</th>
                           <th className="w-px bg-border/30" />
                           <th className="text-left py-1.5 px-2 text-loss font-semibold">Offer</th>
-                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Size</th>
-                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Ord</th>
-                          <th className="text-center py-1.5 px-1 text-muted-foreground font-medium w-8">Src</th>
+                          <th className="text-left py-1.5 px-2 text-muted-foreground font-medium">Offer Vol</th>
+                          <th className="text-right py-1.5 px-2 text-muted-foreground font-medium">Orders</th>
                         </tr>
                       </thead>
                       <tbody>
                         {Array.from({ length: Math.max(orderBook.bids?.length ?? 0, orderBook.asks?.length ?? 0, 1) }).map((_, i) => {
                           const bid = orderBook.bids?.[i];
                           const ask = orderBook.asks?.[i];
-                          const bidIsLive = bid?.source === 'live';
-                          const askIsLive = ask?.source === 'live';
                           return (
-                            <tr key={i} className={`border-b border-border/10 hover:bg-secondary/20 transition-colors ${bidIsLive || askIsLive ? "bg-secondary/10" : ""}`}>
-                              <td className="py-1.5 px-1 text-center">{bid ? <SourceBadge source={bid.source} /> : ""}</td>
+                            <tr key={i} className="border-b border-border/10 hover:bg-secondary/20 transition-colors bg-secondary/10">
                               <td className="py-1.5 px-2 text-muted-foreground">{bid ? `~${bid.orders}` : ""}</td>
-                              <td className={`py-1.5 px-2 text-right font-medium ${bidIsLive ? "text-gain font-bold" : "text-gain/70"}`}>{bid ? fmtVol(bid.quantity) : ""}</td>
-                              <td className={`py-1.5 px-2 text-right font-semibold text-sm ${bidIsLive ? "text-gain" : "text-gain/70"}`}>{bid ? fmtPrice(bid.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
+                              <td className="py-1.5 px-2 text-right font-medium text-gain font-bold">{bid ? fmtVol(bid.quantity) : ""}</td>
+                              <td className="py-1.5 px-2 text-right font-semibold text-sm text-gain">{bid ? fmtPrice(bid.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
                               <td className="w-px bg-border/30" />
-                              <td className={`py-1.5 px-2 font-semibold text-sm ${askIsLive ? "text-loss" : "text-loss/70"}`}>{ask ? fmtPrice(ask.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
-                              <td className={`py-1.5 px-2 font-medium ${askIsLive ? "text-loss font-bold" : "text-loss/70"}`}>{ask ? fmtVol(ask.quantity) : ""}</td>
+                              <td className="py-1.5 px-2 font-semibold text-sm text-loss">{ask ? fmtPrice(ask.price) : <span className="text-muted-foreground/40 text-[10px]">—</span>}</td>
+                              <td className="py-1.5 px-2 font-medium text-loss font-bold">{ask ? fmtVol(ask.quantity) : ""}</td>
                               <td className="py-1.5 px-2 text-right text-muted-foreground">{ask ? `~${ask.orders}` : ""}</td>
-                              <td className="py-1.5 px-1 text-center">{ask ? <SourceBadge source={ask.source} /> : ""}</td>
                             </tr>
                           );
                         })}
@@ -601,16 +577,10 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                     <div>
                       <span className="text-muted-foreground">Total Bids </span>
                       <span className="text-gain font-bold">{hasBids ? fmtVol(totalBidVol) : "0"}</span>
-                      {liveBidVol > 0 && liveBidVol !== totalBidVol && (
-                        <span className="text-[9px] text-gain/50 ml-1">(Live: {fmtVol(liveBidVol)})</span>
-                      )}
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Offers </span>
                       <span className="text-loss font-bold">{hasAsks ? fmtVol(totalAskVol) : "0"}</span>
-                      {liveAskVol > 0 && liveAskVol !== totalAskVol && (
-                        <span className="text-[9px] text-loss/50 ml-1">(Live: {fmtVol(liveAskVol)})</span>
-                      )}
                     </div>
                   </div>
                 </>
@@ -620,7 +590,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                   <p className="text-xs text-muted-foreground font-medium mb-1">No Depth Data Available</p>
                   <p className="text-[10px] text-muted-foreground/60 max-w-[280px] leading-relaxed">
                     {exchange === "DFM"
-                      ? "No bid or ask orders currently in the market. The DFM public API provides Level 1 data only."
+                      ? "No active bid or ask orders currently in the market. DFM public API provides Level 1 data only."
                       : "ADX does not provide a public order book API."}
                   </p>
                 </div>
@@ -630,10 +600,7 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
               <div className="mt-3 pt-2 border-t border-border/20">
                 <div className="flex items-center justify-center gap-3 text-[9px] text-muted-foreground/50">
                   <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> LIVE = DFM exchange data
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/50" /> S/R = Pivot & BB derived levels
+                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" /> DFM exchange data — Level 1 only
                   </span>
                 </div>
               </div>
@@ -693,8 +660,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
                         <td colSpan={5} className="py-6 text-center text-muted-foreground">No trades today</td>
                       </tr>
                     ) : (
-                      timeSales.map((trade, i) => (
-                        <tr key={i} className={`border-b border-border/10 hover:bg-secondary/20 transition-colors ${trade.direction === "up" ? "bg-gain/3" : trade.direction === "down" ? "bg-loss/3" : ""}`}>
+                      timeSales.slice(0, 200).map((trade, i) => (
+                        <tr key={i} className={`border-b border-border/10 hover:bg-secondary/10 transition-colors ${i % 2 === 0 ? "" : "bg-secondary/5"}`}>
                           <td className="py-1 px-2 text-muted-foreground">{trade.time}</td>
                           <td className="py-1 px-2 text-right font-medium">{trade.quantity.toLocaleString()}</td>
                           <td className={`py-1 px-2 text-right font-medium ${trade.direction === "up" ? "text-gain" : trade.direction === "down" ? "text-loss" : ""}`}>{fmtPrice(trade.price)}</td>
@@ -722,8 +689,8 @@ export function OrderBook({ symbol, exchange, price, change, volume, high, low, 
       {/* Data source note */}
       <p className="text-[10px] text-muted-foreground/60 text-center italic">
         {orderBook.dataSource === "live"
-          ? "Live L1 data from DFM. Support/resistance levels derived from TradingView pivot points & Bollinger Bands."
-          : "Price data from TradingView. Support/resistance levels derived from pivot points & Bollinger Bands."}
+          ? "Real-time Level 1 data from DFM exchange. Full depth (Level 2) requires a paid market data subscription."
+          : "Price data from TradingView. Order book data not available for this exchange."}
       </p>
     </div>
   );
