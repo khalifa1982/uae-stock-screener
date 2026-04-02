@@ -239,6 +239,51 @@ function TickerBar() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   VISITOR COUNTER
+   ═══════════════════════════════════════════════════════════════════ */
+function VisitorCounter() {
+  const { data: stats } = trpc.visitors.stats.useQuery(undefined, {
+    refetchInterval: 30_000, // refresh every 30s
+    staleTime: 15_000,
+  });
+  const recordMutation = trpc.visitors.record.useMutation();
+  const hasRecorded = useRef(false);
+
+  useEffect(() => {
+    if (!hasRecorded.current) {
+      hasRecorded.current = true;
+      recordMutation.mutate();
+    }
+  }, []);
+
+  if (!stats) return null;
+
+  const fmt = (n: number) => {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
+    return n.toLocaleString();
+  };
+
+  return (
+    <span className="inline-flex items-center gap-2 text-xs">
+      <span className="inline-flex items-center gap-1">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="text-emerald-400">{stats.onlineNow}</span>
+        <span className="text-muted-foreground">online</span>
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-muted-foreground">
+        {fmt(stats.todayVisitors)} today
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-muted-foreground">
+        {fmt(stats.totalVisitors)} total
+      </span>
+    </span>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════════
    TERMINAL LAYOUT
    ═══════════════════════════════════════════════════════════════════ */
 export default function TerminalLayout({
@@ -428,10 +473,12 @@ export default function TerminalLayout({
       {/* ─── Footer ─── */}
       <footer className={`terminal-footer ${isMobile ? "mb-16" : ""}`}>
         <span>UAE Market &mdash; www.uae.market</span>
-        <span className="mx-2">·</span>
+        <span className="mx-2">&middot;</span>
         <span>{APP_VERSION}</span>
-        <span className="mx-2">·</span>
+        <span className="mx-2">&middot;</span>
         <span>ADX & DFM Exchanges</span>
+        <span className="mx-2">&middot;</span>
+        <VisitorCounter />
       </footer>
 
       {/* ─── Mobile Bottom Navigation ─── */}

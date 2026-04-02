@@ -386,3 +386,115 @@ export async function getOwnerNotificationPreferences() {
     return null;
   }
 }
+
+// ============ Visitor Counter Operations ============
+
+import { siteStats, visitorLog } from "../drizzle/schema";
+import crypto from "crypto";
+
+function hashVisitor(ip: string, userAgent: string): string {
+  return crypto.createHash("sha256").update(`${ip}:${userAgent}`).digest("hex").slice(0, 32);
+}
+
+function getUAEDate(): string {
+  const now = new Date();
+  // UAE is UTC+4
+  const uaeTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+  return uaeTime.toISOString().slice(0, 10);
+}
+
+/** Record a visit and return updated stats */
+export async function recordVisit(ip: string, userAgent: string): Promise<{ totalVisitors: number; todayVisitors: number; totalPageViews: number; onlineNow: number }> {
+  const db = await getDb();
+  if (!db) return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
+
+  try {
+    const visitorHash = hashVisitor(ip, userAgent);
+    const today = getUAEDate();
+
+    // Try to insert or update the visitor log for today
+    await db.insert(visitorLog).values({
+      visitorHash,
+      ipAddress: ip,
+      userAgent: userAgent.slice(0, 500),
+      visitDate: today,
+      pageViews: 1,
+    }).onDuplicateKeyUpdate({
+      set: {
+        pageViews: sql`page_views + 1`,
+        lastVisit: new Date(),
+      },
+    });
+
+    // Increment total page views counter
+    await db.insert(siteStats).values({
+      statKey: "total_pageviews",
+      statValue: 1,
+    }).onDuplicateKeyUpdate({
+      set: { statValue: sql`stat_value + 1` },
+    });
+
+    // Check if this is a brand new visitor (first time ever)
+    const existingVisits = await db.select({ count: sql<number>`count(*)` })
+      .from(visitorLog)
+      .where(eq(visitorLog.visitorHash, visitorHash));
+    
+    if ((existingVisits[0]?.count ?? 0) <= 1) {
+      // New unique visitor — increment total visitors
+      await db.insert(siteStats).values({
+        statKey: "total_visitors",
+        statValue: 1,
+      }).onDuplicateKeyUpdate({
+        set: { statValue: sql`stat_value + 1` },
+      });
+    }
+
+    // Get stats
+    return await getVisitorStats();
+  } catch (e) {
+    console.warn("[Database] Failed to record visit:", e);
+    return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
+  }
+}
+
+/** Get current visitor stats without recording */
+export async function getVisitorStats(): Promise<{ totalVisitors: number; todayVisitors: number; totalPageViews: number; onlineNow: number }> {
+  const db = await getDb();
+  if (!db) return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
+
+  try {
+    const today = getUAEDate();
+
+    // Total unique visitors (all time)
+    const totalVisitorsResult = await db.select({ statValue: siteStats.statValue })
+      .from(siteStats)
+      .where(eq(siteStats.statKey, "total_visitors"))
+      .limit(1);
+    const totalVisitors = totalVisitorsResult[0]?.statValue ?? 0;
+
+    // Total page views
+    const totalPVResult = await db.select({ statValue: siteStats.statValue })
+      .from(siteStats)
+      .where(eq(siteStats.statKey, "total_pageviews"))
+      .limit(1);
+    const totalPageViews = totalPVResult[0]?.statValue ?? 0;
+
+    // Today's unique visitors
+    const todayResult = await db.select({ count: sql<number>`count(*)` })
+      .from(visitorLog)
+      .where(eq(visitorLog.visitDate, today));
+    const todayVisitors = todayResult[0]?.count ?? 0;
+
+    // "Online now" — visitors active in the last 5 minutes
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const onlineResult = await db.select({ count: sql<number>`count(*)` })
+      .from(visitorLog)
+      .where(gte(visitorLog.lastVisit, fiveMinAgo));
+    const onlineNow = onlineResult[0]?.count ?? 0;
+
+    return { totalVisitors, todayVisitors, totalPageViews, onlineNow };
+  } catch (e) {
+    console.warn("[Database] Failed to get visitor stats:", e);
+    return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
+  }
+}

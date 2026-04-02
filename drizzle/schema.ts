@@ -273,3 +273,33 @@ export const abboudAlerts = mysqlTable("abboud_alerts", {
 
 export type AbboudAlert = typeof abboudAlerts.$inferSelect;
 export type InsertAbboudAlert = typeof abboudAlerts.$inferInsert;
+
+// Site visitor counter - tracks unique visitors and total page views
+export const siteStats = mysqlTable("site_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  statKey: varchar("statKey", { length: 64 }).notNull().unique(), // e.g. "total_visitors", "total_pageviews"
+  statValue: bigint("statValue", { mode: "number" }).notNull().default(0),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteStat = typeof siteStats.$inferSelect;
+export type InsertSiteStat = typeof siteStats.$inferInsert;
+
+// Individual visitor log - tracks unique visitors by fingerprint
+export const visitorLog = mysqlTable("visitor_log", {
+  id: int("id").autoincrement().primaryKey(),
+  visitorHash: varchar("visitorHash", { length: 64 }).notNull(), // hashed IP + user agent
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  country: varchar("country", { length: 64 }),
+  visitDate: varchar("visitDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  pageViews: int("pageViews").notNull().default(1),
+  firstVisit: timestamp("firstVisit").defaultNow().notNull(),
+  lastVisit: timestamp("lastVisit").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("visitor_date_idx").on(table.visitorHash, table.visitDate),
+  index("visit_date_idx").on(table.visitDate),
+]);
+
+export type VisitorLog = typeof visitorLog.$inferSelect;
+export type InsertVisitorLog = typeof visitorLog.$inferInsert;

@@ -1259,4 +1259,14 @@
 - [x] Fix applies to ALL symbols (DFM and ADX)
 - [x] 13 order book tests passing
 - [x] Updated version to v10.9.1
-- [ ] Deploy v10.9.1 to production
+- [x] Deploy v10.9.1 to production — confirmed live on uae.market
+
+## Phase 55 - Visitor Counter (v10.9.2)
+- [x] Added site_stats and visitor_log tables to database schema
+- [x] Created recordVisit() and getVisitorStats() db helpers (hashed IP+UA, UAE timezone)
+- [x] Added visitors.record mutation and visitors.stats query endpoints
+- [x] Added VisitorCounter component in footer: online now (green pulse), today visitors, total visitors
+- [x] Auto-records visit on page load, refreshes stats every 30s
+- [x] 4 visitor counter tests passing
+- [x] Updated version to v10.9.2
+- [ ] Deploy v10.9.2 to production

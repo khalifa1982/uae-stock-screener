@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
@@ -1971,6 +1971,20 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
     clearAll: protectedProcedure
       .mutation(async ({ ctx }) => {
         return clearAllChatMessages(ctx.user.id, ctx.user.name || "User");
+      }),
+  }),
+
+  // ─── Visitor Counter ──────────────────────────────────────────
+  visitors: router({
+    record: publicProcedure
+      .mutation(async ({ ctx }) => {
+        const ip = ctx.req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || ctx.req.socket.remoteAddress || 'unknown';
+        const userAgent = ctx.req.headers['user-agent'] || 'unknown';
+        return recordVisit(ip, userAgent);
+      }),
+    stats: publicProcedure
+      .query(async () => {
+        return getVisitorStats();
       }),
   }),
 });
