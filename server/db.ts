@@ -389,7 +389,7 @@ export async function getOwnerNotificationPreferences() {
 
 // ============ Visitor Counter Operations ============
 
-import { siteStats, visitorLog } from "../drizzle/schema";
+import { siteStats, visitorLog, pageViews } from "../drizzle/schema";
 import crypto from "crypto";
 
 function hashVisitor(ip: string, userAgent: string): string {
@@ -403,7 +403,27 @@ function getUAEDate(): string {
   return uaeTime.toISOString().slice(0, 10);
 }
 
-/** Record a visit and return updated stats */
+/** Resolve IP to country/city using free ip-api.com */
+async function resolveGeo(ip: string): Promise<{ country: string; city: string; region: string; countryCode: string }> {
+  try {
+    // Skip private/local IPs
+    if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('172.')) {
+      return { country: 'Local', city: 'Local', region: '', countryCode: 'XX' };
+    }
+    const resp = await fetch(`http://ip-api.com/json/${ip}?fields=country,city,regionName,countryCode`, { signal: AbortSignal.timeout(3000) });
+    if (resp.ok) {
+      const data = await resp.json();
+      return {
+        country: data.country || 'Unknown',
+        city: data.city || 'Unknown',
+        region: data.regionName || '',
+        countryCode: data.countryCode || 'XX',
+      };
+    }
+  } catch { /* ignore geo errors */ }
+  return { country: 'Unknown', city: 'Unknown', region: '', countryCode: 'XX' };
+}
+
 export async function recordVisit(ip: string, userAgent: string): Promise<{ totalVisitors: number; todayVisitors: number; totalPageViews: number; onlineNow: number }> {
   const db = await getDb();
   if (!db) return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
@@ -412,11 +432,18 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
     const visitorHash = hashVisitor(ip, userAgent);
     const today = getUAEDate();
 
+    // Resolve geo in background (don't block response)
+    const geo = await resolveGeo(ip);
+
     // Try to insert or update the visitor log for today
     await db.insert(visitorLog).values({
       visitorHash,
       ipAddress: ip,
       userAgent: userAgent.slice(0, 500),
+      country: geo.country,
+      city: geo.city,
+      region: geo.region,
+      countryCode: geo.countryCode,
       visitDate: today,
       pageViews: 1,
     }).onDuplicateKeyUpdate({
@@ -496,5 +523,202 @@ export async function getVisitorStats(): Promise<{ totalVisitors: number; todayV
   } catch (e) {
     console.warn("[Database] Failed to get visitor stats:", e);
     return { totalVisitors: 0, todayVisitors: 0, totalPageViews: 0, onlineNow: 0 };
+  }
+}
+
+/** Record a page view */
+export async function recordPageView(pagePath: string, symbol: string | null, ip: string, userAgent: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const visitorHash = hashVisitor(ip, userAgent);
+    const today = getUAEDate();
+
+    await db.insert(pageViews).values({
+      pagePath,
+      symbol: symbol || null,
+      visitorHash,
+      viewDate: today,
+      viewCount: 1,
+    }).onDuplicateKeyUpdate({
+      set: {
+        viewCount: sql`view_count + 1`,
+      },
+    });
+  } catch (e) {
+    console.warn("[Database] Failed to record page view:", e);
+  }
+}
+
+/** Get geographic breakdown of visitors */
+export async function getGeoBreakdown(days: number = 30): Promise<{
+  countries: Array<{ country: string; countryCode: string; visitors: number; pageViews: number }>;
+  cities: Array<{ city: string; country: string; countryCode: string; visitors: number }>;
+}> {
+  const db = await getDb();
+  if (!db) return { countries: [], cities: [] };
+
+  try {
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000);
+    const cutoff = cutoffDate.toISOString().slice(0, 10);
+
+    // Country breakdown
+    const countries = await db.select({
+      country: visitorLog.country,
+      countryCode: visitorLog.countryCode,
+      visitors: sql<number>`count(distinct ${visitorLog.visitorHash})`,
+      pageViews: sql<number>`sum(${visitorLog.pageViews})`,
+    })
+      .from(visitorLog)
+      .where(and(
+        gte(visitorLog.visitDate, cutoff),
+        sql`${visitorLog.country} IS NOT NULL AND ${visitorLog.country} != 'Unknown' AND ${visitorLog.country} != 'Local'`
+      ))
+      .groupBy(visitorLog.country, visitorLog.countryCode)
+      .orderBy(sql`visitors DESC`)
+      .limit(50);
+
+    // City breakdown
+    const cities = await db.select({
+      city: visitorLog.city,
+      country: visitorLog.country,
+      countryCode: visitorLog.countryCode,
+      visitors: sql<number>`count(distinct ${visitorLog.visitorHash})`,
+    })
+      .from(visitorLog)
+      .where(and(
+        gte(visitorLog.visitDate, cutoff),
+        sql`${visitorLog.city} IS NOT NULL AND ${visitorLog.city} != 'Unknown' AND ${visitorLog.city} != 'Local'`
+      ))
+      .groupBy(visitorLog.city, visitorLog.country, visitorLog.countryCode)
+      .orderBy(sql`visitors DESC`)
+      .limit(50);
+
+    return {
+      countries: countries.map(c => ({
+        country: c.country || 'Unknown',
+        countryCode: c.countryCode || 'XX',
+        visitors: Number(c.visitors),
+        pageViews: Number(c.pageViews),
+      })),
+      cities: cities.map(c => ({
+        city: c.city || 'Unknown',
+        country: c.country || 'Unknown',
+        countryCode: c.countryCode || 'XX',
+        visitors: Number(c.visitors),
+      })),
+    };
+  } catch (e) {
+    console.warn("[Database] Failed to get geo breakdown:", e);
+    return { countries: [], cities: [] };
+  }
+}
+
+/** Get most viewed pages/stocks */
+export async function getPageAnalytics(days: number = 30): Promise<{
+  topPages: Array<{ pagePath: string; symbol: string | null; uniqueVisitors: number; totalViews: number }>;
+  topStocks: Array<{ symbol: string; uniqueVisitors: number; totalViews: number }>;
+  dailyTraffic: Array<{ date: string; visitors: number; pageViews: number }>;
+}> {
+  const db = await getDb();
+  if (!db) return { topPages: [], topStocks: [], dailyTraffic: [] };
+
+  try {
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000);
+    const cutoff = cutoffDate.toISOString().slice(0, 10);
+
+    // Top pages
+    const topPages = await db.select({
+      pagePath: pageViews.pagePath,
+      symbol: pageViews.symbol,
+      uniqueVisitors: sql<number>`count(distinct ${pageViews.visitorHash})`,
+      totalViews: sql<number>`sum(${pageViews.viewCount})`,
+    })
+      .from(pageViews)
+      .where(gte(pageViews.viewDate, cutoff))
+      .groupBy(pageViews.pagePath, pageViews.symbol)
+      .orderBy(sql`sum(${pageViews.viewCount}) DESC`)
+      .limit(20);
+
+    // Top stocks specifically
+    const topStocks = await db.select({
+      symbol: pageViews.symbol,
+      uniqueVisitors: sql<number>`count(distinct ${pageViews.visitorHash})`,
+      totalViews: sql<number>`sum(${pageViews.viewCount})`,
+    })
+      .from(pageViews)
+      .where(and(
+        gte(pageViews.viewDate, cutoff),
+        sql`${pageViews.symbol} IS NOT NULL`
+      ))
+      .groupBy(pageViews.symbol)
+      .orderBy(sql`sum(${pageViews.viewCount}) DESC`)
+      .limit(20);
+
+    // Daily traffic (last N days)
+    const dailyTraffic = await db.select({
+      date: visitorLog.visitDate,
+      visitors: sql<number>`count(distinct ${visitorLog.visitorHash})`,
+      pageViews: sql<number>`sum(${visitorLog.pageViews})`,
+    })
+      .from(visitorLog)
+      .where(gte(visitorLog.visitDate, cutoff))
+      .groupBy(visitorLog.visitDate)
+      .orderBy(visitorLog.visitDate);
+
+    return {
+      topPages: topPages.map(p => ({
+        pagePath: p.pagePath,
+        symbol: p.symbol,
+        uniqueVisitors: Number(p.uniqueVisitors),
+        totalViews: Number(p.totalViews),
+      })),
+      topStocks: topStocks.map(s => ({
+        symbol: s.symbol!,
+        uniqueVisitors: Number(s.uniqueVisitors),
+        totalViews: Number(s.totalViews),
+      })),
+      dailyTraffic: dailyTraffic.map(d => ({
+        date: d.date,
+        visitors: Number(d.visitors),
+        pageViews: Number(d.pageViews),
+      })),
+    };
+  } catch (e) {
+    console.warn("[Database] Failed to get page analytics:", e);
+    return { topPages: [], topStocks: [], dailyTraffic: [] };
+  }
+}
+
+/** Get recent visitor log entries for admin view */
+export async function getRecentVisitors(limit: number = 50): Promise<Array<{
+  country: string | null;
+  city: string | null;
+  countryCode: string | null;
+  visitDate: string;
+  pageViews: number;
+  lastVisit: Date;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const results = await db.select({
+      country: visitorLog.country,
+      city: visitorLog.city,
+      countryCode: visitorLog.countryCode,
+      visitDate: visitorLog.visitDate,
+      pageViews: visitorLog.pageViews,
+      lastVisit: visitorLog.lastVisit,
+    })
+      .from(visitorLog)
+      .orderBy(sql`${visitorLog.lastVisit} DESC`)
+      .limit(limit);
+
+    return results;
+  } catch (e) {
+    console.warn("[Database] Failed to get recent visitors:", e);
+    return [];
   }
 }

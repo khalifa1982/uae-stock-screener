@@ -586,16 +586,27 @@ export default function Admin() {
             Monitor and manage all {data?.totalSources || 7} connected data feeds powering the stock screener
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isChecking || isLoading}
-          className="gap-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${isChecking ? "animate-spin" : ""}`} />
-          {isChecking ? "Checking..." : "Refresh All"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation('/analytics')}
+            className="gap-2"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Site Analytics
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isChecking || isLoading}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isChecking ? "animate-spin" : ""}`} />
+            {isChecking ? "Checking..." : "Refresh All"}
+          </Button>
+        </div>
       </div>
 
       {/* Overall Health Banner */}

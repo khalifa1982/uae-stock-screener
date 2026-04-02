@@ -242,12 +242,15 @@ function TickerBar() {
    VISITOR COUNTER
    ═══════════════════════════════════════════════════════════════════ */
 function VisitorCounter() {
+  const [loc] = useLocation();
   const { data: stats } = trpc.visitors.stats.useQuery(undefined, {
     refetchInterval: 30_000, // refresh every 30s
     staleTime: 15_000,
   });
   const recordMutation = trpc.visitors.record.useMutation();
+  const pageViewMutation = trpc.visitors.recordPageView.useMutation();
   const hasRecorded = useRef(false);
+  const lastTrackedPage = useRef('');
 
   useEffect(() => {
     if (!hasRecorded.current) {
@@ -255,6 +258,18 @@ function VisitorCounter() {
       recordMutation.mutate();
     }
   }, []);
+
+  // Track page views on route changes
+  useEffect(() => {
+    if (loc && loc !== lastTrackedPage.current) {
+      lastTrackedPage.current = loc;
+      const stockMatch = loc.match(/\/stock\/([A-Z0-9.]+)/i);
+      pageViewMutation.mutate({
+        pagePath: loc,
+        symbol: stockMatch ? stockMatch[1].toUpperCase() : null,
+      });
+    }
+  }, [loc]);
 
   if (!stats) return null;
 

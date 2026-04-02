@@ -292,6 +292,9 @@ export const visitorLog = mysqlTable("visitor_log", {
   ipAddress: varchar("ipAddress", { length: 45 }),
   userAgent: text("userAgent"),
   country: varchar("country", { length: 64 }),
+  city: varchar("city", { length: 128 }),
+  region: varchar("region", { length: 128 }),
+  countryCode: varchar("countryCode", { length: 4 }),
   visitDate: varchar("visitDate", { length: 10 }).notNull(), // YYYY-MM-DD
   pageViews: int("pageViews").notNull().default(1),
   firstVisit: timestamp("firstVisit").defaultNow().notNull(),
@@ -303,3 +306,22 @@ export const visitorLog = mysqlTable("visitor_log", {
 
 export type VisitorLog = typeof visitorLog.$inferSelect;
 export type InsertVisitorLog = typeof visitorLog.$inferInsert;
+
+// Page view tracking - which pages/stocks are most viewed
+export const pageViews = mysqlTable("page_views", {
+  id: int("id").autoincrement().primaryKey(),
+  pagePath: varchar("pagePath", { length: 255 }).notNull(), // e.g. "/stock/EMAAR"
+  symbol: varchar("symbol", { length: 32 }), // extracted stock symbol if applicable
+  visitorHash: varchar("visitorHash", { length: 64 }),
+  viewDate: varchar("viewDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  viewCount: int("viewCount").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("page_visitor_date_idx").on(table.pagePath, table.visitorHash, table.viewDate),
+  index("page_date_idx").on(table.viewDate),
+  index("symbol_idx").on(table.symbol),
+]);
+
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = typeof pageViews.$inferInsert;

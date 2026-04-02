@@ -21,6 +21,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import Analytics from "./pages/Analytics";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
             <Route path={"/summary"} component={MarketSummary} />
             <Route path={"/notifications"} component={NotificationSettings} />
             <Route path={"/admin"} component={Admin} />
+            <Route path={"/analytics"} component={Analytics} />
             <Route path={"/profile"} component={Profile} />
             <Route path={"/stock/:symbol"} component={StockDetail} />
             <Route path={"/404"} component={NotFound} />

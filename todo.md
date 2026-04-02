@@ -1269,4 +1269,25 @@
 - [x] Auto-records visit on page load, refreshes stats every 30s
 - [x] 4 visitor counter tests passing
 - [x] Updated version to v10.9.2
-- [ ] Deploy v10.9.2 to production
+- [x] Deploy v10.9.2 to production — confirmed live on uae.market
+
+## Phase 56 - Geographic Visitor Breakdown & Page Analytics (v10.9.3)
+- [x] Added city, region, countryCode columns to visitor_log table
+- [x] Added page_views table for tracking stock page visits
+- [x] Added IP geolocation via ip-api.com (resolves country/city/region)
+- [x] Added recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors db helpers
+- [x] Added admin-only tRPC endpoints: geoBreakdown, pageAnalytics, recentVisitors, recordPageView
+- [x] Built Analytics admin dashboard page (/analytics) with:
+  - [x] Overview stats (online now, today, total, page views)
+  - [x] Daily traffic bar chart
+  - [x] Visitors by country with flag emojis and progress bars
+  - [x] Top cities breakdown
+  - [x] Most viewed stocks (clickable to stock detail)
+  - [x] Top pages breakdown
+  - [x] Recent visitors table with location, date, pages, last active
+- [x] Added page view tracking on route changes in TerminalLayout
+- [x] Added 'Site Analytics' button on Admin page linking to /analytics
+- [x] Fixed SQL orderBy alias issue in getPageAnalytics
+- [x] 10 analytics tests passing
+- [x] Updated version to v10.9.3
+- [ ] Deploy v10.9.3 to production
