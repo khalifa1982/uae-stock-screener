@@ -448,7 +448,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
       pageViews: 1,
     }).onDuplicateKeyUpdate({
       set: {
-        pageViews: sql`page_views + 1`,
+        pageViews: sql`pageViews + 1`,
         lastVisit: new Date(),
       },
     });
@@ -458,7 +458,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
       statKey: "total_pageviews",
       statValue: 1,
     }).onDuplicateKeyUpdate({
-      set: { statValue: sql`stat_value + 1` },
+      set: { statValue: sql`statValue + 1` },
     });
 
     // Check if this is a brand new visitor (first time ever)
@@ -472,7 +472,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
         statKey: "total_visitors",
         statValue: 1,
       }).onDuplicateKeyUpdate({
-        set: { statValue: sql`stat_value + 1` },
+        set: { statValue: sql`statValue + 1` },
       });
     }
 
@@ -543,7 +543,7 @@ export async function recordPageView(pagePath: string, symbol: string | null, ip
       viewCount: 1,
     }).onDuplicateKeyUpdate({
       set: {
-        viewCount: sql`view_count + 1`,
+        viewCount: sql`viewCount + 1`,
       },
     });
   } catch (e) {

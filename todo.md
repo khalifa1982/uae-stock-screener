@@ -1326,3 +1326,8 @@
 - [x] Remove chat from sidebar/navigation
 - [x] Clean up unused imports and dependencies
 - [x] Build and deploy v10.10.3
+
+## v10.10.4 — Bug Fix: Visitor Counter
+- [x] Investigate why footer visitor counter shows 0/not working (raw SQL column names were snake_case but DB columns are camelCase)
+- [x] Fix visitor counter backend/frontend
+- [x] Build and deploy v10.10.4
