@@ -1300,3 +1300,12 @@
 - [x] Fix breaking changes from major version upgrades
 - [x] Run all tests after upgrade (470/474 pass, 4 pre-existing failures)
 - [x] Build and deploy upgraded version v10.10.0
+
+## v10.10.1 — Performance & Infrastructure Improvements
+
+- [x] Code-split frontend bundle with dynamic imports for heavy pages (charts, heatmap, analytics)
+- [x] Add HTTP health check endpoint (/api/health) for Northflank zero-downtime deployments
+- [x] Upgrade to Express 5 async error handling (remove manual try/catch wrappers)
+- [x] Run tests and verify (589/592 pass, 3 pre-existing failures)
+- [x] Build and deploy v10.10.1
+- [x] Configure Northflank health check (readiness probe, HTTP /api/health, port 3000, 30s interval)
