@@ -1291,3 +1291,12 @@
 - [x] 10 analytics tests passing
 - [x] Updated version to v10.9.3
 - [ ] Deploy v10.9.3 to production
+
+## Full Dependency Upgrade (v10.10.0)
+
+- [ ] Upgrade security-critical: @aws-sdk, @trpc, pnpm
+- [ ] Upgrade high-value minor/patch: react, mysql2, zod, tailwind, jose, etc.
+- [ ] Upgrade major versions: express 5, recharts 3, vite 8, vitest 4, typescript 6, superjson 2
+- [ ] Fix breaking changes from major version upgrades
+- [ ] Run all tests after upgrade
+- [ ] Build and deploy upgraded version
