@@ -5,7 +5,6 @@ import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { startAbboudScanner } from "../services/abboudAlertScanner";
 import { startCreditMonitor } from "../services/scrapflyCreditMonitor";
 import { initWebSocketServer } from "../services/tdWebSocketService";
-import { initChatWebSocket } from "../services/chatService";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -46,7 +45,7 @@ async function startServer() {
     res.json({
       status: "ok",
       uptime: `${Math.floor(uptimeMs / 1000)}s`,
-      version: "v10.10.1",
+      version: "v10.10.3",
       timestamp: new Date().toISOString(),
     });
   });
@@ -87,8 +86,6 @@ async function startServer() {
 
   // Initialize WebSocket server for real-time price streaming
   initWebSocketServer(server);
-  // Initialize chat WebSocket server
-  initChatWebSocket(server);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);

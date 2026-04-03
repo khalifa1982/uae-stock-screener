@@ -22,7 +22,6 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, fetchDFMStock, getDFMStats, type DFMStockData } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
-import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt, toggleMessageReaction, ALLOWED_REACTION_EMOJIS } from "./services/chatService";
 import { fetchSAOverview, fetchSAFinancials, fetchSADividends, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { fetchMSData } from "./services/marketScreenerService";
 import { fetchINVData } from "./services/investingComService";
@@ -1930,50 +1929,6 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       }),
   }),
 
-  // ─── Chat HTTP polling fallback ─────────────────────────────────
-  chat: router({
-    messages: protectedProcedure
-      .input(z.object({ sinceId: z.number().optional() }))
-      .query(async ({ input, ctx }) => {
-        // Register as polling user
-        registerPollingUser(ctx.user.id, ctx.user.name || "User");
-        return getChatMessages(input.sinceId);
-      }),
-
-    send: protectedProcedure
-      .input(z.object({ content: z.string().min(1).max(2000), replyToId: z.number().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        registerPollingUser(ctx.user.id, ctx.user.name || "User");
-        return postChatMessage(ctx.user.id, ctx.user.name || "User", input.content, input.replyToId);
-      }),
-
-    sendImage: protectedProcedure
-      .input(z.object({ base64Data: z.string(), mime: z.string(), caption: z.string().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        return postChatImage(ctx.user.id, ctx.user.name || "User", input.base64Data, input.mime, input.caption);
-      }),
-
-    onlineUsers: protectedProcedure
-      .query(() => {
-        return getOnlineUsersList();
-      }),
-
-    clearedAt: protectedProcedure
-      .query(() => {
-        return { clearedAt: getChatClearedAt() };
-      }),
-
-    react: protectedProcedure
-      .input(z.object({ messageId: z.number(), emoji: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        return toggleMessageReaction(input.messageId, ctx.user.id, ctx.user.name || "User", input.emoji);
-      }),
-
-    clearAll: protectedProcedure
-      .mutation(async ({ ctx }) => {
-        return clearAllChatMessages(ctx.user.id, ctx.user.name || "User");
-      }),
-  }),
 
   // ─── Visitor Counter ──────────────────────────────────────────
   visitors: router({

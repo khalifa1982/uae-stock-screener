@@ -4,7 +4,6 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import TerminalLayout from "./components/TerminalLayout";
-import { LiveChat } from "./components/LiveChat";
 import { lazy, Suspense } from "react";
 
 // ─── Eagerly loaded (lightweight auth pages) ────────────────────────
@@ -85,7 +84,6 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
-          <LiveChat />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
