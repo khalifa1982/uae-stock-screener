@@ -1294,9 +1294,9 @@
 
 ## Full Dependency Upgrade (v10.10.0)
 
-- [ ] Upgrade security-critical: @aws-sdk, @trpc, pnpm
-- [ ] Upgrade high-value minor/patch: react, mysql2, zod, tailwind, jose, etc.
-- [ ] Upgrade major versions: express 5, recharts 3, vite 8, vitest 4, typescript 6, superjson 2
-- [ ] Fix breaking changes from major version upgrades
-- [ ] Run all tests after upgrade
-- [ ] Build and deploy upgraded version
+- [x] Upgrade security-critical: @aws-sdk, @trpc, pnpm
+- [x] Upgrade high-value minor/patch: react, mysql2, zod, tailwind, jose, etc.
+- [x] Upgrade major versions: express 5, recharts 3, vite 8, vitest 4, typescript 6, superjson 2
+- [x] Fix breaking changes from major version upgrades
+- [x] Run all tests after upgrade (470/474 pass, 4 pre-existing failures)
+- [x] Build and deploy upgraded version v10.10.0

@@ -901,7 +901,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                     fontSize: "11px",
                     color: NEON.textBright,
                   }}
-                  formatter={(value: number) => [formatLargeNum(value), "Volume"]}
+                  formatter={((value: any) => [formatLargeNum(Number(value)), "Volume"]) as any}
                 />
                 <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
                   {mergedData.map((entry, idx) => (
@@ -931,10 +931,10 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                         fontSize: "11px",
                         color: NEON.textBright,
                       }}
-                      formatter={(value: number, name: string) => {
+                      formatter={((value: any, name: any) => {
                         const labels: Record<string, string> = { macd: "MACD", macdSignal: "Signal", macdHist: "Histogram" };
-                        return [value?.toFixed(4), labels[name] || name];
-                      }}
+                        return [Number(value)?.toFixed(4), labels[String(name)] || String(name)];
+                      }) as any}
                     />
                     <ReferenceLine y={0} stroke={NEON.grid} strokeWidth={1} />
                     <Bar dataKey="macdHist" isAnimationActive={false}>
@@ -987,7 +987,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
                         fontSize: "11px",
                         color: NEON.textBright,
                       }}
-                      formatter={(value: number) => [value?.toFixed(2), "RSI"]}
+                      formatter={((value: any) => [Number(value)?.toFixed(2), "RSI"]) as any}
                     />
                     <ReferenceLine y={70} stroke={NEON.red + "55"} strokeDasharray="4 2" label={{ value: "70", fill: NEON.red, fontSize: 8, position: "right" }} />
                     <ReferenceLine y={30} stroke={NEON.green + "55"} strokeDasharray="4 2" label={{ value: "30", fill: NEON.green, fontSize: 8, position: "right" }} />
