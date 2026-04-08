@@ -1331,3 +1331,16 @@
 - [x] Investigate why footer visitor counter shows 0/not working (raw SQL column names were snake_case but DB columns are camelCase)
 - [x] Fix visitor counter backend/frontend
 - [x] Build and deploy v10.10.4
+
+## v11.0.0 — Google Finance-Inspired Redesign
+- [ ] Update theme: light-first Google Finance color palette (white bg, #202124 text, #1a73e8 accent, #1e8e3e gain, #d93025 loss)
+- [ ] Update typography: Inter for body, clean sizing hierarchy
+- [ ] Redesign homepage: centered layout, market index cards with sparklines, stock list with mini charts
+- [ ] Redesign ticker bar: card-based market indices with smooth scroll, sparkline mini-charts
+- [ ] Redesign stock table: cleaner Google Finance-style with hover shadows
+- [ ] Redesign stock detail page: two-column layout, breadcrumb, large price, key stats sidebar
+- [ ] Add "Most Followed" / "You may be interested in" section
+- [ ] Update navigation: clean top nav bar Google Finance-style
+- [ ] Update footer to match new light theme
+- [ ] Smooth real-time price animations (flash green/red on change)
+- [ ] Build and deploy v11.0.0
