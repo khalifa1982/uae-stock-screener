@@ -1333,14 +1333,31 @@
 - [x] Build and deploy v10.10.4
 
 ## v11.0.0 — Google Finance-Inspired Redesign
-- [ ] Update theme: light-first Google Finance color palette (white bg, #202124 text, #1a73e8 accent, #1e8e3e gain, #d93025 loss)
-- [ ] Update typography: Inter for body, clean sizing hierarchy
-- [ ] Redesign homepage: centered layout, market index cards with sparklines, stock list with mini charts
-- [ ] Redesign ticker bar: card-based market indices with smooth scroll, sparkline mini-charts
-- [ ] Redesign stock table: cleaner Google Finance-style with hover shadows
-- [ ] Redesign stock detail page: two-column layout, breadcrumb, large price, key stats sidebar
-- [ ] Add "Most Followed" / "You may be interested in" section
-- [ ] Update navigation: clean top nav bar Google Finance-style
-- [ ] Update footer to match new light theme
-- [ ] Smooth real-time price animations (flash green/red on change)
-- [ ] Build and deploy v11.0.0
+- [x] Update theme: light-first Google Finance color palette (white bg, #202124 text, #1a73e8 accent, #1e8e3e gain, #d93025 loss)
+- [x] Update typography: Inter for body, clean sizing hierarchy
+- [x] Redesign homepage: centered layout, market index cards with sparklines, stock list with mini charts
+- [x] Redesign ticker bar: card-based market indices with smooth scroll, sparkline mini-charts
+- [x] Redesign stock table: cleaner Google Finance-style with hover shadows
+- [x] Redesign stock detail page: two-column layout, breadcrumb, large price, key stats sidebar
+- [x] Add "Most Followed" / "You may be interested in" section
+- [x] Update navigation: clean top nav bar Google Finance-style
+- [x] Update footer to match new light theme
+- [x] Smooth real-time price animations (flash green/red on change)
+- [x] Build and deploy v11.0.0
+
+## v11.1.0 — Fix Logos + Google Finance Beta Deep Clone
+- [x] Fix missing company logo icons (logoCache + attachLogos in stocks.ts)
+- [x] Inspect finance.google.com design in detail
+- [x] Homepage: Two-column layout (main content + sidebar) like Google Finance
+- [x] Homepage: "You may be interested in" section with colored ticker badges
+- [x] Homepage: Market Trends tabs (Most Active / Gainers / Losers) with ticker badges
+- [x] Homepage: Horizontal scrollable "Discover more" card carousel
+- [x] Colored ticker badges (rounded pill with white text, colored bg per stock)
+- [x] Stock cards with ticker badge, company name, price, change %, follow button style
+- [x] Market summary strip with sidebar card (Total, Gainers, Losers, Volume)
+- [x] Clean two-column layout with sidebar cards (Market Summary, Top by Market Cap)
+- [x] Stock Detail: Large price header with colored ticker badge
+- [x] Stock Detail: Key stats sidebar in two-column grid
+- [x] Typography refinement: Google Sans-like sizing and weights
+- [x] Fixed Vite HMR port configuration (was defaulting to 5173 instead of 3000)
+- [x] Build and deploy v11.1.0

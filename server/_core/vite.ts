@@ -7,12 +7,13 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  const port = parseInt(process.env.PORT || "3000");
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
     server: {
       middlewareMode: true,
-      hmr: { server },
+      hmr: { server, port },
       allowedHosts: true,
     } as any,
     appType: "custom",

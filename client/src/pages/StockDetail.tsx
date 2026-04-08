@@ -348,44 +348,51 @@ export default function StockDetail() {
         <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5">
-          <div className="flex items-start gap-1.5">
+        <div className="flex flex-col gap-3">
+          {/* Company info row */}
+          <div className="flex items-center gap-3">
             {profile?.logo ? (
-              <div className="h-14 w-14 rounded-md bg-white/10 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
-                <img src={profile.logo} alt={stockInfo.name} className="h-10 w-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <div className="h-10 w-10 rounded-full bg-white border border-border/30 flex items-center justify-center overflow-hidden shrink-0">
+                <img src={profile.logo} alt={stockInfo.name} className="h-8 w-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             ) : (
-              <div className="h-14 w-14 rounded-md bg-muted/50 border border-border/40 flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
+              <div className="h-10 w-10 rounded-full bg-muted/50 border border-border/30 flex items-center justify-center shrink-0">
+                <span className="text-xs font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
               </div>
             )}
-            <div>
-              <div className="flex items-center gap-1 mb-1 flex-wrap">
-                <h1 className="text-xs font-bold tracking-tight font-mono neon-text">{symbol}</h1>
-                <Badge variant="outline" className={`text-xs font-mono ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
-                  {stockInfo.exchange}
-                </Badge>
-                <Badge variant="secondary" className="text-xs">{stockInfo.sector}</Badge>
-                {profile?.industry && <Badge variant="outline" className="text-xs text-muted-foreground">{profile.industry}</Badge>}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg font-semibold text-foreground">{stockInfo.name}</h1>
                 <DataConnectionIndicator isConnected={wsConnected} />
               </div>
-              <p className="text-muted-foreground text-[11px]">{stockInfo.name}</p>
-              {profile?.website && (
-                <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
-                  <Globe className="h-3 w-3" /> {(profile.website as string).replace(/^https?:\/\//, '')}
-                </a>
-              )}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span
+                  style={{ backgroundColor: (() => { const c = ["#1a73e8","#1e8e3e","#e8710a","#d93025","#9334e6","#185abc","#137333","#b31412","#7b1fa2","#0d652d","#174ea6","#c5221f"]; let h=0; for(let i=0;i<symbol.length;i++){h=((h<<5)-h)+symbol.charCodeAt(i);h=h&h;} return c[Math.abs(h)%c.length]; })() }}
+                  className="text-white font-bold rounded px-2 py-0.5 text-[11px] inline-flex items-center shrink-0 leading-none tracking-wide"
+                >{symbol}</span>
+                <Badge variant="outline" className={`text-[10px] h-5 ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
+                  {stockInfo.exchange}
+                </Badge>
+                <Badge variant="secondary" className="text-[10px] h-5">{stockInfo.sector}</Badge>
+                {profile?.industry && <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground">{profile.industry}</Badge>}
+              </div>
             </div>
           </div>
+          {/* Price row — Google Finance style large price */}
           {detail && (
-            <div className="flex items-end gap-1">
-              <span className="text-[11px] font-bold font-mono neon-text">{price != null ? formatNumber(price) : "—"}</span>
-              <span className="text-[11px] text-muted-foreground mb-1">AED</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-semibold text-foreground tabular-nums">{price != null ? formatNumber(price) : "—"}</span>
+              <span className="text-sm text-muted-foreground">AED</span>
               {priceChange != null && (
-                <span className={`flex items-center gap-1 text-[11px] font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
+                <span className={`flex items-center gap-1 text-sm font-medium tabular-nums ${priceChange > 0 ? "text-gain" : priceChange < 0 ? "text-loss" : "text-muted-foreground"}`}>
                   {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
-                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(3)}%
+                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
                 </span>
+              )}
+              {profile?.website && (
+                <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 ml-auto">
+                  <Globe className="h-3 w-3" /> {(profile.website as string).replace(/^https?:\/\//, '')}
+                </a>
               )}
             </div>
           )}

@@ -5,6 +5,7 @@ import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { startAbboudScanner } from "../services/abboudAlertScanner";
 import { startCreditMonitor } from "../services/scrapflyCreditMonitor";
 import { initWebSocketServer } from "../services/tdWebSocketService";
+
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -45,7 +46,7 @@ async function startServer() {
     res.json({
       status: "ok",
       uptime: `${Math.floor(uptimeMs / 1000)}s`,
-      version: "v10.10.3",
+      version: "v11.1.0",
       timestamp: new Date().toISOString(),
     });
   });
@@ -77,12 +78,7 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
+  const port = parseInt(process.env.PORT || "3000");
 
   // Initialize WebSocket server for real-time price streaming
   initWebSocketServer(server);
@@ -97,6 +93,11 @@ async function startServer() {
     startAbboudScanner();
     // Start Scrapfly credit monitor (checks every 6h, alerts when low)
     startCreditMonitor();
+    // Trigger initial data fetch to populate memory cache + logo cache (non-blocking)
+    // This ensures logos are available from the first request
+    import('../routers').then(({ prefetchLogosOnStartup }) => {
+      prefetchLogosOnStartup().catch((e: unknown) => console.warn('[Startup] Logo prefetch failed:', e));
+    }).catch(() => {});
   });
 }
 

@@ -32,6 +32,25 @@ import { getEarningsTranscript } from "./services/earningsTranscriptService";
 // Prevents multiple simultaneous background refreshes
 const refreshInProgress = new Set<string>();
 
+// ─── Logo cache ─────────────────────────────────────────────────────
+// Maps "EXCHANGE:SYMBOL" → logoUrl string, populated from TradingView data
+const logoCache = new Map<string, string>();
+
+function getLogoUrl(exchange: string, symbol: string): string | null {
+  return logoCache.get(`${exchange}:${symbol}`) || null;
+}
+
+function setLogoUrl(exchange: string, symbol: string, logoUrl: string) {
+  logoCache.set(`${exchange}:${symbol}`, logoUrl);
+}
+
+function attachLogos(results: any[]): any[] {
+  return results.map(snap => ({
+    ...snap,
+    logoUrl: snap.logoUrl || getLogoUrl(snap.exchange, snap.symbol),
+  }));
+}
+
 /**
  * Overlay DFM real-time prices on top of TradingView EOD data.
  * TradingView Scanner returns end-of-day data (yesterday's close during market hours).
@@ -95,7 +114,11 @@ function tvToSnapshot(tv: any, stock: { symbol: string; exchange: string; name: 
     name: stock.name,
     sector: stock.sector,
     yahooSymbol: stock.yahooSymbol,
-    logoUrl: tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null,
+    logoUrl: (() => {
+      const url = tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null;
+      if (url) setLogoUrl(stock.exchange, stock.symbol, url);
+      return url;
+    })(),
     description: tv.description ?? null,
     price: tv.close ?? null,
     previousClose: tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null,
@@ -367,9 +390,9 @@ export const appRouter = router({
         if (!forceRefresh) {
           const memCached = getFromMemoryCache(cacheKey);
           if (memCached && memCached.length > 0) {
-            // Always apply DFM live overlay on cached data for freshest prices
+            // Apply DFM live overlay even on cached data for freshest prices
             const overlaid = await applyDFMOverlayToResults(memCached);
-            return overlaid;
+            return attachLogos(overlaid);
           }
         }
         
@@ -401,7 +424,7 @@ export const appRouter = router({
             }
             
             // Return fresh-overlaid data
-            return results;
+            return attachLogos(results);
           } else if (cached.length > 0) {
             // DB has partial data - trigger background refresh to fill gaps
             backgroundRefresh(exchange).catch(() => {});
@@ -474,8 +497,25 @@ export const appRouter = router({
         
         // Cache the results
         setMemoryCache(cacheKey, results);
-        return results;
+        return attachLogos(results);
       }),
+
+    // Pre-populate logo cache on first request (non-blocking)
+    prefetchLogos: publicProcedure.query(async () => {
+      if (logoCache.size > 0) return { cached: logoCache.size };
+      try {
+        const tvStocks = await fetchAllTVStocks();
+        for (const tv of tvStocks) {
+          const parts = tv.ticker.split(':');
+          if (parts.length === 2 && tv.logoId) {
+            setLogoUrl(parts[0], parts[1], `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg`);
+          }
+        }
+        return { cached: logoCache.size };
+      } catch (e) {
+        return { cached: 0, error: 'Failed to prefetch logos' };
+      }
+    }),
 
     // Fast DFM ticker endpoint — lightweight, returns only price + change for all DFM stocks
     // Used by the ticker bar for real-time updates every 5 seconds
@@ -1972,3 +2012,20 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
 });
 
 export type AppRouter = typeof appRouter;
+
+// Startup helper: pre-populate logo cache from TradingView
+export async function prefetchLogosOnStartup(): Promise<void> {
+  if (logoCache.size > 0) return;
+  try {
+    const tvStocks = await fetchAllTVStocks();
+    for (const tv of tvStocks) {
+      const parts = tv.ticker.split(':');
+      if (parts.length === 2 && tv.logoId) {
+        setLogoUrl(parts[0], parts[1], `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg`);
+      }
+    }
+    console.log(`[Startup] Logo cache populated with ${logoCache.size} logos`);
+  } catch (e: any) {
+    console.warn('[Startup] Logo prefetch failed:', e?.message);
+  }
+}
