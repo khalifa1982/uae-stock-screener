@@ -1,26 +1,47 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { usePriceFlashes, getFlashClass, getPriceFlashClass } from "@/hooks/usePriceFlash";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  Building2,
-  Download,
-  ChevronRight,
-  Activity,
+  ArrowUpDown, ArrowUp, ArrowDown, Search, TrendingUp, TrendingDown,
+  BarChart3, Building2, Download, ChevronRight, ChevronLeft, Activity,
+  Newspaper, Layers, Flame, Zap, Crown, Target, Shield, DollarSign,
+  PieChart, Globe, Star, Filter, ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
-type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name";
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPES & HELPERS
+   ═══════════════════════════════════════════════════════════════════════ */
+type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name" | "dividendYield" | "beta" | "rsi" | "eps" | "week52High" | "week52Low" | "grossMargin" | "operatingMargin" | "returnOnEquity" | "debtToEquity" | "netIncome" | "totalRevenue" | "ebitda" | "perfWeek" | "perfMonth" | "perfYear";
 type SortDir = "asc" | "desc";
+type TableView = "overview" | "performance" | "valuation" | "dividends" | "profitability" | "technicals";
+
+/** TradingView-style filter categories */
+const FILTER_CATEGORIES = [
+  { id: "all", label: "All stocks", icon: Layers },
+  { id: "gainers", label: "Top gainers", icon: TrendingUp },
+  { id: "losers", label: "Biggest losers", icon: TrendingDown },
+  { id: "active", label: "Most active", icon: Flame },
+  { id: "high-dividend", label: "High-dividend", icon: DollarSign },
+  { id: "unusual-volume", label: "Unusual volume", icon: Zap },
+  { id: "volatile", label: "Most volatile", icon: Activity },
+  { id: "high-beta", label: "High beta", icon: Target },
+  { id: "large-cap", label: "Large-cap", icon: Crown },
+  { id: "small-cap", label: "Small-cap", icon: Shield },
+  { id: "overbought", label: "Overbought", icon: ArrowUp },
+  { id: "oversold", label: "Oversold", icon: ArrowDown },
+  { id: "52w-high", label: "52-week high", icon: TrendingUp },
+  { id: "52w-low", label: "52-week low", icon: TrendingDown },
+  { id: "penny", label: "Penny stocks", icon: DollarSign },
+  { id: "highest-revenue", label: "Highest revenue", icon: BarChart3 },
+  { id: "highest-profit", label: "Highest net income", icon: PieChart },
+  { id: "best-performing", label: "Best performing", icon: Star },
+] as const;
+
+type FilterId = typeof FILTER_CATEGORIES[number]["id"];
 
 function fmt(num: number | null | undefined, d?: number): string {
   if (num == null || isNaN(num)) return "—";
@@ -41,7 +62,12 @@ function fmtLg(num: number | null | undefined): string {
   return num.toLocaleString();
 }
 
-/** Deterministic color for ticker badge based on symbol hash */
+function fmtPct(num: number | null | undefined): string {
+  if (num == null || isNaN(num)) return "—";
+  return (num > 0 ? "+" : "") + num.toFixed(2) + "%";
+}
+
+/** Deterministic color for ticker badge */
 function getTickerColor(symbol: string): string {
   const colors = [
     "#1a73e8", "#1e8e3e", "#e8710a", "#d93025", "#9334e6",
@@ -56,7 +82,26 @@ function getTickerColor(symbol: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-/** Google Finance-style colored ticker badge */
+/** Sector icon colors */
+function getSectorColor(sector: string): string {
+  const map: Record<string, string> = {
+    Banking: "#1a73e8", "Real Estate": "#e8710a", Energy: "#1e8e3e",
+    Telecom: "#9334e6", Insurance: "#d93025", Conglomerates: "#185abc",
+    Industrial: "#137333", Healthcare: "#c5221f", Technology: "#7b1fa2",
+    "Financial Services": "#0d652d", Utilities: "#174ea6", "Consumer Staples": "#e8710a",
+    "Consumer Services": "#1a73e8", Aviation: "#185abc", Logistics: "#137333",
+    Construction: "#d93025", Hospitality: "#9334e6", Services: "#1e8e3e",
+    Investment: "#174ea6", Chemicals: "#e8710a", Transport: "#185abc",
+    Education: "#7b1fa2", Retail: "#c5221f",
+  };
+  return map[sector] || "#1a73e8";
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REUSABLE COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** Colored ticker badge */
 function TickerBadge({ symbol, size = "sm" }: { symbol: string; size?: "sm" | "md" }) {
   const color = getTickerColor(symbol);
   const sizeClass = size === "md" ? "px-2 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]";
@@ -71,7 +116,7 @@ function TickerBadge({ symbol, size = "sm" }: { symbol: string; size?: "sm" | "m
   );
 }
 
-/** Company logo with fallback to ticker badge */
+/** Company logo with fallback */
 function StockLogo({ logoUrl, symbol, size = "sm" }: { logoUrl?: string | null; symbol: string; size?: "sm" | "md" }) {
   const dim = size === "md" ? "h-8 w-8" : "h-6 w-6";
   if (logoUrl) {
@@ -79,129 +124,260 @@ function StockLogo({ logoUrl, symbol, size = "sm" }: { logoUrl?: string | null; 
       <img
         src={logoUrl}
         alt={symbol}
-        className={`${dim} rounded-full object-contain bg-white border border-border/30 shrink-0`}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-        }}
+        className={`${dim} rounded-full object-contain bg-white border border-white/20 shrink-0`}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
       />
     );
   }
   return <TickerBadge symbol={symbol} size={size} />;
 }
 
-function Chg({ value }: { value: number | null | undefined }) {
+/** Change indicator */
+function Chg({ value, showArrow = true }: { value: number | null | undefined; showArrow?: boolean }) {
   if (value == null || isNaN(value)) return <span className="text-muted-foreground">—</span>;
   const pos = value > 0;
   const zero = value === 0;
   return (
-    <span className={`font-medium tabular-nums ${pos ? "text-gain" : zero ? "text-muted-foreground" : "text-loss"}`}>
+    <span className={`font-medium tabular-nums inline-flex items-center gap-0.5 ${pos ? "text-gain" : zero ? "text-muted-foreground" : "text-loss"}`}>
+      {showArrow && (pos ? <ArrowUp className="h-3 w-3" /> : !zero ? <ArrowDown className="h-3 w-3" /> : null)}
       {pos ? "+" : ""}{value.toFixed(2)}%
     </span>
   );
 }
 
-/** Google Finance-style "You may be interested in" row */
-function InterestRow({ stock, onClick }: { stock: any; onClick: () => void }) {
-  const isUp = (stock.changePercent ?? 0) > 0;
-  const isDown = (stock.changePercent ?? 0) < 0;
-  const change = stock.changePercent ?? 0;
-  const priceChange = stock.price && stock.previousClose ? stock.price - stock.previousClose : null;
+/** Glass card wrapper */
+function GlassCard({ children, className = "", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="flex items-center gap-3 py-3 px-2 border-b border-border/40 hover:bg-accent/40 cursor-pointer transition-colors"
+      className={`
+        relative rounded-xl overflow-hidden transition-all duration-300
+        bg-white/60 dark:bg-white/[0.04]
+        backdrop-blur-xl
+        border border-white/30 dark:border-white/[0.08]
+        shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]
+        hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]
+        hover:border-white/50 dark:hover:border-white/[0.14]
+        ${onClick ? "cursor-pointer" : ""}
+        ${className}
+      `}
     >
-      <div className="relative shrink-0">
-        <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size="md" />
-        <span className="hidden"><TickerBadge symbol={stock.symbol} size="md" /></span>
+      {children}
+    </div>
+  );
+}
+
+/** Section heading with gradient text */
+function SectionTitle({ children, icon: Icon, action }: { children: React.ReactNode; icon?: any; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
+        {Icon && <Icon className="h-5 w-5 text-primary" />}
+        {children}
+      </h2>
+      {action}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FILTER PILL BAR (TradingView-style scrollable pills)
+   ═══════════════════════════════════════════════════════════════════════ */
+function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: FilterId) => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scroll = (dir: "left" | "right") => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+    }
+  };
+  return (
+    <div className="relative group">
+      <button
+        onClick={() => scroll("left")}
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-background/80 dark:bg-background/60 backdrop-blur-sm border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto scrollbar-hide py-1 px-1"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {FILTER_CATEGORIES.map((cat) => {
+          const isActive = active === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => onChange(cat.id)}
+              className={`
+                inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium
+                whitespace-nowrap shrink-0 transition-all duration-200
+                ${isActive
+                  ? "bg-primary text-white shadow-md shadow-primary/25"
+                  : "bg-white/50 dark:bg-white/[0.06] text-muted-foreground hover:text-foreground hover:bg-white/80 dark:hover:bg-white/[0.1] border border-white/30 dark:border-white/[0.08]"
+                }
+                backdrop-blur-sm
+              `}
+            >
+              <cat.icon className="h-3.5 w-3.5" />
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <TickerBadge symbol={stock.symbol} />
-          <p className="text-sm text-foreground truncate">{stock.name || stock.symbol}</p>
+      <button
+        onClick={() => scroll("right")}
+        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-background/80 dark:bg-background/60 backdrop-blur-sm border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TABLE VIEW TABS
+   ═══════════════════════════════════════════════════════════════════════ */
+const TABLE_VIEWS: { id: TableView; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "performance", label: "Performance" },
+  { id: "valuation", label: "Valuation" },
+  { id: "dividends", label: "Dividends" },
+  { id: "profitability", label: "Profitability" },
+  { id: "technicals", label: "Technicals" },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECTOR CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]; onClick: () => void }) {
+  const sectorStocks = stocks.filter((s: any) => s.sector === sector);
+  const withPrice = sectorStocks.filter((s: any) => s.price != null);
+  const totalMcap = withPrice.reduce((sum: number, s: any) => sum + (s.marketCap || 0), 0);
+  const avgChange = withPrice.length > 0
+    ? withPrice.reduce((sum: number, s: any) => sum + (s.changePercent || 0), 0) / withPrice.length
+    : 0;
+  const gainers = withPrice.filter((s: any) => (s.changePercent ?? 0) > 0).length;
+  const color = getSectorColor(sector);
+
+  return (
+    <GlassCard onClick={onClick} className="p-4 min-w-[220px]">
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="h-9 w-9 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: `${color}18` }}
+        >
+          <Building2 className="h-4.5 w-4.5" style={{ color }} />
+        </div>
+        <Chg value={avgChange} />
+      </div>
+      <h3 className="font-semibold text-sm text-foreground mb-1">{sector}</h3>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span>{sectorStocks.length} stocks</span>
+        <span>·</span>
+        <span>{fmtLg(totalMcap)}</span>
+      </div>
+      <div className="mt-2 flex items-center gap-1">
+        <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gain"
+            style={{ width: `${withPrice.length > 0 ? (gainers / withPrice.length) * 100 : 0}%` }}
+          />
+        </div>
+        <span className="text-[10px] text-muted-foreground">{gainers}/{withPrice.length}</span>
+      </div>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEWS CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+function NewsCard({ item }: { item: any }) {
+  const timeAgo = (ts: number | string) => {
+    // TradingView timestamps are Unix seconds; JS Date expects milliseconds
+    const msTs = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : new Date(ts).getTime();
+    const diff = Date.now() - msTs;
+    if (diff < 0) return 'just now';
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  return (
+    <GlassCard className="p-4 hover:scale-[1.01] transition-transform">
+      <a
+        href={item.link || item.url || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug mb-2">
+              {item.title}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {item.source && <span className="font-medium">{item.source}</span>}
+              {item.published && <span>· {timeAgo(item.published)}</span>}
+              {item.relatedSymbols?.length > 0 && (
+                <span className="flex items-center gap-1">
+                  · {item.relatedSymbols.slice(0, 3).map((s: any, idx: number) => (
+                    <TickerBadge key={typeof s === 'string' ? s : s.symbol || idx} symbol={typeof s === 'string' ? s : s.symbol || ''} />
+                  ))}
+                </span>
+              )}
+            </div>
+          </div>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1" />
+        </div>
+      </a>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MARKET OVERVIEW CARDS (top movers strip)
+   ═══════════════════════════════════════════════════════════════════════ */
+function MoverCard({ stock, rank, onClick }: { stock: any; rank: number; onClick: () => void }) {
+  const isUp = (stock.changePercent ?? 0) > 0;
+  const isDown = (stock.changePercent ?? 0) < 0;
+  return (
+    <GlassCard onClick={onClick} className="p-3 min-w-[180px] shrink-0">
+      <div className="flex items-center gap-2.5 mb-2">
+        {stock.logoUrl && <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size="md" />}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <TickerBadge symbol={stock.symbol} />
+          </div>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{stock.name || stock.symbol}</p>
         </div>
       </div>
-      <div className="text-right shrink-0 flex items-center gap-3">
-        <span className="text-sm font-medium text-foreground tabular-nums">{fmt(stock.price)}</span>
-        {priceChange != null && (
-          <span className={`text-xs tabular-nums ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
-            {isUp ? "+" : ""}{fmt(priceChange)}
-          </span>
-        )}
-        <span className={`text-xs font-medium tabular-nums flex items-center gap-0.5 min-w-[65px] justify-end ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
-          {isUp ? <ArrowUp className="h-3 w-3" /> : isDown ? <ArrowDown className="h-3 w-3" /> : null}
-          {Math.abs(change).toFixed(2)}%
+      <div className="flex items-end justify-between">
+        <span className="text-base font-semibold text-foreground tabular-nums">{fmt(stock.price)}</span>
+        <span className={`text-sm font-bold tabular-nums flex items-center gap-0.5 ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
+          {isUp ? <ArrowUp className="h-3.5 w-3.5" /> : isDown ? <ArrowDown className="h-3.5 w-3.5" /> : null}
+          {Math.abs(stock.changePercent ?? 0).toFixed(2)}%
         </span>
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
-/** Google Finance-style Market Trends stock row */
-function TrendRow({ stock, onClick }: { stock: any; onClick: () => void }) {
-  const isUp = (stock.changePercent ?? 0) > 0;
-  const isDown = (stock.changePercent ?? 0) < 0;
-  const change = stock.changePercent ?? 0;
-  return (
-    <div
-      onClick={onClick}
-      className="flex items-center gap-3 py-3 px-2 border-b border-border/40 hover:bg-accent/40 cursor-pointer transition-colors"
-    >
-      <div className="relative shrink-0">
-        <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size="md" />
-        <span className="hidden"><TickerBadge symbol={stock.symbol} size="md" /></span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <TickerBadge symbol={stock.symbol} />
-          <p className="text-sm text-foreground truncate">{stock.name || stock.symbol}</p>
-        </div>
-      </div>
-      <div className="text-right shrink-0 flex items-center gap-4">
-        <span className="text-sm font-medium text-foreground tabular-nums">{fmt(stock.price)}</span>
-        <span className={`text-xs font-medium tabular-nums flex items-center gap-0.5 min-w-[60px] justify-end ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
-          {isUp ? <ArrowUp className="h-3 w-3" /> : isDown ? <ArrowDown className="h-3 w-3" /> : null}
-          {Math.abs(change).toFixed(2)}%
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** Google Finance-style horizontal scrollable card */
-function DiscoverCard({ stock, onClick }: { stock: any; onClick: () => void }) {
-  const isUp = (stock.changePercent ?? 0) > 0;
-  const isDown = (stock.changePercent ?? 0) < 0;
-  const change = stock.changePercent ?? 0;
-  return (
-    <div
-      onClick={onClick}
-      className="flex flex-col gap-2 p-3 rounded-lg border border-border hover:shadow-md cursor-pointer transition-all min-w-[155px] max-w-[170px] shrink-0 bg-card"
-    >
-      <div className="flex items-center gap-2">
-        <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />
-        <TickerBadge symbol={stock.symbol} />
-      </div>
-      <p className="text-xs text-foreground truncate leading-tight">{stock.name || stock.symbol}</p>
-      <div className="flex items-center justify-between mt-auto">
-        <span className="text-sm font-medium text-foreground tabular-nums">{fmt(stock.price)}</span>
-        <span className={`text-xs font-medium tabular-nums flex items-center gap-0.5 ${isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"}`}>
-          {isUp ? <ArrowUp className="h-3 w-3" /> : isDown ? <ArrowDown className="h-3 w-3" /> : null}
-          {Math.abs(change).toFixed(2)}%
-        </span>
-      </div>
-    </div>
-  );
-}
-
+/* ═══════════════════════════════════════════════════════════════════════
+   MAIN HOME COMPONENT
+   ═══════════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const [, setLocation] = useLocation();
   const [exchange, setExchange] = useState<"ADX" | "DFM" | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>("marketCap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [trendTab, setTrendTab] = useState<"active" | "gainers" | "losers">("active");
+  const [activeFilter, setActiveFilter] = useState<FilterId>("all");
+  const [tableView, setTableView] = useState<TableView>("overview");
+  const [sectorFilter, setSectorFilter] = useState<string | null>(null);
 
   const autoRefreshInterval = useAutoRefreshInterval();
   const fastRefresh = autoRefreshInterval || undefined;
@@ -218,7 +394,7 @@ export default function Home() {
   );
 
   const { data: topMovers } = trpc.stocks.topMovers.useQuery(
-    { exchange, limit: 6 },
+    { exchange, limit: 8 },
     {
       staleTime: fastRefresh ? 3_000 : 5 * 60 * 1000,
       refetchInterval: fastRefresh,
@@ -227,7 +403,20 @@ export default function Home() {
     }
   );
 
+  const { data: marketNews } = trpc.stocks.marketNews.useQuery(
+    { count: 10 },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchInterval: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
   const priceFlashes = usePriceFlashes(stocks as any);
+
+  /** Helper to get flash class for a stock row */
+  const getRowFlash = (sym: string, ex: string) => getFlashClass(priceFlashes, ex, sym);
+  const getCellFlash = (sym: string, ex: string) => getPriceFlashClass(priceFlashes, ex, sym);
 
   const { refetch: fetchCSV, isFetching: csvFetching } = trpc.stocks.exportCSV.useQuery(
     { exchange },
@@ -252,67 +441,167 @@ export default function Home() {
     }
   };
 
-  // "You may be interested in" — top movers by absolute change
-  const interestStocks = useMemo(() => {
-    if (!stocks) return [];
-    const withPrice = stocks.filter((s: any) => s.price != null && s.price > 0);
-    return [...withPrice]
-      .sort((a: any, b: any) => Math.abs(b.changePercent || 0) - Math.abs(a.changePercent || 0))
-      .slice(0, 6);
+  /* ─── Derived data ─── */
+  const stats = useMemo(() => {
+    if (!stocks || stocks.length === 0) return null;
+    const withPrice = stocks.filter((s: any) => s.price != null);
+    const gainers = withPrice.filter((s: any) => (s.changePercent ?? 0) > 0);
+    const losers = withPrice.filter((s: any) => (s.changePercent ?? 0) < 0);
+    const totalVolume = withPrice.reduce((sum: number, s: any) => sum + (s.volume ?? 0), 0);
+    const totalMcap = withPrice.reduce((sum: number, s: any) => sum + (s.marketCap ?? 0), 0);
+    return { total: stocks.length, withPrice: withPrice.length, gainers: gainers.length, losers: losers.length, totalVolume, totalMcap };
   }, [stocks]);
 
-  // Market trends data
-  const trendStocks = useMemo(() => {
-    if (!topMovers) return [];
-    if (trendTab === "gainers") return topMovers.gainers || [];
-    if (trendTab === "losers") return topMovers.losers || [];
-    return topMovers.mostActive || [];
-  }, [topMovers, trendTab]);
-
-  // "Discover more" — horizontal carousel of interesting stocks
-  const discoverStocks = useMemo(() => {
+  /** Sectors with aggregated data */
+  const sectorData = useMemo(() => {
     if (!stocks) return [];
-    const withPrice = stocks.filter((s: any) => s.price != null && s.price > 0 && s.marketCap);
-    return [...withPrice]
-      .sort((a: any, b: any) => (b.volume || 0) - (a.volume || 0))
-      .slice(0, 14);
+    const sectors = new Map<string, any[]>();
+    stocks.forEach((s: any) => {
+      if (s.sector) {
+        if (!sectors.has(s.sector)) sectors.set(s.sector, []);
+        sectors.get(s.sector)!.push(s);
+      }
+    });
+    return Array.from(sectors.entries())
+      .map(([name, list]) => ({
+        name,
+        stocks: list,
+        totalMcap: list.reduce((sum, s) => sum + (s.marketCap || 0), 0),
+        count: list.length,
+      }))
+      .sort((a, b) => b.totalMcap - a.totalMcap);
   }, [stocks]);
 
-  // Most followed (highest market cap)
-  const mostFollowed = useMemo(() => {
-    if (!stocks) return [];
-    const withPrice = stocks.filter((s: any) => s.price != null && s.price > 0 && s.marketCap);
-    return [...withPrice]
-      .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0))
-      .slice(0, 6);
-  }, [stocks]);
-
+  /** Apply TradingView-style filter */
   const filteredStocks = useMemo(() => {
     if (!stocks) return [];
-    let result = [...stocks];
+    let result = [...stocks].filter((s: any) => s.price != null && s.price > 0);
+
+    // Apply search
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        s => s.symbol.toLowerCase().includes(q) || (s.name && s.name.toLowerCase().includes(q)) || (s.sector && s.sector.toLowerCase().includes(q))
+        (s: any) => s.symbol.toLowerCase().includes(q) || (s.name && s.name.toLowerCase().includes(q)) || (s.sector && s.sector.toLowerCase().includes(q))
       );
     }
-    result.sort((a, b) => {
-      const aHasPrice = a.price != null;
-      const bHasPrice = b.price != null;
-      if (aHasPrice && !bHasPrice) return -1;
-      if (!aHasPrice && bHasPrice) return 1;
-      let aVal: any = (a as any)[sortField];
-      let bVal: any = (b as any)[sortField];
-      if (aVal == null) aVal = sortDir === "asc" ? Infinity : -Infinity;
-      if (bVal == null) bVal = sortDir === "asc" ? Infinity : -Infinity;
-      if (typeof aVal === "string") aVal = aVal.toLowerCase();
-      if (typeof bVal === "string") bVal = bVal.toLowerCase();
-      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
+
+    // Apply sector filter
+    if (sectorFilter) {
+      result = result.filter((s: any) => s.sector === sectorFilter);
+    }
+
+    // Apply category filter
+    switch (activeFilter) {
+      case "gainers":
+        result = result.filter((s: any) => (s.changePercent ?? 0) > 0)
+          .sort((a: any, b: any) => (b.changePercent || 0) - (a.changePercent || 0));
+        break;
+      case "losers":
+        result = result.filter((s: any) => (s.changePercent ?? 0) < 0)
+          .sort((a: any, b: any) => (a.changePercent || 0) - (b.changePercent || 0));
+        break;
+      case "active":
+        result.sort((a: any, b: any) => (b.volume || 0) - (a.volume || 0));
+        break;
+      case "high-dividend":
+        result = result.filter((s: any) => s.dividendYield != null && s.dividendYield > 0)
+          .sort((a: any, b: any) => (b.dividendYield || 0) - (a.dividendYield || 0));
+        break;
+      case "unusual-volume":
+        result = result.filter((s: any) => s.volume != null && s.volume > 0)
+          .sort((a: any, b: any) => {
+            const ratioA = (a.volume || 0) / Math.max(a.avgVolume || a.volume || 1, 1);
+            const ratioB = (b.volume || 0) / Math.max(b.avgVolume || b.volume || 1, 1);
+            return ratioB - ratioA;
+          });
+        break;
+      case "volatile":
+        result.sort((a: any, b: any) => Math.abs(b.changePercent || 0) - Math.abs(a.changePercent || 0));
+        break;
+      case "high-beta":
+        result = result.filter((s: any) => s.beta != null && s.beta > 1)
+          .sort((a: any, b: any) => (b.beta || 0) - (a.beta || 0));
+        break;
+      case "large-cap":
+        result = result.filter((s: any) => s.marketCap != null && s.marketCap >= 10e9)
+          .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0));
+        break;
+      case "small-cap":
+        result = result.filter((s: any) => s.marketCap != null && s.marketCap < 5e9)
+          .sort((a: any, b: any) => (a.marketCap || 0) - (b.marketCap || 0));
+        break;
+      case "overbought":
+        result = result.filter((s: any) => s.rsi != null && s.rsi >= 70)
+          .sort((a: any, b: any) => (b.rsi || 0) - (a.rsi || 0));
+        break;
+      case "oversold":
+        result = result.filter((s: any) => s.rsi != null && s.rsi <= 30)
+          .sort((a: any, b: any) => (a.rsi || 0) - (b.rsi || 0));
+        break;
+      case "52w-high":
+        result = result.filter((s: any) => s.week52High != null && s.price != null && s.price >= s.week52High * 0.95)
+          .sort((a: any, b: any) => {
+            const pctA = a.week52High ? (a.price || 0) / a.week52High : 0;
+            const pctB = b.week52High ? (b.price || 0) / b.week52High : 0;
+            return pctB - pctA;
+          });
+        break;
+      case "52w-low":
+        result = result.filter((s: any) => s.week52Low != null && s.price != null && s.price <= s.week52Low * 1.05)
+          .sort((a: any, b: any) => {
+            const pctA = a.week52Low ? (a.price || 0) / a.week52Low : 0;
+            const pctB = b.week52Low ? (b.price || 0) / b.week52Low : 0;
+            return pctA - pctB;
+          });
+        break;
+      case "penny":
+        result = result.filter((s: any) => s.price != null && s.price < 1)
+          .sort((a: any, b: any) => (a.price || 0) - (b.price || 0));
+        break;
+      case "highest-revenue":
+        result = result.filter((s: any) => s.totalRevenue != null)
+          .sort((a: any, b: any) => (b.totalRevenue || 0) - (a.totalRevenue || 0));
+        break;
+      case "highest-profit":
+        result = result.filter((s: any) => s.netIncome != null)
+          .sort((a: any, b: any) => (b.netIncome || 0) - (a.netIncome || 0));
+        break;
+      case "best-performing":
+        result = result.filter((s: any) => s.perfYear != null)
+          .sort((a: any, b: any) => (b.perfYear || 0) - (a.perfYear || 0));
+        break;
+      default:
+        // "all" — apply manual sort
+        result.sort((a: any, b: any) => {
+          let aVal: any = (a as any)[sortField];
+          let bVal: any = (b as any)[sortField];
+          if (aVal == null) aVal = sortDir === "asc" ? Infinity : -Infinity;
+          if (bVal == null) bVal = sortDir === "asc" ? Infinity : -Infinity;
+          if (typeof aVal === "string") aVal = aVal.toLowerCase();
+          if (typeof bVal === "string") bVal = bVal.toLowerCase();
+          if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+          if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+          return 0;
+        });
+    }
+
+    // If not "all" filter, still allow manual sort override
+    if (activeFilter !== "all" && sortField !== "marketCap") {
+      result.sort((a: any, b: any) => {
+        let aVal: any = (a as any)[sortField];
+        let bVal: any = (b as any)[sortField];
+        if (aVal == null) aVal = sortDir === "asc" ? Infinity : -Infinity;
+        if (bVal == null) bVal = sortDir === "asc" ? Infinity : -Infinity;
+        if (typeof aVal === "string") aVal = aVal.toLowerCase();
+        if (typeof bVal === "string") bVal = bVal.toLowerCase();
+        if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
     return result;
-  }, [stocks, search, sortField, sortDir]);
+  }, [stocks, search, sortField, sortDir, activeFilter, sectorFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -330,340 +619,430 @@ export default function Home() {
       : <ArrowDown className="h-3 w-3 text-primary" />;
   };
 
-  const stats = useMemo(() => {
-    if (!stocks || stocks.length === 0) return null;
-    const withPrice = stocks.filter(s => s.price != null);
-    const gainers = withPrice.filter(s => (s.changePercent ?? 0) > 0);
-    const losers = withPrice.filter(s => (s.changePercent ?? 0) < 0);
-    const totalVolume = withPrice.reduce((sum, s) => sum + (s.volume ?? 0), 0);
-    return { total: stocks.length, withPrice: withPrice.length, gainers: gainers.length, losers: losers.length, totalVolume };
-  }, [stocks]);
+  /** Filter description text */
+  const filterDescription = useMemo(() => {
+    const cat = FILTER_CATEGORIES.find(c => c.id === activeFilter);
+    const descriptions: Record<string, string> = {
+      "all": "All Emirati stocks listed on ADX and DFM exchanges.",
+      "gainers": "Stocks with the highest positive price change today.",
+      "losers": "Stocks with the largest negative price change today.",
+      "active": "Stocks with the highest trading volume today.",
+      "high-dividend": "Emirati companies with the highest dividend yields.",
+      "unusual-volume": "Stocks trading at significantly higher volume than average.",
+      "volatile": "Stocks with the largest absolute price swings today.",
+      "high-beta": "Stocks with beta greater than 1, indicating higher market sensitivity.",
+      "large-cap": "Companies with market capitalization above AED 10B.",
+      "small-cap": "Companies with market capitalization below AED 5B.",
+      "overbought": "Stocks with RSI above 70, potentially overbought.",
+      "oversold": "Stocks with RSI below 30, potentially oversold.",
+      "52w-high": "Stocks trading within 5% of their 52-week high.",
+      "52w-low": "Stocks trading within 5% of their 52-week low.",
+      "penny": "Stocks priced below AED 1.00.",
+      "highest-revenue": "Companies ranked by total revenue.",
+      "highest-profit": "Companies ranked by net income.",
+      "best-performing": "Stocks with the best 1-year performance.",
+    };
+    return descriptions[activeFilter] || "";
+  }, [activeFilter]);
 
+  /* ═══════════════════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col gap-6">
-      {/* ═══ TWO-COLUMN LAYOUT (Google Finance style) ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-        {/* ─── LEFT COLUMN: Main Content ─── */}
-        <div className="flex flex-col gap-8 min-w-0">
-          {/* "You may be interested in" section */}
-          {interestStocks.length > 0 && (
-            <section>
-              <h2 className="text-base font-normal text-foreground mb-3 flex items-center gap-2">
-                You may be interested in
-              </h2>
-              <div className="flex flex-col">
-                {interestStocks.map((s: any) => (
-                  <InterestRow key={s.symbol} stock={s} onClick={() => setLocation(`/stock/${s.symbol}`)} />
-                ))}
-              </div>
-            </section>
-          )}
+    <div className="flex flex-col gap-8 pb-8">
 
-          {/* Discover more — horizontal scrollable cards */}
-          {discoverStocks.length > 0 && (
-            <section>
-              <h2 className="text-base font-normal text-foreground mb-3">Discover more</h2>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'thin' }}>
-                {discoverStocks.map((s: any) => (
-                  <DiscoverCard key={s.symbol} stock={s} onClick={() => setLocation(`/stock/${s.symbol}`)} />
-                ))}
+      {/* ═══ HERO: Market Overview Stats ═══ */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/3 dark:from-primary/10 dark:via-transparent dark:to-primary/5 rounded-2xl" />
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl bg-white/40 dark:bg-white/[0.03] backdrop-blur-sm border border-white/20 dark:border-white/[0.06] p-4">
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-6 w-20" />
               </div>
-            </section>
-          )}
-
-          {/* ─── Market Trends (Most Active / Gainers / Losers) ─── */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-normal text-foreground">Market trends</h2>
-              <button
-                onClick={() => {
-                  if (trendTab === "active") { setSortField("volume"); setSortDir("desc"); }
-                  else if (trendTab === "gainers") { setSortField("changePercent"); setSortDir("desc"); }
-                  else { setSortField("changePercent"); setSortDir("asc"); }
-                }}
-                className="text-xs text-primary hover:underline flex items-center gap-0.5"
-              >
-                More <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
-            {/* Tabs */}
-            <div className="flex items-center gap-1 mb-3">
-              <button
-                onClick={() => setTrendTab("active")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  trendTab === "active" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <Activity className="h-3.5 w-3.5" /> Most active
-              </button>
-              <button
-                onClick={() => setTrendTab("gainers")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  trendTab === "gainers" ? "bg-[#1e8e3e]/10 text-[#1e8e3e]" : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <TrendingUp className="h-3.5 w-3.5" /> Gainers
-              </button>
-              <button
-                onClick={() => setTrendTab("losers")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  trendTab === "losers" ? "bg-[#d93025]/10 text-[#d93025]" : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <TrendingDown className="h-3.5 w-3.5" /> Losers
-              </button>
-            </div>
-            <div className="flex flex-col">
-              {trendStocks.map((s: any) => (
-                <TrendRow key={s.symbol} stock={s} onClick={() => setLocation(`/stock/${s.symbol}`)} />
-              ))}
-              {trendStocks.length === 0 && (
-                <p className="text-sm text-muted-foreground py-4 text-center">No data available</p>
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* ─── RIGHT COLUMN: Sidebar ─── */}
-        <div className="flex flex-col gap-5">
-          {/* Market Summary Card */}
-          {stats && (
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="text-sm font-medium text-foreground mb-3">Market summary</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Building2 className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Total</p>
-                    <p className="text-sm font-semibold text-foreground">{stats.total}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-[#1e8e3e]/10 flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 text-[#1e8e3e]" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Gainers</p>
-                    <p className="text-sm font-semibold text-[#1e8e3e]">{stats.gainers}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-[#d93025]/10 flex items-center justify-center">
-                    <TrendingDown className="h-3.5 w-3.5 text-[#d93025]" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Losers</p>
-                    <p className="text-sm font-semibold text-[#d93025]">{stats.losers}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                    <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Volume</p>
-                    <p className="text-sm font-semibold text-foreground">{fmtLg(stats.totalVolume)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Top by market cap */}
-          {mostFollowed.length > 0 && (
-            <div className="rounded-lg border border-border p-4">
-              <h3 className="text-sm font-medium text-foreground mb-3">Top by market cap</h3>
-              <div className="flex flex-col">
-                {mostFollowed.map((s: any) => {
-                  const isUp = (s.changePercent ?? 0) > 0;
-                  const isDown = (s.changePercent ?? 0) < 0;
-                  return (
-                    <div
-                      key={s.symbol}
-                      onClick={() => setLocation(`/stock/${s.symbol}`)}
-                      className="flex items-center gap-2.5 py-2.5 border-b border-border/30 last:border-0 hover:bg-accent/40 cursor-pointer transition-colors -mx-1 px-1 rounded"
-                    >
-                      <StockLogo logoUrl={s.logoUrl} symbol={s.symbol} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <TickerBadge symbol={s.symbol} />
-                          <p className="text-xs text-foreground truncate">{s.name}</p>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">{fmtLg(s.marketCap)}</p>
-                      </div>
-                      <span className={`text-xs font-medium tabular-nums flex items-center gap-0.5 ${isUp ? "text-[#1e8e3e]" : isDown ? "text-[#d93025]" : "text-muted-foreground"}`}>
-                        {isUp ? <ArrowUp className="h-3 w-3" /> : isDown ? <ArrowDown className="h-3 w-3" /> : null}
-                        {Math.abs(s.changePercent ?? 0).toFixed(2)}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            ))
+          ) : stats ? (
+            <>
+              <GlassCard className="p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Stocks</p>
+                <p className="text-xl font-bold text-foreground tabular-nums">{stats.withPrice}</p>
+              </GlassCard>
+              <GlassCard className="p-4">
+                <p className="text-xs text-muted-foreground mb-1">Gainers / Losers</p>
+                <p className="text-xl font-bold tabular-nums">
+                  <span className="text-gain">{stats.gainers}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  <span className="text-loss">{stats.losers}</span>
+                </p>
+              </GlassCard>
+              <GlassCard className="p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Volume</p>
+                <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalVolume)}</p>
+              </GlassCard>
+              <GlassCard className="p-4">
+                <p className="text-xs text-muted-foreground mb-1">Market Cap</p>
+                <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalMcap)}</p>
+              </GlassCard>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {/* ═══ ALL STOCKS TABLE ═══ */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        {/* Table Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-border gap-3">
+      {/* ═══ TOP MOVERS CAROUSEL ═══ */}
+      {topMovers && (
+        <section>
+          <SectionTitle icon={TrendingUp}>
+            Today&apos;s Movers
+          </SectionTitle>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+            {[...(topMovers.gainers || []), ...(topMovers.losers || [])].map((stock: any, i: number) => (
+              <MoverCard
+                key={stock.symbol}
+                stock={stock}
+                rank={i + 1}
+                onClick={() => setLocation(`/stock/${stock.symbol}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ═══ SECTORS & INDUSTRIES ═══ */}
+      {sectorData.length > 0 && (
+        <section>
+          <SectionTitle icon={Building2} action={
+            sectorFilter && (
+              <button
+                onClick={() => setSectorFilter(null)}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Clear filter <span className="font-medium">({sectorFilter})</span>
+              </button>
+            )
+          }>
+            Sectors &amp; Industries
+          </SectionTitle>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+            {sectorData.slice(0, 12).map((sec) => (
+              <SectorCard
+                key={sec.name}
+                sector={sec.name}
+                stocks={stocks || []}
+                onClick={() => {
+                  setSectorFilter(sectorFilter === sec.name ? null : sec.name);
+                  toast.info(sectorFilter === sec.name ? "Sector filter cleared" : `Filtered to ${sec.name}`);
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ═══ FILTER PILLS + TABLE SECTION ═══ */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-base font-medium text-foreground">All stocks</h2>
-            <div className="flex items-center gap-1 ml-1">
-              {(["ALL", "DFM", "ADX"] as const).map((ex) => (
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Filter className="h-5 w-5 text-primary" />
+              Emirati Stocks
+            </h2>
+            {/* Exchange tabs */}
+            <div className="flex items-center rounded-full bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] p-0.5">
+              {(["ALL", "ADX", "DFM"] as const).map((ex) => (
                 <button
                   key={ex}
                   onClick={() => setExchange(ex)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                     exchange === ex
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {ex === "ALL" ? "All" : ex}
+                  {ex}
                 </button>
               ))}
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
+                type="text"
                 placeholder="Search stocks..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="h-9 pl-9 pr-3 w-52 text-sm bg-background border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-9 pr-3 rounded-full text-sm bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-48"
               />
             </div>
+            {/* Export */}
             <button
               onClick={handleExportCSV}
-              disabled={csvFetching || isLoading}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              disabled={csvFetching}
+              className="h-8 px-3 rounded-full text-xs font-medium bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
             >
-              <Download className={`h-3.5 w-3.5 ${csvFetching ? "animate-pulse" : ""}`} />
-              Export
+              <Download className="h-3.5 w-3.5" />
+              CSV
             </button>
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-auto">
-          {isLoading ? (
-            <div className="p-5 space-y-3">
-              {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="flex gap-4 items-center">
-                  <Skeleton className="h-5 w-14 rounded" />
-                  <Skeleton className="h-4 w-40 flex-1" />
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <table className="w-full">
+        {/* Filter pills */}
+        <FilterPillBar active={activeFilter} onChange={(id) => { setActiveFilter(id); setSortField("marketCap"); setSortDir("desc"); }} />
+
+        {/* Filter description */}
+        {activeFilter !== "all" && (
+          <div className="mt-3 px-1">
+            <p className="text-sm text-muted-foreground">{filterDescription}</p>
+            <p className="text-xs text-muted-foreground mt-1">{filteredStocks.length} stocks match</p>
+          </div>
+        )}
+
+        {/* Table view tabs */}
+        <div className="flex items-center gap-1 mt-4 mb-3 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+          {TABLE_VIEWS.map((tv) => (
+            <button
+              key={tv.id}
+              onClick={() => setTableView(tv.id)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                tableView === tv.id
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              }`}
+            >
+              {tv.label}
+            </button>
+          ))}
+        </div>
+
+        {/* DATA TABLE */}
+        <GlassCard className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="stock-table w-full">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left pl-5 py-3 text-xs font-medium text-muted-foreground">
-                    <button onClick={() => handleSort("symbol")} className="flex items-center gap-1 hover:text-foreground transition-colors">
-                      Symbol <SortIcon field="symbol" />
-                    </button>
+                <tr>
+                  <th className="text-left pl-4" onClick={() => handleSort("symbol")}>
+                    <span className="inline-flex items-center gap-1">Symbol <SortIcon field="symbol" /></span>
                   </th>
-                  <th className="text-left py-3 text-xs font-medium text-muted-foreground hidden lg:table-cell">
-                    <button onClick={() => handleSort("name")} className="flex items-center gap-1 hover:text-foreground transition-colors">
-                      Company <SortIcon field="name" />
-                    </button>
+                  <th className="text-left" onClick={() => handleSort("name")}>
+                    <span className="inline-flex items-center gap-1">Company <SortIcon field="name" /></span>
                   </th>
-                  <th className="text-right py-3 text-xs font-medium text-muted-foreground pr-3">
-                    <button onClick={() => handleSort("price")} className="flex items-center gap-1 justify-end hover:text-foreground transition-colors">
-                      Price <SortIcon field="price" />
-                    </button>
+                  <th className="text-right" onClick={() => handleSort("price")}>
+                    <span className="inline-flex items-center gap-1 justify-end">Price <SortIcon field="price" /></span>
                   </th>
-                  <th className="text-right py-3 text-xs font-medium text-muted-foreground pr-3">
-                    <button onClick={() => handleSort("changePercent")} className="flex items-center gap-1 justify-end hover:text-foreground transition-colors">
-                      Change <SortIcon field="changePercent" />
-                    </button>
+                  <th className="text-right" onClick={() => handleSort("changePercent")}>
+                    <span className="inline-flex items-center gap-1 justify-end">Change % <SortIcon field="changePercent" /></span>
                   </th>
-                  <th className="text-right py-3 text-xs font-medium text-muted-foreground pr-3 hidden md:table-cell">
-                    <button onClick={() => handleSort("pe")} className="flex items-center gap-1 justify-end hover:text-foreground transition-colors">
-                      P/E <SortIcon field="pe" />
-                    </button>
+                  <th className="text-right" onClick={() => handleSort("volume")}>
+                    <span className="inline-flex items-center gap-1 justify-end">Volume <SortIcon field="volume" /></span>
                   </th>
-                  <th className="text-right py-3 text-xs font-medium text-muted-foreground pr-3 hidden md:table-cell">
-                    <button onClick={() => handleSort("volume")} className="flex items-center gap-1 justify-end hover:text-foreground transition-colors">
-                      Volume <SortIcon field="volume" />
-                    </button>
-                  </th>
-                  <th className="text-right py-3 text-xs font-medium text-muted-foreground pr-3 hidden lg:table-cell">
-                    <button onClick={() => handleSort("marketCap")} className="flex items-center gap-1 justify-end hover:text-foreground transition-colors">
-                      Market Cap <SortIcon field="marketCap" />
-                    </button>
-                  </th>
-                  <th className="text-center py-3 text-xs font-medium text-muted-foreground pr-5 hidden sm:table-cell w-16">
-                    Exchange
-                  </th>
+
+                  {/* Dynamic columns based on table view */}
+                  {tableView === "overview" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("marketCap")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Mkt Cap <SortIcon field="marketCap" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("pe")}>
+                        <span className="inline-flex items-center gap-1 justify-end">P/E <SortIcon field="pe" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("eps")}>
+                        <span className="inline-flex items-center gap-1 justify-end">EPS <SortIcon field="eps" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "performance" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("perfWeek")}>
+                        <span className="inline-flex items-center gap-1 justify-end">1W <SortIcon field="perfWeek" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("perfMonth")}>
+                        <span className="inline-flex items-center gap-1 justify-end">1M <SortIcon field="perfMonth" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("perfYear")}>
+                        <span className="inline-flex items-center gap-1 justify-end">1Y <SortIcon field="perfYear" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "valuation" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("marketCap")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Mkt Cap <SortIcon field="marketCap" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("pe")}>
+                        <span className="inline-flex items-center gap-1 justify-end">P/E <SortIcon field="pe" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("eps")}>
+                        <span className="inline-flex items-center gap-1 justify-end">P/B <SortIcon field="eps" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "dividends" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("dividendYield")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Div Yield <SortIcon field="dividendYield" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("marketCap")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Mkt Cap <SortIcon field="marketCap" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("pe")}>
+                        <span className="inline-flex items-center gap-1 justify-end">P/E <SortIcon field="pe" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "profitability" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("grossMargin")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Gross Margin <SortIcon field="grossMargin" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("operatingMargin")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Op Margin <SortIcon field="operatingMargin" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("returnOnEquity")}>
+                        <span className="inline-flex items-center gap-1 justify-end">ROE <SortIcon field="returnOnEquity" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "technicals" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("rsi")}>
+                        <span className="inline-flex items-center gap-1 justify-end">RSI <SortIcon field="rsi" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("beta")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Beta <SortIcon field="beta" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("week52High")}>
+                        <span className="inline-flex items-center gap-1 justify-end">52W H <SortIcon field="week52High" /></span>
+                      </th>
+                    </>
+                  )}
+
+                  <th className="text-center w-16">Sector</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredStocks.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 12 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 9 }).map((_, j) => (
+                        <td key={j}><Skeleton className="h-4 w-full" /></td>
+                      ))}
+                    </tr>
+                  ))
+                ) : filteredStocks.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
-                      {search ? `No stocks match "${search}"` : "No data available."}
+                    <td colSpan={9} className="text-center py-12 text-muted-foreground">
+                      No stocks match the current filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredStocks.map((stock) => {
-                    const hasData = stock.price != null;
+                  filteredStocks.map((stock: any) => {
+                    const rowFlash = getRowFlash(stock.symbol, stock.exchange);
+                    const cellFlash = getCellFlash(stock.symbol, stock.exchange);
+                    const isUp = (stock.changePercent ?? 0) > 0;
+                    const isDown = (stock.changePercent ?? 0) < 0;
                     return (
                       <tr
-                        key={`${stock.exchange}-${stock.symbol}`}
-                        className={`border-b border-border/50 hover:bg-accent/30 cursor-pointer transition-colors ${hasData ? "" : "opacity-40"} ${getFlashClass(priceFlashes, stock.exchange, stock.symbol)}`}
+                        key={stock.symbol}
                         onClick={() => setLocation(`/stock/${stock.symbol}`)}
+                        className={`cursor-pointer ${rowFlash}`}
                       >
-                        <td className="pl-5 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />
+                        {/* Symbol */}
+                        <td className="pl-4">
+                          <div className="flex items-center gap-2">
+                            {stock.logoUrl && <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} />}
                             <TickerBadge symbol={stock.symbol} />
-                            <div>
-                              <span className="text-sm text-foreground lg:hidden block truncate max-w-[140px]">{stock.name}</span>
-                            </div>
                           </div>
                         </td>
-                        <td className="hidden lg:table-cell py-3">
-                          <span className="text-sm text-foreground/80 truncate block max-w-[220px]">{stock.name}</span>
-                          <span className="text-xs text-muted-foreground">{stock.sector}</span>
-                        </td>
-                        <td className="text-right py-3 pr-3">
-                          {hasData ? (
-                            <span className={`font-medium text-sm tabular-nums ${getPriceFlashClass(priceFlashes, stock.exchange, stock.symbol)}`}>
-                              {fmt(stock.price)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="text-right py-3 pr-3">
-                          {hasData ? <Chg value={stock.changePercent} /> : <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="text-right py-3 pr-3 hidden md:table-cell">
-                          <span className="text-sm text-foreground/70 tabular-nums">{hasData && stock.pe != null ? fmt(stock.pe, 1) : "—"}</span>
-                        </td>
-                        <td className="text-right py-3 pr-3 hidden md:table-cell">
-                          <span className="text-sm text-foreground/70 tabular-nums">{hasData ? fmtLg(stock.volume) : "—"}</span>
-                        </td>
-                        <td className="text-right py-3 pr-3 hidden lg:table-cell">
-                          <span className="text-sm text-foreground/70 tabular-nums">{hasData ? fmtLg(stock.marketCap) : "—"}</span>
-                        </td>
-                        <td className="text-center py-3 pr-5 hidden sm:table-cell">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            stock.exchange === "ADX"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-[#1e8e3e]/10 text-[#1e8e3e]"
-                          }`}>
-                            {stock.exchange}
+                        {/* Company */}
+                        <td>
+                          <span className="text-sm text-foreground truncate block max-w-[200px]">
+                            {stock.name || stock.symbol}
                           </span>
+                        </td>
+                        {/* Price */}
+                        <td className="text-right">
+                          <span className={`font-medium tabular-nums ${cellFlash}`}>
+                            {fmt(stock.price)}
+                          </span>
+                        </td>
+                        {/* Change */}
+                        <td className="text-right">
+                          <Chg value={stock.changePercent} />
+                        </td>
+                        {/* Volume */}
+                        <td className="text-right text-muted-foreground tabular-nums text-sm">
+                          {fmtLg(stock.volume)}
+                        </td>
+
+                        {/* Dynamic columns */}
+                        {tableView === "overview" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{fmtLg(stock.marketCap)}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.pe != null ? stock.pe.toFixed(1) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.eps != null ? fmt(stock.eps) : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "performance" && (
+                          <>
+                            <td className="text-right"><Chg value={stock.perfWeek} showArrow={false} /></td>
+                            <td className="text-right"><Chg value={stock.perfMonth} showArrow={false} /></td>
+                            <td className="text-right"><Chg value={stock.perfYear} showArrow={false} /></td>
+                          </>
+                        )}
+                        {tableView === "valuation" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{fmtLg(stock.marketCap)}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.pe != null ? stock.pe.toFixed(1) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.priceToBook != null ? stock.priceToBook.toFixed(2) : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "dividends" && (
+                          <>
+                            <td className="text-right">
+                              <span className={`tabular-nums text-sm font-medium ${stock.dividendYield > 3 ? "text-gain" : "text-muted-foreground"}`}>
+                                {stock.dividendYield != null ? stock.dividendYield.toFixed(2) + "%" : "—"}
+                              </span>
+                            </td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{fmtLg(stock.marketCap)}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.pe != null ? stock.pe.toFixed(1) : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "profitability" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.grossMargin != null ? (stock.grossMargin * 100).toFixed(1) + "%" : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.operatingMargin != null ? (stock.operatingMargin * 100).toFixed(1) + "%" : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.returnOnEquity != null ? (stock.returnOnEquity * 100).toFixed(1) + "%" : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "technicals" && (
+                          <>
+                            <td className="text-right">
+                              <span className={`tabular-nums text-sm font-medium ${
+                                stock.rsi != null ? (stock.rsi >= 70 ? "text-loss" : stock.rsi <= 30 ? "text-gain" : "text-muted-foreground") : "text-muted-foreground"
+                              }`}>
+                                {stock.rsi != null ? stock.rsi.toFixed(1) : "—"}
+                              </span>
+                            </td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.beta != null ? stock.beta.toFixed(2) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.week52High != null ? fmt(stock.week52High) : "—"}</td>
+                          </>
+                        )}
+
+                        {/* Sector */}
+                        <td className="text-center">
+                          {stock.sector && (
+                            <span
+                              className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium"
+                              style={{
+                                backgroundColor: `${getSectorColor(stock.sector)}12`,
+                                color: getSectorColor(stock.sector),
+                              }}
+                            >
+                              {stock.sector}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -671,20 +1050,42 @@ export default function Home() {
                 )}
               </tbody>
             </table>
-          )}
-        </div>
-
-        {/* Table Footer */}
-        {filteredStocks.length > 0 && (
-          <div className="px-5 py-3 text-xs text-muted-foreground border-t border-border flex items-center justify-between">
-            <span>
-              Showing {filteredStocks.length} of {stocks?.length ?? 0} stocks
-              {search && ` matching "${search}"`}
-            </span>
-            <span>{stats?.withPrice ?? 0} with live prices</span>
           </div>
-        )}
-      </div>
+          {/* Table footer */}
+          {!isLoading && filteredStocks.length > 0 && (
+            <div className="px-4 py-3 border-t border-white/10 dark:border-white/[0.06] flex items-center justify-between text-xs text-muted-foreground">
+              <span>Showing {filteredStocks.length} stocks</span>
+              <button
+                onClick={() => setLocation("/screener")}
+                className="text-primary hover:underline flex items-center gap-1"
+              >
+                Advanced Screener <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </GlassCard>
+      </section>
+
+      {/* ═══ NEWS SECTION ═══ */}
+      {marketNews && marketNews.items && marketNews.items.length > 0 && (
+        <section>
+          <SectionTitle icon={Newspaper} action={
+            <button
+              onClick={() => setLocation("/news")}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              All news <ChevronRight className="h-3 w-3" />
+            </button>
+          }>
+            Market News
+          </SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {marketNews.items.slice(0, 6).map((item: any, i: number) => (
+              <NewsCard key={i} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

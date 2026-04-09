@@ -1361,3 +1361,26 @@
 - [x] Typography refinement: Google Sans-like sizing and weights
 - [x] Fixed Vite HMR port configuration (was defaulting to 5173 instead of 3000)
 - [x] Build and deploy v11.1.0
+
+## v12.0.0 — TradingView-Style Homepage with Glassy Design
+- [x] Research TradingView UAE stocks main page (market overview, indices, filter pills)
+- [x] Research TradingView high-dividend page (dividend yields table, tabs)
+- [x] Research TradingView ideas page (community trading ideas)
+- [x] Research TradingView news page (latest market news)
+- [x] Research TradingView sectors & industries page (sector breakdown, heatmap)
+- [x] Design unique glassy UI theme (glassmorphism, frosted glass cards, gradients)
+- [x] Homepage: Market Movers section (All stocks, Top gainers, Biggest losers, Most active, etc.)
+- [x] Homepage: High Dividend section with sortable table (via filter pills)
+- [x] Homepage: Sector & Industry breakdown with visual cards
+- [x] Homepage: News feed section (Market News with 2-column grid)
+- [x] Homepage: Today's Movers horizontal carousel
+- [x] Homepage: Filter pill categories (52-week high/low, Overbought/Oversold, High beta, etc.)
+- [x] Homepage: Data table tabs (Overview, Performance, Valuation, Dividends, Profitability, Technicals)
+- [x] Backend: Market movers API (gainers, losers, most active, volume, etc.)
+- [x] Backend: Dividend data aggregation (via filter pills)
+- [x] Backend: Sector/industry grouping with market cap and stock counts
+- [x] Glassy card components with backdrop-blur, gradients, and glass borders
+- [x] Premium dark glassmorphism theme with gradient mesh background
+- [x] Fixed news timestamp calculation (Unix seconds to milliseconds)
+- [x] Fixed duplicate ticker badges for stocks without logos
+- [x] Build and deploy v12.0.0

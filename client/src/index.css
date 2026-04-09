@@ -53,52 +53,42 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   LIGHT MODE — Google Finance-inspired clean white theme
+   LIGHT MODE — Clean white theme
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  --radius: 0.5rem;
-  /* Core surfaces */
-  --background: oklch(1.0 0 0);
-  --foreground: oklch(0.20 0.01 260);
+  --radius: 0.625rem;
+  --background: oklch(0.98 0.002 260);
+  --foreground: oklch(0.15 0.01 260);
   --card: oklch(1.0 0 0);
-  --card-foreground: oklch(0.20 0.01 260);
+  --card-foreground: oklch(0.15 0.01 260);
   --popover: oklch(1.0 0 0);
-  --popover-foreground: oklch(0.20 0.01 260);
-  /* Primary — Google blue #1a73e8 */
-  --primary: oklch(0.55 0.18 260);
+  --popover-foreground: oklch(0.15 0.01 260);
+  --primary: oklch(0.55 0.20 260);
   --primary-foreground: oklch(1.0 0 0);
-  /* Secondary — Google light gray #f1f3f4 */
   --secondary: oklch(0.96 0.003 260);
   --secondary-foreground: oklch(0.25 0.01 260);
-  /* Muted — #5f6368 text, #f8f9fa bg */
-  --muted: oklch(0.97 0.002 260);
+  --muted: oklch(0.96 0.003 260);
   --muted-foreground: oklch(0.45 0.01 260);
-  /* Accent — hover bg #f1f3f4 */
-  --accent: oklch(0.96 0.003 260);
-  --accent-foreground: oklch(0.20 0.01 260);
-  /* Destructive — Google red #d93025 */
+  --accent: oklch(0.95 0.005 260);
+  --accent-foreground: oklch(0.15 0.01 260);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1.0 0 0);
-  /* Borders — Google #dadce0 */
-  --border: oklch(0.89 0.005 260);
-  --input: oklch(0.89 0.005 260);
-  --ring: oklch(0.55 0.18 260);
-  /* Charts */
-  --chart-1: oklch(0.55 0.18 260);
+  --border: oklch(0.90 0.005 260);
+  --input: oklch(0.90 0.005 260);
+  --ring: oklch(0.55 0.20 260);
+  --chart-1: oklch(0.55 0.20 260);
   --chart-2: oklch(0.55 0.18 155);
   --chart-3: oklch(0.50 0.18 300);
   --chart-4: oklch(0.72 0.16 85);
   --chart-5: oklch(0.55 0.22 25);
-  /* Sidebar */
   --sidebar: oklch(1.0 0 0);
   --sidebar-foreground: oklch(0.40 0.01 260);
-  --sidebar-primary: oklch(0.55 0.18 260);
+  --sidebar-primary: oklch(0.55 0.20 260);
   --sidebar-primary-foreground: oklch(1.0 0 0);
   --sidebar-accent: oklch(0.96 0.003 260);
-  --sidebar-accent-foreground: oklch(0.20 0.01 260);
+  --sidebar-accent-foreground: oklch(0.15 0.01 260);
   --sidebar-border: oklch(0.92 0.003 260);
-  --sidebar-ring: oklch(0.55 0.18 260);
-  /* Trading colors — Google Finance green #1e8e3e / red #d93025 */
+  --sidebar-ring: oklch(0.55 0.20 260);
   --gain: oklch(0.55 0.18 155);
   --loss: oklch(0.55 0.22 25);
   --neon-cyan: oklch(0.55 0.14 220);
@@ -109,48 +99,57 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   DARK MODE — Matching dark variant
+   DARK MODE — Premium Glassmorphism Theme
+   Deep navy/charcoal with frosted glass surfaces and vibrant accents
    ═══════════════════════════════════════════════════════════════════ */
 .dark {
-  --background: oklch(0.14 0.005 260);
-  --foreground: oklch(0.93 0.005 260);
-  --card: oklch(0.18 0.006 260);
-  --card-foreground: oklch(0.93 0.005 260);
-  --popover: oklch(0.18 0.006 260);
-  --popover-foreground: oklch(0.93 0.005 260);
-  --primary: oklch(0.65 0.18 260);
+  --background: oklch(0.11 0.012 260);
+  --foreground: oklch(0.95 0.005 260);
+  --card: oklch(0.15 0.012 260);
+  --card-foreground: oklch(0.95 0.005 260);
+  --popover: oklch(0.15 0.012 260);
+  --popover-foreground: oklch(0.95 0.005 260);
+  /* Primary — Vibrant electric blue */
+  --primary: oklch(0.68 0.20 255);
   --primary-foreground: oklch(1.0 0 0);
-  --secondary: oklch(0.22 0.006 260);
-  --secondary-foreground: oklch(0.88 0.005 260);
-  --muted: oklch(0.22 0.006 260);
-  --muted-foreground: oklch(0.65 0.01 260);
-  --accent: oklch(0.22 0.006 260);
-  --accent-foreground: oklch(0.93 0.005 260);
+  /* Secondary — Frosted surface */
+  --secondary: oklch(0.18 0.012 260);
+  --secondary-foreground: oklch(0.90 0.005 260);
+  /* Muted — Subtle text and backgrounds */
+  --muted: oklch(0.18 0.010 260);
+  --muted-foreground: oklch(0.60 0.012 260);
+  /* Accent — Hover/active surfaces */
+  --accent: oklch(0.20 0.015 260);
+  --accent-foreground: oklch(0.95 0.005 260);
   --destructive: oklch(0.60 0.22 25);
   --destructive-foreground: oklch(1.0 0 0);
-  --border: oklch(0.28 0.006 260);
-  --input: oklch(0.28 0.006 260);
-  --ring: oklch(0.65 0.18 260);
-  --chart-1: oklch(0.65 0.18 260);
-  --chart-2: oklch(0.65 0.18 155);
-  --chart-3: oklch(0.60 0.18 300);
-  --chart-4: oklch(0.75 0.16 85);
-  --chart-5: oklch(0.60 0.22 25);
-  --sidebar: oklch(0.16 0.005 260);
+  /* Borders — Subtle glass edges */
+  --border: oklch(0.24 0.012 260);
+  --input: oklch(0.22 0.012 260);
+  --ring: oklch(0.68 0.20 255);
+  /* Charts */
+  --chart-1: oklch(0.68 0.20 255);
+  --chart-2: oklch(0.72 0.19 155);
+  --chart-3: oklch(0.65 0.18 300);
+  --chart-4: oklch(0.78 0.16 85);
+  --chart-5: oklch(0.65 0.22 25);
+  /* Sidebar */
+  --sidebar: oklch(0.13 0.012 260);
   --sidebar-foreground: oklch(0.85 0.005 260);
-  --sidebar-primary: oklch(0.65 0.18 260);
+  --sidebar-primary: oklch(0.68 0.20 255);
   --sidebar-primary-foreground: oklch(1.0 0 0);
-  --sidebar-accent: oklch(0.22 0.006 260);
-  --sidebar-accent-foreground: oklch(0.93 0.005 260);
-  --sidebar-border: oklch(0.28 0.006 260);
-  --sidebar-ring: oklch(0.65 0.18 260);
-  --gain: oklch(0.70 0.18 155);
-  --loss: oklch(0.65 0.22 25);
-  --neon-cyan: oklch(0.65 0.14 220);
-  --neon-green: oklch(0.70 0.18 155);
-  --neon-red: oklch(0.65 0.22 25);
-  --neon-purple: oklch(0.60 0.18 300);
-  --neon-gold: oklch(0.75 0.16 85);
+  --sidebar-accent: oklch(0.20 0.012 260);
+  --sidebar-accent-foreground: oklch(0.95 0.005 260);
+  --sidebar-border: oklch(0.24 0.012 260);
+  --sidebar-ring: oklch(0.68 0.20 255);
+  /* Trading — Vibrant neon gain/loss */
+  --gain: oklch(0.75 0.20 155);
+  --loss: oklch(0.68 0.22 25);
+  --neon-cyan: oklch(0.75 0.16 200);
+  --neon-green: oklch(0.75 0.20 155);
+  --neon-red: oklch(0.68 0.22 25);
+  --neon-purple: oklch(0.65 0.20 300);
+  --neon-gold: oklch(0.80 0.16 85);
 }
 
 @layer base {
@@ -161,6 +160,15 @@
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  /* Dark mode: gradient mesh background for depth */
+  .dark body {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.20 0.06 255 / 30%) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, oklch(0.18 0.05 300 / 20%) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.15 0.03 200 / 15%) 0%, transparent 60%),
+      oklch(0.11 0.012 260);
+    background-attachment: fixed;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -199,11 +207,11 @@
      ═══════════════════════════════════════════════════════════════════ */
   .text-gain { color: var(--gain); }
   .text-loss { color: var(--loss); }
-  .bg-gain { background-color: color-mix(in oklch, var(--gain) 10%, transparent); }
-  .bg-loss { background-color: color-mix(in oklch, var(--loss) 10%, transparent); }
+  .bg-gain { background-color: color-mix(in oklch, var(--gain) 12%, transparent); }
+  .bg-loss { background-color: color-mix(in oklch, var(--loss) 12%, transparent); }
 
   /* ═══════════════════════════════════════════════════════════════════
-     TRADING FLASH EFFECTS (Google Finance-style price change animations)
+     TRADING FLASH EFFECTS
      ═══════════════════════════════════════════════════════════════════ */
   @keyframes flash-green {
     0% { background-color: color-mix(in oklch, var(--gain) 25%, transparent); }
@@ -254,9 +262,14 @@
     flex-direction: column;
     gap: 2px;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--secondary);
     border: 1px solid var(--border);
+  }
+  .dark .stat-cell {
+    background: oklch(0.15 0.012 260 / 60%);
+    border-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(12px);
   }
   .stat-label {
     font-size: 11px;
@@ -271,72 +284,94 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     GOOGLE FINANCE-STYLE CARDS
+     GLASSMORPHISM CARDS — The core visual identity
      ═══════════════════════════════════════════════════════════════════ */
   .glass {
     background: oklch(1.0 0 0);
     border: 1px solid var(--border);
-    box-shadow: 0 1px 2px oklch(0 0 0 / 4%);
+    box-shadow: 0 1px 3px oklch(0 0 0 / 5%);
   }
   .dark .glass {
-    background: oklch(0.18 0.006 260);
-    border: 1px solid oklch(0.28 0.006 260);
+    background: oklch(0.15 0.015 260 / 50%);
+    border: 1px solid oklch(0.30 0.015 260 / 30%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 32px oklch(0 0 0 / 25%),
+      inset 0 1px 0 oklch(1.0 0 0 / 5%);
   }
   .glass-sidebar {
     background: oklch(1.0 0 0);
     border-right: 1px solid var(--border);
   }
   .dark .glass-sidebar {
-    background: oklch(0.16 0.005 260);
-    border-right: 1px solid oklch(0.28 0.006 260);
+    background: oklch(0.13 0.012 260 / 70%);
+    border-right: 1px solid oklch(0.28 0.015 260 / 30%);
+    backdrop-filter: blur(20px);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     CLEAN CARDS (replaces neon-card)
+     NEON CARD — Frosted glass with gradient border glow
      ═══════════════════════════════════════════════════════════════════ */
   .neon-card {
     position: relative;
     border: 1px solid var(--border);
     background: var(--card);
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .neon-card:hover {
-    box-shadow: 0 1px 6px oklch(0 0 0 / 8%);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 8%);
     border-color: oklch(0.80 0.005 260);
   }
   .dark .neon-card {
-    background: oklch(0.18 0.006 260);
-    border-color: oklch(0.28 0.006 260);
+    background: oklch(0.15 0.015 260 / 50%);
+    border-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 24px oklch(0 0 0 / 20%);
   }
   .dark .neon-card:hover {
-    border-color: oklch(0.38 0.006 260);
-    box-shadow: 0 2px 8px oklch(0 0 0 / 20%);
+    border-color: oklch(0.45 0.08 255 / 50%);
+    box-shadow:
+      0 8px 32px oklch(0 0 0 / 30%),
+      0 0 20px oklch(0.68 0.20 255 / 8%);
   }
 
   .gradient-border-card {
     position: relative;
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--card);
     border: 1px solid var(--border);
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dark .gradient-border-card {
+    background: oklch(0.15 0.015 260 / 50%);
+    border-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(16px);
   }
   .gradient-border-card:hover {
-    box-shadow: 0 1px 6px oklch(0 0 0 / 8%);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 8%);
+  }
+  .dark .gradient-border-card:hover {
+    box-shadow: 0 8px 32px oklch(0 0 0 / 30%);
   }
 
-  /* Glow effects — subtle for light, slightly more for dark */
+  /* Glow effects — subtle for light, neon for dark */
   .glow-primary { box-shadow: 0 1px 3px oklch(0 0 0 / 6%); }
   .glow-gain { box-shadow: 0 1px 3px oklch(0 0 0 / 4%); }
   .glow-loss { box-shadow: 0 1px 3px oklch(0 0 0 / 4%); }
-  .dark .glow-primary { box-shadow: 0 1px 4px oklch(0 0 0 / 15%); }
-  .dark .glow-gain { box-shadow: 0 1px 4px oklch(0 0 0 / 12%); }
-  .dark .glow-loss { box-shadow: 0 1px 4px oklch(0 0 0 / 12%); }
+  .dark .glow-primary { box-shadow: 0 0 16px oklch(0.68 0.20 255 / 15%), 0 4px 12px oklch(0 0 0 / 20%); }
+  .dark .glow-gain { box-shadow: 0 0 12px oklch(0.75 0.20 155 / 12%), 0 4px 12px oklch(0 0 0 / 15%); }
+  .dark .glow-loss { box-shadow: 0 0 12px oklch(0.68 0.22 25 / 12%), 0 4px 12px oklch(0 0 0 / 15%); }
   .neon-text, .neon-text-gain, .neon-text-loss { text-shadow: none; }
+  .dark .neon-text { text-shadow: 0 0 8px oklch(0.68 0.20 255 / 30%); }
+  .dark .neon-text-gain { text-shadow: 0 0 8px oklch(0.75 0.20 155 / 30%); }
+  .dark .neon-text-loss { text-shadow: 0 0 8px oklch(0.68 0.22 25 / 30%); }
 
   /* ═══════════════════════════════════════════════════════════════════
-     GOOGLE FINANCE-STYLE TABLE
+     GLASSMORPHISM TABLE
      ═══════════════════════════════════════════════════════════════════ */
   .stock-table {
     width: 100%;
@@ -347,6 +382,11 @@
   .stock-table thead tr {
     border-bottom: 1px solid var(--border);
     background: var(--background);
+  }
+  .dark .stock-table thead tr {
+    background: oklch(0.13 0.015 260 / 80%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
   .stock-table thead th {
     padding: 0.75rem 1rem;
@@ -373,16 +413,17 @@
   }
   .stock-table tbody tr {
     border-bottom: 1px solid oklch(0.94 0.003 260);
-    transition: background-color 0.15s;
+    transition: all 0.2s ease;
   }
   .dark .stock-table tbody tr {
-    border-bottom-color: oklch(0.25 0.005 260);
+    border-bottom-color: oklch(0.22 0.012 260 / 50%);
   }
   .stock-table tbody tr:hover {
     background: oklch(0.97 0.002 260);
   }
   .dark .stock-table tbody tr:hover {
-    background: oklch(0.22 0.006 260);
+    background: oklch(0.20 0.018 260 / 60%);
+    box-shadow: inset 0 0 0 1px oklch(0.35 0.04 255 / 20%);
   }
   .stock-table tbody td {
     padding: 0.75rem 1rem;
@@ -390,7 +431,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     SIDEBAR NAV — Google Finance style
+     SIDEBAR NAV
      ═══════════════════════════════════════════════════════════════════ */
   .sidebar-nav-item {
     position: relative;
@@ -398,20 +439,27 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.625rem 1rem;
-    border-radius: 24px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--muted-foreground);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .sidebar-nav-item:hover {
     color: var(--foreground);
     background: var(--accent);
   }
+  .dark .sidebar-nav-item:hover {
+    background: oklch(0.22 0.018 260 / 60%);
+  }
   .sidebar-nav-item.active {
     color: var(--primary);
     background: color-mix(in oklch, var(--primary) 10%, transparent);
     font-weight: 600;
+  }
+  .dark .sidebar-nav-item.active {
+    background: oklch(0.68 0.20 255 / 10%);
+    box-shadow: inset 0 0 0 1px oklch(0.68 0.20 255 / 15%);
   }
   .sidebar-nav-item.active::before {
     content: '';
@@ -423,6 +471,9 @@
     height: 60%;
     border-radius: 0 2px 2px 0;
     background: var(--primary);
+  }
+  .dark .sidebar-nav-item.active::before {
+    box-shadow: 0 0 8px oklch(0.68 0.20 255 / 40%);
   }
   .sidebar-nav-item .nav-icon {
     width: 1.25rem;
@@ -529,7 +580,7 @@
     font-variant-numeric: tabular-nums;
   }
   .dark .mbp-table tbody td {
-    border-bottom-color: oklch(0.25 0.005 260);
+    border-bottom-color: oklch(0.22 0.012 260 / 50%);
   }
   .mbp-table tbody tr:hover {
     background: var(--accent);
@@ -551,7 +602,7 @@
     font-variant-numeric: tabular-nums;
   }
   .dark .time-sales-row {
-    border-bottom-color: oklch(0.25 0.005 260);
+    border-bottom-color: oklch(0.22 0.012 260 / 50%);
   }
   .time-sales-row:hover {
     background: var(--accent);
@@ -560,28 +611,37 @@
   .time-sales-down { color: var(--loss); }
 
   /* ═══════════════════════════════════════════════════════════════════
-     BUTTONS — Clean Google style
+     BUTTONS — Glassmorphism style
      ═══════════════════════════════════════════════════════════════════ */
   .btn-premium {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    border-radius: 24px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     background: var(--secondary);
     border: 1px solid var(--border);
     color: var(--foreground);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+  }
+  .dark .btn-premium {
+    background: oklch(0.18 0.015 260 / 60%);
+    border-color: oklch(0.30 0.015 260 / 40%);
+    backdrop-filter: blur(12px);
   }
   .btn-premium:hover {
     background: var(--accent);
-    box-shadow: 0 1px 4px oklch(0 0 0 / 8%);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 8%);
+  }
+  .dark .btn-premium:hover {
+    border-color: oklch(0.45 0.08 255 / 40%);
+    box-shadow: 0 4px 16px oklch(0 0 0 / 25%);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     BADGES — Google Finance style
+     BADGES — Status indicators
      ═══════════════════════════════════════════════════════════════════ */
   .badge-live {
     display: inline-flex;
@@ -595,12 +655,20 @@
     color: var(--gain);
     border: 1px solid color-mix(in oklch, var(--gain) 20%, transparent);
   }
+  .dark .badge-live {
+    background: oklch(0.75 0.20 155 / 10%);
+    border-color: oklch(0.75 0.20 155 / 25%);
+    box-shadow: 0 0 8px oklch(0.75 0.20 155 / 10%);
+  }
   .badge-live .pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: var(--gain);
     animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .dark .badge-live .pulse-dot {
+    box-shadow: 0 0 6px var(--gain);
   }
   .badge-closed {
     display: inline-flex;
@@ -628,7 +696,14 @@
     border-top: 1px solid var(--border);
     padding: 0.5rem 0;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
-    box-shadow: 0 -1px 4px oklch(0 0 0 / 6%);
+    box-shadow: 0 -2px 8px oklch(0 0 0 / 6%);
+  }
+  .dark .mobile-bottom-nav {
+    background: oklch(0.12 0.012 260 / 85%);
+    border-top-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 16px oklch(0 0 0 / 30%);
   }
   .mobile-nav-item {
     display: flex;
@@ -648,14 +723,14 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     SCROLLBAR — Minimal
+     SCROLLBAR — Minimal and themed
      ═══════════════════════════════════════════════════════════════════ */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: oklch(0.85 0.003 260); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: oklch(0.75 0.005 260); }
-  .dark ::-webkit-scrollbar-thumb { background: oklch(0.30 0.005 260); }
-  .dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.40 0.005 260); }
+  .dark ::-webkit-scrollbar-thumb { background: oklch(0.25 0.012 260); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.35 0.015 260); }
 
   /* ═══════════════════════════════════════════════════════════════════
      RECHARTS
@@ -680,8 +755,14 @@
   }
   .animate-fade-in-up { animation: fade-in-up 0.3s ease; }
 
+  @keyframes shimmer-glow {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+
   /* ═══════════════════════════════════════════════════════════════════
-     GOOGLE FINANCE-STYLE TOP NAV
+     GLASSMORPHISM TOP NAV
      ═══════════════════════════════════════════════════════════════════ */
   .terminal-header {
     display: flex;
@@ -695,6 +776,13 @@
     position: sticky;
     top: 0;
     z-index: 100;
+  }
+  .dark .terminal-header {
+    background: oklch(0.12 0.015 260 / 80%);
+    border-bottom-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 16px oklch(0 0 0 / 20%);
   }
   @media (max-width: 767px) {
     .terminal-header {
@@ -711,18 +799,25 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--muted-foreground);
-    transition: all 0.15s;
+    transition: all 0.2s;
     white-space: nowrap;
-    border-radius: 24px;
+    border-radius: 8px;
   }
   .terminal-nav-link:hover {
     color: var(--foreground);
     background: var(--accent);
   }
+  .dark .terminal-nav-link:hover {
+    background: oklch(0.22 0.018 260 / 60%);
+  }
   .terminal-nav-link.active {
     color: var(--primary);
     background: color-mix(in oklch, var(--primary) 10%, transparent);
     font-weight: 600;
+  }
+  .dark .terminal-nav-link.active {
+    background: oklch(0.68 0.20 255 / 12%);
+    box-shadow: inset 0 0 0 1px oklch(0.68 0.20 255 / 15%);
   }
 
   .terminal-icon-btn {
@@ -741,7 +836,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     GOOGLE FINANCE-STYLE TICKER BAR — Card-based market indices
+     GLASSMORPHISM TICKER BAR
      ═══════════════════════════════════════════════════════════════════ */
   .ticker-bar {
     overflow: hidden;
@@ -754,6 +849,11 @@
     font-size: 0.75rem;
     font-family: var(--font-sans);
     position: relative;
+  }
+  .dark .ticker-bar {
+    background: oklch(0.10 0.012 260 / 70%);
+    border-bottom-color: oklch(0.24 0.012 260 / 40%);
+    backdrop-filter: blur(12px);
   }
 
   @keyframes ticker-scroll {
@@ -811,7 +911,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     FOOTER — Clean Google Finance style
+     GLASSMORPHISM FOOTER
      ═══════════════════════════════════════════════════════════════════ */
   .terminal-footer {
     display: flex;
@@ -825,15 +925,26 @@
     background: var(--background);
     padding: 0.5rem 1rem;
   }
+  .dark .terminal-footer {
+    background: oklch(0.10 0.012 260 / 60%);
+    border-top-color: oklch(0.24 0.012 260 / 40%);
+    backdrop-filter: blur(16px);
+  }
 
   /* ═══════════════════════════════════════════════════════════════════
-     TERMINAL PANELS — Clean card style
+     TERMINAL PANELS — Frosted glass cards
      ═══════════════════════════════════════════════════════════════════ */
   .terminal-panel {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
+  }
+  .dark .terminal-panel {
+    background: oklch(0.15 0.015 260 / 50%);
+    border-color: oklch(0.28 0.015 260 / 40%);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 4px 24px oklch(0 0 0 / 20%);
   }
   .terminal-panel-header {
     display: flex;
@@ -869,6 +980,10 @@
     z-index: 5;
     background: var(--background);
   }
+  .dark .dense-table thead th {
+    background: oklch(0.13 0.015 260 / 80%);
+    backdrop-filter: blur(12px);
+  }
   .dense-table tbody td {
     padding: 0.375rem 0.625rem;
     border-bottom: 1px solid oklch(0.94 0.003 260);
@@ -876,7 +991,7 @@
     white-space: nowrap;
   }
   .dark .dense-table tbody td {
-    border-bottom-color: oklch(0.25 0.005 260);
+    border-bottom-color: oklch(0.22 0.012 260 / 50%);
   }
   .dense-table tbody tr:hover {
     background: var(--accent);
@@ -887,8 +1002,11 @@
      ═══════════════════════════════════════════════════════════════════ */
   .glass-strong {
     background: color-mix(in oklch, var(--background) 92%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .dark .glass-strong {
+    background: oklch(0.12 0.015 260 / 85%);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -906,7 +1024,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     THEME TOGGLE — Circular Google style
+     THEME TOGGLE — Glass circle
      ═══════════════════════════════════════════════════════════════════ */
   .theme-toggle {
     display: inline-flex;
@@ -918,12 +1036,16 @@
     border: none;
     background: transparent;
     color: var(--muted-foreground);
-    transition: all 0.15s;
+    transition: all 0.2s;
     cursor: pointer;
   }
   .theme-toggle:hover {
     background: var(--accent);
     color: var(--foreground);
+  }
+  .dark .theme-toggle:hover {
+    background: oklch(0.22 0.018 260 / 60%);
+    box-shadow: 0 0 8px oklch(0.68 0.20 255 / 10%);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -939,11 +1061,51 @@
     animation: shimmer 3s ease-in-out infinite;
   }
 
-  /* Grid background — subtle for dark mode only */
+  /* Grid background — subtle for dark mode */
   .dark .grid-bg {
     background-image:
-      linear-gradient(oklch(0.65 0.18 260 / 2%) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.65 0.18 260 / 2%) 1px, transparent 1px);
+      linear-gradient(oklch(0.68 0.20 255 / 2%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.68 0.20 255 / 2%) 1px, transparent 1px);
     background-size: 48px 48px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     GLASSMORPHISM UTILITIES
+     ═══════════════════════════════════════════════════════════════════ */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Frosted glass surface — reusable */
+  .glass-surface {
+    background: oklch(1.0 0 0 / 60%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid oklch(1.0 0 0 / 20%);
+  }
+  .dark .glass-surface {
+    background: oklch(0.15 0.015 260 / 40%);
+    border: 1px solid oklch(0.35 0.02 260 / 20%);
+    box-shadow: 0 8px 32px oklch(0 0 0 / 25%);
+  }
+
+  /* Gradient border on hover */
+  .glass-hover-glow {
+    transition: all 0.3s ease;
+  }
+  .dark .glass-hover-glow:hover {
+    border-color: oklch(0.55 0.12 255 / 40%);
+    box-shadow:
+      0 0 20px oklch(0.68 0.20 255 / 8%),
+      0 8px 32px oklch(0 0 0 / 25%);
+  }
+
+  /* Subtle inner glow for active/selected states */
+  .glass-active {
+    box-shadow: inset 0 0 0 1px oklch(0.68 0.20 255 / 20%);
   }
 }
