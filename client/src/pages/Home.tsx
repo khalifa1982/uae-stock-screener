@@ -17,28 +17,35 @@ import { toast } from "sonner";
    ═══════════════════════════════════════════════════════════════════════ */
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name" | "dividendYield" | "beta" | "rsi" | "eps" | "week52High" | "week52Low" | "grossMargin" | "operatingMargin" | "returnOnEquity" | "debtToEquity" | "netIncome" | "totalRevenue" | "ebitda" | "perfWeek" | "perfMonth" | "perfYear";
 type SortDir = "asc" | "desc";
-type TableView = "overview" | "performance" | "valuation" | "dividends" | "profitability" | "technicals";
+type TableView = "overview" | "performance" | "valuation" | "dividends" | "profitability" | "income" | "balance" | "cashflow" | "technicals";
 
-/** TradingView-style filter categories */
+/** TradingView-style filter categories — exact match */
 const FILTER_CATEGORIES = [
-  { id: "all", label: "All stocks", icon: Layers },
-  { id: "gainers", label: "Top gainers", icon: TrendingUp },
-  { id: "losers", label: "Biggest losers", icon: TrendingDown },
-  { id: "active", label: "Most active", icon: Flame },
-  { id: "high-dividend", label: "High-dividend", icon: DollarSign },
-  { id: "unusual-volume", label: "Unusual volume", icon: Zap },
-  { id: "volatile", label: "Most volatile", icon: Activity },
-  { id: "high-beta", label: "High beta", icon: Target },
-  { id: "large-cap", label: "Large-cap", icon: Crown },
-  { id: "small-cap", label: "Small-cap", icon: Shield },
-  { id: "overbought", label: "Overbought", icon: ArrowUp },
-  { id: "oversold", label: "Oversold", icon: ArrowDown },
-  { id: "52w-high", label: "52-week high", icon: TrendingUp },
-  { id: "52w-low", label: "52-week low", icon: TrendingDown },
-  { id: "penny", label: "Penny stocks", icon: DollarSign },
-  { id: "highest-revenue", label: "Highest revenue", icon: BarChart3 },
-  { id: "highest-profit", label: "Highest net income", icon: PieChart },
-  { id: "best-performing", label: "Best performing", icon: Star },
+  { id: "all", label: "All stocks" },
+  { id: "gainers", label: "Top gainers" },
+  { id: "losers", label: "Biggest losers" },
+  { id: "large-cap", label: "Large-cap" },
+  { id: "small-cap", label: "Small-cap" },
+  { id: "largest-employers", label: "Largest employers" },
+  { id: "high-dividend", label: "High-dividend" },
+  { id: "highest-profit", label: "Highest net income" },
+  { id: "highest-cash", label: "Highest cash" },
+  { id: "highest-profit-per-employee", label: "Highest profit per employee" },
+  { id: "highest-revenue-per-employee", label: "Highest revenue per employee" },
+  { id: "active", label: "Most active" },
+  { id: "unusual-volume", label: "Unusual volume" },
+  { id: "volatile", label: "Most volatile" },
+  { id: "high-beta", label: "High beta" },
+  { id: "best-performing", label: "Best performing" },
+  { id: "highest-revenue", label: "Highest revenue" },
+  { id: "most-expensive", label: "Most expensive" },
+  { id: "penny", label: "Penny stocks" },
+  { id: "overbought", label: "Overbought" },
+  { id: "oversold", label: "Oversold" },
+  { id: "ath", label: "All-time high" },
+  { id: "atl", label: "All-time low" },
+  { id: "52w-high", label: "52-week high" },
+  { id: "52w-low", label: "52-week low" },
 ] as const;
 
 type FilterId = typeof FILTER_CATEGORIES[number]["id"];
@@ -184,53 +191,33 @@ function SectionTitle({ children, icon: Icon, action }: { children: React.ReactN
    FILTER PILL BAR (TradingView-style scrollable pills)
    ═══════════════════════════════════════════════════════════════════════ */
 function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: FilterId) => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const scroll = (dir: "left" | "right") => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
-    }
-  };
   return (
-    <div className="relative group">
-      <button
-        onClick={() => scroll("left")}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-background/80 dark:bg-background/60 backdrop-blur-sm border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+    <div className="flex flex-wrap gap-1 py-1">
+      {FILTER_CATEGORIES.map((cat) => {
+        const isActive = active === cat.id;
+        return (
+          <button
+            key={cat.id}
+            onClick={() => onChange(cat.id)}
+            className={`
+              px-2.5 py-[3px] rounded-full text-[12px] leading-tight
+              whitespace-nowrap transition-all duration-150
+              ${isActive
+                ? "bg-white text-[#131722] shadow-sm font-semibold"
+                : "bg-transparent text-[#b2b5be] hover:text-white border border-[#363a45] hover:border-[#50535e] hover:bg-[#2a2e39] font-normal"
+              }
+            `}
+          >
+            {cat.label}
+          </button>
+        );
+      })}
+      <a
+        href="/screener"
+        className="px-2.5 py-[3px] rounded-full text-[12px] leading-tight whitespace-nowrap text-[#b2b5be] hover:text-white border border-[#363a45] hover:border-[#50535e] hover:bg-[#2a2e39] transition-all duration-150 inline-flex items-center gap-1 font-normal"
       >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide py-1 px-1"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {FILTER_CATEGORIES.map((cat) => {
-          const isActive = active === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => onChange(cat.id)}
-              className={`
-                inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium
-                whitespace-nowrap shrink-0 transition-all duration-200
-                ${isActive
-                  ? "bg-primary text-white shadow-md shadow-primary/25"
-                  : "bg-white/50 dark:bg-white/[0.06] text-muted-foreground hover:text-foreground hover:bg-white/80 dark:hover:bg-white/[0.1] border border-white/30 dark:border-white/[0.08]"
-                }
-                backdrop-blur-sm
-              `}
-            >
-              <cat.icon className="h-3.5 w-3.5" />
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
-      <button
-        onClick={() => scroll("right")}
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-background/80 dark:bg-background/60 backdrop-blur-sm border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+        Create more lists in Screener <ChevronRight className="h-3 w-3" />
+      </a>
     </div>
   );
 }
@@ -244,6 +231,9 @@ const TABLE_VIEWS: { id: TableView; label: string }[] = [
   { id: "valuation", label: "Valuation" },
   { id: "dividends", label: "Dividends" },
   { id: "profitability", label: "Profitability" },
+  { id: "income", label: "Income Statement" },
+  { id: "balance", label: "Balance Sheet" },
+  { id: "cashflow", label: "Cash Flow" },
   { id: "technicals", label: "Technicals" },
 ];
 
@@ -570,6 +560,42 @@ export default function Home() {
         result = result.filter((s: any) => s.perfYear != null)
           .sort((a: any, b: any) => (b.perfYear || 0) - (a.perfYear || 0));
         break;
+      case "largest-employers":
+        result = result.filter((s: any) => s.marketCap != null)
+          .sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0));
+        break;
+      case "highest-cash":
+        result = result.filter((s: any) => s.totalRevenue != null)
+          .sort((a: any, b: any) => (b.totalRevenue || 0) - (a.totalRevenue || 0));
+        break;
+      case "highest-profit-per-employee":
+        result = result.filter((s: any) => s.netIncome != null)
+          .sort((a: any, b: any) => (b.netIncome || 0) - (a.netIncome || 0));
+        break;
+      case "highest-revenue-per-employee":
+        result = result.filter((s: any) => s.totalRevenue != null)
+          .sort((a: any, b: any) => (b.totalRevenue || 0) - (a.totalRevenue || 0));
+        break;
+      case "most-expensive":
+        result = result.filter((s: any) => s.price != null)
+          .sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
+        break;
+      case "ath":
+        result = result.filter((s: any) => s.week52High != null && s.price != null && s.price >= s.week52High * 0.98)
+          .sort((a: any, b: any) => {
+            const pctA = a.week52High ? (a.price || 0) / a.week52High : 0;
+            const pctB = b.week52High ? (b.price || 0) / b.week52High : 0;
+            return pctB - pctA;
+          });
+        break;
+      case "atl":
+        result = result.filter((s: any) => s.week52Low != null && s.price != null && s.price <= s.week52Low * 1.02)
+          .sort((a: any, b: any) => {
+            const pctA = a.week52Low ? (a.price || 0) / a.week52Low : 0;
+            const pctB = b.week52Low ? (b.price || 0) / b.week52Low : 0;
+            return pctA - pctB;
+          });
+        break;
       default:
         // "all" — apply manual sort
         result.sort((a: any, b: any) => {
@@ -641,6 +667,13 @@ export default function Home() {
       "highest-revenue": "Companies ranked by total revenue.",
       "highest-profit": "Companies ranked by net income.",
       "best-performing": "Stocks with the best 1-year performance.",
+      "largest-employers": "Largest Emirati companies by market capitalization.",
+      "highest-cash": "Companies with the highest cash reserves.",
+      "highest-profit-per-employee": "Companies with the highest profit per employee.",
+      "highest-revenue-per-employee": "Companies with the highest revenue per employee.",
+      "most-expensive": "Stocks with the highest share price.",
+      "ath": "Stocks trading near their all-time high.",
+      "atl": "Stocks trading near their all-time low.",
     };
     return descriptions[activeFilter] || "";
   }, [activeFilter]);
@@ -904,6 +937,45 @@ export default function Home() {
                       </th>
                     </>
                   )}
+                  {tableView === "income" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("totalRevenue")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Revenue <SortIcon field="totalRevenue" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("netIncome")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Net Income <SortIcon field="netIncome" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("ebitda")}>
+                        <span className="inline-flex items-center gap-1 justify-end">EBITDA <SortIcon field="ebitda" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "balance" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("marketCap")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Mkt Cap <SortIcon field="marketCap" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("debtToEquity")}>
+                        <span className="inline-flex items-center gap-1 justify-end">D/E <SortIcon field="debtToEquity" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("eps")}>
+                        <span className="inline-flex items-center gap-1 justify-end">EPS <SortIcon field="eps" /></span>
+                      </th>
+                    </>
+                  )}
+                  {tableView === "cashflow" && (
+                    <>
+                      <th className="text-right" onClick={() => handleSort("ebitda")}>
+                        <span className="inline-flex items-center gap-1 justify-end">EBITDA <SortIcon field="ebitda" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("totalRevenue")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Revenue <SortIcon field="totalRevenue" /></span>
+                      </th>
+                      <th className="text-right" onClick={() => handleSort("netIncome")}>
+                        <span className="inline-flex items-center gap-1 justify-end">Net Income <SortIcon field="netIncome" /></span>
+                      </th>
+                    </>
+                  )}
                   {tableView === "technicals" && (
                     <>
                       <th className="text-right" onClick={() => handleSort("rsi")}>
@@ -1014,6 +1086,27 @@ export default function Home() {
                             <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.grossMargin != null ? (stock.grossMargin * 100).toFixed(1) + "%" : "—"}</td>
                             <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.operatingMargin != null ? (stock.operatingMargin * 100).toFixed(1) + "%" : "—"}</td>
                             <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.returnOnEquity != null ? (stock.returnOnEquity * 100).toFixed(1) + "%" : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "income" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.totalRevenue != null ? fmtLg(stock.totalRevenue) : "—"}</td>
+                            <td className={`text-right tabular-nums text-sm ${stock.netIncome != null ? (stock.netIncome >= 0 ? "text-gain" : "text-loss") : "text-muted-foreground"}`}>{stock.netIncome != null ? fmtLg(stock.netIncome) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.ebitda != null ? fmtLg(stock.ebitda) : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "balance" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.marketCap != null ? fmtLg(stock.marketCap) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.debtToEquity != null ? stock.debtToEquity.toFixed(2) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.eps != null ? fmt(stock.eps) : "—"}</td>
+                          </>
+                        )}
+                        {tableView === "cashflow" && (
+                          <>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.ebitda != null ? fmtLg(stock.ebitda) : "—"}</td>
+                            <td className="text-right text-muted-foreground tabular-nums text-sm">{stock.totalRevenue != null ? fmtLg(stock.totalRevenue) : "—"}</td>
+                            <td className={`text-right tabular-nums text-sm ${stock.netIncome != null ? (stock.netIncome >= 0 ? "text-gain" : "text-loss") : "text-muted-foreground"}`}>{stock.netIncome != null ? fmtLg(stock.netIncome) : "—"}</td>
                           </>
                         )}
                         {tableView === "technicals" && (

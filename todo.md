@@ -1384,3 +1384,12 @@
 - [x] Fixed news timestamp calculation (Unix seconds to milliseconds)
 - [x] Fixed duplicate ticker badges for stocks without logos
 - [x] Build and deploy v12.0.0
+
+## v12.1.0 — Match TradingView Filter Pills Exactly
+- [x] Review TradingView filter pills from all 5 linked pages
+- [x] Make filter pills smaller to match TradingView's compact style (12px font, tighter padding)
+- [x] Add all 25 filter categories from TradingView (was 18, now 25)
+- [x] Added: Largest employers, Highest cash, Highest profit/revenue per employee, Most expensive, ATH, ATL
+- [x] Ensure filter pill layout matches TradingView's multi-row wrapping style
+- [x] Added 3 new table tabs: Income Statement, Balance Sheet, Cash Flow (now 9 total)
+- [x] Build and deploy v12.1.0
