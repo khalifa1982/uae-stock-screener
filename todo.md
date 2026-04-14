@@ -1402,3 +1402,19 @@
 - [x] Updated MarketStatusIndicator tooltip with correct hours
 - [x] Updated market-status.test.ts with 21 passing tests
 - [x] Build and deploy v12.2.0
+
+## v12.3.0 — Glassy Icons Design
+- [x] Audit all icon usage across the site (Home, TerminalLayout, StockDetail, etc.)
+- [x] Apply glassmorphism styling to all icons (translucent bg, backdrop-blur, subtle glow)
+- [x] Market stat icons (Total Stocks, Gainers, Losers, Volume, Market Cap)
+- [x] Sector card icons with glassy containers
+- [x] Navigation/header icons (terminal-icon-btn, terminal-nav-link)
+- [x] Filter pills and exchange tabs with glassy active state
+- [x] Section header icons (glass-section-icon CSS utility)
+- [x] Footer social icons (footer-glass-icon with brand-colored hover)
+- [x] Mobile menu dropdown icons with glassy containers
+- [x] StockDetail page: MetricCard icons, FinancialTable icons, all 20+ section headers
+- [x] Officer avatar icons with glassy border and glow
+- [x] MarketStatusBadge with backdrop-blur
+- [x] GlassCard component enhanced with inner glow shadow
+- [x] Build and deploy v12.3.0

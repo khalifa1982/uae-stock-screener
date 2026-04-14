@@ -162,8 +162,8 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
         bg-white/60 dark:bg-white/[0.04]
         backdrop-blur-xl
         border border-white/30 dark:border-white/[0.08]
-        shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-        hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]
+        shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]
+        hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]
         hover:border-white/50 dark:hover:border-white/[0.14]
         ${onClick ? "cursor-pointer" : ""}
         ${className}
@@ -178,8 +178,12 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
 function SectionTitle({ children, icon: Icon, action }: { children: React.ReactNode; icon?: any; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
-        {Icon && <Icon className="h-5 w-5 text-primary" />}
+      <h2 className="flex items-center gap-2.5 text-lg font-bold text-foreground">
+        {Icon && (
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_10px_rgba(59,130,246,0.12)] dark:shadow-[0_0_12px_rgba(59,130,246,0.18)]">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+        )}
         {children}
       </h2>
       {action}
@@ -203,8 +207,8 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
               px-2.5 py-[3px] rounded-full text-[12px] leading-tight
               whitespace-nowrap transition-all duration-150
               ${isActive
-                ? "bg-white text-[#131722] shadow-sm font-semibold"
-                : "bg-transparent text-[#b2b5be] hover:text-white border border-[#363a45] hover:border-[#50535e] hover:bg-[#2a2e39] font-normal"
+                ? "bg-white/90 text-[#131722] shadow-[0_0_12px_rgba(255,255,255,0.15)] font-semibold backdrop-blur-sm border border-white/30"
+                : "bg-white/[0.04] text-[#b2b5be] hover:text-white border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.06)] backdrop-blur-[2px] font-normal"
               }
             `}
           >
@@ -254,8 +258,12 @@ function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]
     <GlassCard onClick={onClick} className="p-4 min-w-[220px]">
       <div className="flex items-start justify-between mb-3">
         <div
-          className="h-9 w-9 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}18` }}
+          className="h-9 w-9 rounded-lg flex items-center justify-center backdrop-blur-md border shadow-lg"
+          style={{
+            backgroundColor: `${color}15`,
+            borderColor: `${color}30`,
+            boxShadow: `0 0 12px ${color}20, inset 0 1px 0 rgba(255,255,255,0.08)`,
+          }}
         >
           <Building2 className="h-4.5 w-4.5" style={{ color }} />
         </div>
@@ -698,24 +706,52 @@ export default function Home() {
           ) : stats ? (
             <>
               <GlassCard className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Stocks</p>
-                <p className="text-xl font-bold text-foreground tabular-nums">{stats.withPrice}</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_12px_rgba(59,130,246,0.15)] dark:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                    <Layers className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Total Stocks</p>
+                    <p className="text-xl font-bold text-foreground tabular-nums">{stats.withPrice}</p>
+                  </div>
+                </div>
               </GlassCard>
               <GlassCard className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Gainers / Losers</p>
-                <p className="text-xl font-bold tabular-nums">
-                  <span className="text-gain">{stats.gainers}</span>
-                  <span className="text-muted-foreground mx-1">/</span>
-                  <span className="text-loss">{stats.losers}</span>
-                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gain/10 dark:bg-gain/15 backdrop-blur-md border border-gain/20 dark:border-gain/25 shadow-[0_0_12px_rgba(34,197,94,0.15)] dark:shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+                    <TrendingUp className="h-5 w-5 text-gain" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Gainers / Losers</p>
+                    <p className="text-xl font-bold tabular-nums">
+                      <span className="text-gain">{stats.gainers}</span>
+                      <span className="text-muted-foreground mx-1">/</span>
+                      <span className="text-loss">{stats.losers}</span>
+                    </p>
+                  </div>
+                </div>
               </GlassCard>
               <GlassCard className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Volume</p>
-                <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalVolume)}</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-cyan-500/10 dark:bg-cyan-500/15 backdrop-blur-md border border-cyan-500/20 dark:border-cyan-500/25 shadow-[0_0_12px_rgba(6,182,212,0.15)] dark:shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                    <BarChart3 className="h-5 w-5 text-cyan-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Total Volume</p>
+                    <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalVolume)}</p>
+                  </div>
+                </div>
               </GlassCard>
               <GlassCard className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">Market Cap</p>
-                <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalMcap)}</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-amber-500/10 dark:bg-amber-500/15 backdrop-blur-md border border-amber-500/20 dark:border-amber-500/25 shadow-[0_0_12px_rgba(245,158,11,0.15)] dark:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                    <DollarSign className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Market Cap</p>
+                    <p className="text-xl font-bold text-foreground tabular-nums">{fmtLg(stats.totalMcap)}</p>
+                  </div>
+                </div>
               </GlassCard>
             </>
           ) : null}
@@ -776,8 +812,10 @@ export default function Home() {
       <section>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Filter className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_10px_rgba(59,130,246,0.12)] dark:shadow-[0_0_12px_rgba(59,130,246,0.18)]">
+                <Filter className="h-4 w-4 text-primary" />
+              </div>
               Emirati Stocks
             </h2>
             {/* Exchange tabs */}
@@ -788,8 +826,8 @@ export default function Home() {
                   onClick={() => setExchange(ex)}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                     exchange === ex
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary/90 text-white shadow-[0_0_10px_rgba(59,130,246,0.25)] backdrop-blur-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
                   }`}
                 >
                   {ex}
@@ -840,8 +878,8 @@ export default function Home() {
               onClick={() => setTableView(tv.id)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 tableView === tv.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  ? "bg-primary/15 text-primary backdrop-blur-sm border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover:backdrop-blur-sm border border-transparent hover:border-white/[0.08]"
               }`}
             >
               {tv.label}

@@ -74,7 +74,7 @@ function formatRawPercent(num: number | null | undefined): string {
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color?: string }) {
   return (
     <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
-      <div className={`h-9 w-9 rounded flex items-center justify-center shrink-0 ${color || "bg-primary/10"}`}>
+      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 backdrop-blur-md border ${color || "bg-primary/10 border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
@@ -195,7 +195,10 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
     <Card className="border-border/50">
       <CardHeader className="pb-2">
         <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary" /> {title}
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-primary/10 border border-primary/20 backdrop-blur-sm shadow-[0_0_8px_rgba(59,130,246,0.1)]">
+            <Icon className="h-3.5 w-3.5 text-primary" />
+          </span>
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -455,7 +458,7 @@ export default function StockDetail() {
             <Card className="border-border/50 lg:col-span-2">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" /> Key Metrics
+                  <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span> Key Metrics
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -490,7 +493,7 @@ export default function StockDetail() {
             <Card className="border-border/50">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" /> Technical Snapshot
+                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Technical Snapshot
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5">
@@ -593,7 +596,7 @@ export default function StockDetail() {
             <Card className="border-border/50">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Performance & Volatility
+                  <span className="glass-section-icon"><TrendingUp className="h-3.5 w-3.5 text-primary" /></span> Performance & Volatility
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -636,7 +639,7 @@ export default function StockDetail() {
             <Card className="border-border/50">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" /> Key Statistics
+                  <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Key Statistics
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -723,7 +726,7 @@ export default function StockDetail() {
             <Card className="border-border/50">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" /> Volume Analysis
+                  <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Volume Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -784,7 +787,7 @@ export default function StockDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-primary" /> Earnings History
+                      <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Earnings History
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -825,7 +828,7 @@ export default function StockDetail() {
                     <Card className="border-border/50">
                       <CardHeader className="pb-1">
                         <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" /> Financial Summary
+                          <span className="glass-section-icon"><FileText className="h-3.5 w-3.5 text-primary" /></span> Financial Summary
                           <Badge variant="outline" className="text-[10px] ml-2">TradingView</Badge>
                         </CardTitle>
                       </CardHeader>
@@ -887,7 +890,7 @@ export default function StockDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" /> Dividend Information
+                      <span className="glass-section-icon"><Calendar className="h-3.5 w-3.5 text-primary" /></span> Dividend Information
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -999,7 +1002,7 @@ export default function StockDetail() {
               <Card id="profile-about" className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" /> About {stockInfo.name}
+                    <span className="glass-section-icon"><Building2 className="h-3.5 w-3.5 text-primary" /></span> About {stockInfo.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1026,7 +1029,7 @@ export default function StockDetail() {
               <Card id="profile-financials" className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-primary" /> Financial Snapshot
+                    <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span> Financial Snapshot
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1063,14 +1066,14 @@ export default function StockDetail() {
                 <Card id="profile-officers" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" /> Key Officers & Board
+                      <span className="glass-section-icon"><Users className="h-3.5 w-3.5 text-primary" /></span> Key Officers & Board
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                       {profile.officers.map((officer: any, i: number) => (
                         <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
                             <Briefcase className="h-4 w-4 text-primary" />
                           </div>
                           <div className="min-w-0">
@@ -1091,7 +1094,7 @@ export default function StockDetail() {
                 <Card id="profile-analysts" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" /> Analyst Recommendations
+                      <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Analyst Recommendations
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1141,7 +1144,7 @@ export default function StockDetail() {
                 <Card id="profile-holdings" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-primary" /> Insider Holdings
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Insider Holdings
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1227,7 +1230,7 @@ export default function StockDetail() {
               <Card className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" /> Snowflake Score
+                    <span className="glass-section-icon"><Zap className="h-3.5 w-3.5 text-primary" /></span> Snowflake Score
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Comprehensive analysis across 5 dimensions, 30 checks total</p>
                 </CardHeader>
@@ -1300,7 +1303,7 @@ export default function StockDetail() {
               <Card className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" /> Fair Value Estimation
+                    <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Fair Value Estimation
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Intrinsic value calculated using {snowflakeData.fairValue.method} model</p>
                 </CardHeader>
@@ -1336,7 +1339,7 @@ export default function StockDetail() {
               <Card className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-primary" /> Detailed Analysis Checks
+                    <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Detailed Analysis Checks
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">30 individual checks across 5 categories (click to expand)</p>
                 </CardHeader>
@@ -1358,7 +1361,7 @@ export default function StockDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-primary" /> Peer Comparison
+                      <span className="glass-section-icon"><Layers className="h-3.5 w-3.5 text-primary" /></span> Peer Comparison
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">Snowflake scores of top peers in the same sector</p>
                   </CardHeader>
@@ -1411,7 +1414,7 @@ export default function StockDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <PieChart className="h-4 w-4 text-primary" /> Market Context
+                      <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Market Context
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1448,7 +1451,7 @@ export default function StockDetail() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-primary" /> AI Deep Analysis
+                    <span className="glass-section-icon"><Brain className="h-3.5 w-3.5 text-primary" /></span> AI Deep Analysis
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">Comprehensive AI-powered research report</p>
                 </div>
@@ -1550,7 +1553,7 @@ export default function StockDetail() {
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" /> Quick Sentiment
+                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Quick Sentiment
                 </CardTitle>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => sentimentMutation.mutate({ symbol, name: stockInfo.name })} disabled={sentimentMutation.isPending}>
                   {sentimentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}
