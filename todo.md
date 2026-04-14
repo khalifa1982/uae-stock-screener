@@ -1393,3 +1393,12 @@
 - [x] Ensure filter pill layout matches TradingView's multi-row wrapping style
 - [x] Added 3 new table tabs: Income Statement, Balance Sheet, Cash Flow (now 9 total)
 - [x] Build and deploy v12.1.0
+
+## v12.2.0 — Fix Market Status Timezone & Phases
+- [x] Fix market status to use correct UAE market hours (was 9:00-9:30-2:50, now 9:30-10:00-2:45-3:00)
+- [x] All 4 market phases: Pre-Open (9:30-10:00), Open (10:00-2:45), Pre-Close (2:45-3:00), Closed
+- [x] Show correct countdown timer for each phase
+- [x] Ensure Mon-Fri schedule with weekends as Closed
+- [x] Updated MarketStatusIndicator tooltip with correct hours
+- [x] Updated market-status.test.ts with 21 passing tests
+- [x] Build and deploy v12.2.0

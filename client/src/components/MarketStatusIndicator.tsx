@@ -176,7 +176,7 @@ export function MarketStatusBadge() {
               </p>
             )}
             <div className="text-[10px] text-popover-foreground/70 pt-1 border-t border-border/50">
-              <p>Mon-Fri: Pre-Open 9:00 · Open 9:30 · Pre-Close 2:50 · Close 3:00</p>
+              <p>Mon-Fri: Pre-Open 9:30 · Open 10:00 · Pre-Close 2:45 · Close 3:00</p>
             </div>
           </div>
         </TooltipContent>
