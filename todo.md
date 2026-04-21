@@ -1418,3 +1418,11 @@
 - [x] MarketStatusBadge with backdrop-blur
 - [x] GlassCard component enhanced with inner glow shadow
 - [x] Build and deploy v12.3.0
+
+## v12.4.0 — New Aboood.AI Logo
+- [x] Upload new Aboood.AI robot logo (CDN hosted)
+- [x] Replace logo in TerminalLayout footer (ABOOOD.AI NETWORK label + www.aboood.ai link)
+- [x] Replace logo in DashboardLayout footer (ABOOOD.AI NETWORK label + www.aboood.ai link)
+- [x] Update favicon (.ico, 32x32 PNG, 180x180 apple-touch-icon) with new robot logo
+- [x] Version bumped to v12.4.0
+- [x] Build and deploy v12.4.0
