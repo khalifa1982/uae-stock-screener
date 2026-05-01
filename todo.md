@@ -1426,3 +1426,19 @@
 - [x] Update favicon (.ico, 32x32 PNG, 180x180 apple-touch-icon) with new robot logo
 - [x] Version bumped to v12.4.0
 - [x] Build and deploy v12.4.0
+
+## v13.0.0 — UAE Equity Inspired Features
+- [x] Install Recharts library
+- [x] Create SimpleChart component (line chart with gradient fill, timeframe buttons, performance badge)
+- [x] Add "Simple View" toggle to StockDetail page alongside existing TradingView chart
+- [x] Implement stock scoring system (Safety/Valuation/Growth out of 10, Total Score)
+- [x] StockScore component with client-side calculation from existing data
+- [x] Display score pills and Buy/Hold/Sell badges on stock detail page
+- [x] Create EPS & Dividend per share comparison (EPS, Dividend/Share, Payout Ratio)
+- [x] Build MarketHeatmap component (grid of stock tiles, color-coded by daily performance)
+- [x] Add heatmap to homepage between Today's Movers and Sectors
+- [x] Add valuation filter buttons (Undervalued/Fairly valued/Overvalued) with descriptions
+- [x] Add MetricExplanation tooltips (? icons) on P/E, EPS, Market Cap, Div Yield, Beta, P/B
+- [x] Add ValuationBadge component for stock valuation status
+- [x] Unit tests for stock scoring system (6 tests passing)
+- [x] Bump version to v13.0.0

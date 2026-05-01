@@ -10,6 +10,7 @@ import {
   PieChart, Globe, Star, Filter, ExternalLink,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { MarketHeatmap } from "@/components/MarketHeatmap";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -46,6 +47,9 @@ const FILTER_CATEGORIES = [
   { id: "atl", label: "All-time low" },
   { id: "52w-high", label: "52-week high" },
   { id: "52w-low", label: "52-week low" },
+  { id: "undervalued", label: "Undervalued" },
+  { id: "fairly-valued", label: "Fairly valued" },
+  { id: "overvalued", label: "Overvalued" },
 ] as const;
 
 type FilterId = typeof FILTER_CATEGORIES[number]["id"];
@@ -604,6 +608,24 @@ export default function Home() {
             return pctA - pctB;
           });
         break;
+      case "undervalued":
+        result = result.filter((s: any) => {
+          if (!s.pe || s.pe <= 0 || !s.priceToBook) return false;
+          return s.pe < 15 && s.priceToBook < 1.5;
+        });
+        break;
+      case "fairly-valued":
+        result = result.filter((s: any) => {
+          if (!s.pe || s.pe <= 0) return false;
+          return s.pe >= 15 && s.pe <= 25;
+        });
+        break;
+      case "overvalued":
+        result = result.filter((s: any) => {
+          if (!s.pe || s.pe <= 0) return false;
+          return s.pe > 25;
+        });
+        break;
       default:
         // "all" — apply manual sort
         result.sort((a: any, b: any) => {
@@ -682,6 +704,9 @@ export default function Home() {
       "most-expensive": "Stocks with the highest share price.",
       "ath": "Stocks trading near their all-time high.",
       "atl": "Stocks trading near their all-time low.",
+      "undervalued": "Stocks with P/E below 15 and P/B below 1.5 — potentially undervalued.",
+      "fairly-valued": "Stocks with P/E between 15-25 — trading at fair market value.",
+      "overvalued": "Stocks with P/E above 25 — may be overvalued relative to earnings.",
     };
     return descriptions[activeFilter] || "";
   }, [activeFilter]);
@@ -777,6 +802,13 @@ export default function Home() {
         </section>
       )}
 
+      {/* ═══ MARKET HEATMAP ═══ */}
+      {stocks && stocks.length > 0 && (
+        <section>
+          <SectionTitle icon={BarChart3}>Market Heatmap</SectionTitle>
+          <MarketHeatmap stocks={stocks} />
+        </section>
+      )}
       {/* ═══ SECTORS & INDUSTRIES ═══ */}
       {sectorData.length > 0 && (
         <section>

@@ -13,6 +13,11 @@ import DividendsView from "@/components/DividendsView";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
+import { SimpleChart } from "@/components/SimpleChart";
+import { StockScoreDisplay, calculateStockScore } from "@/components/StockScore";
+import { EPSDividendChart } from "@/components/EPSDividendChart";
+import { ValuationBadge } from "@/components/ValuationBadge";
+import { MetricExplanation } from "@/components/MetricExplanation";
 import { AnalystConsensus } from "@/components/AnalystConsensus";
 import { EarningsTranscripts } from "@/components/EarningsTranscripts";
 import { SADataCard } from "@/components/SADataCard";
@@ -71,14 +76,14 @@ function formatRawPercent(num: number | null | undefined): string {
 }
 
 // ─── Reusable Components ───────────────────────────────────────────
-function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color?: string }) {
+function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: string; value: string; icon: any; color?: string; metricKey?: string }) {
   return (
     <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
       <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 backdrop-blur-md border ${color || "bg-primary/10 border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">{label}{metricKey && <MetricExplanation metric={metricKey} />}</p>
         <p className="text-[11px] font-semibold font-mono truncate">{value}</p>
       </div>
     </div>
@@ -267,6 +272,7 @@ export default function StockDetail() {
   const [, setLocation] = useLocation();
   const symbol = params.symbol || "";
   const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("3mo");
+  const [chartMode, setChartMode] = useState<"advanced" | "simple">("advanced");
   const [activeTab, setActiveTab] = useState("overview");
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
@@ -421,15 +427,47 @@ export default function StockDetail() {
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
         <TabsContent value="overview" className="space-y-2 mt-4">
-          {/* Advanced Price Chart with Technical Overlays */}
-          <AdvancedChart
-            symbol={symbol}
-            exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
-            chartData={chartPoints}
-            chartRange={chartRange}
-            onRangeChange={(r) => setChartRange(r as any)}
-            chartLoading={chartLoading}
-          />
+          {/* Chart Mode Toggle */}
+          <div className="flex items-center gap-1 mb-1">
+            <button
+              onClick={() => setChartMode("advanced")}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                chartMode === "advanced" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              Advanced
+            </button>
+            <button
+              onClick={() => setChartMode("simple")}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                chartMode === "simple" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              Simple
+            </button>
+          </div>
+          {/* Price Chart */}
+          {chartMode === "advanced" ? (
+            <AdvancedChart
+              symbol={symbol}
+              exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
+              chartData={chartPoints}
+              chartRange={chartRange}
+              onRangeChange={(r) => setChartRange(r as any)}
+              chartLoading={chartLoading}
+            />
+          ) : (
+            <SimpleChart
+              data={chartPoints.map((p: any) => ({ date: p.date, close: p.close }))}
+              isLoading={chartLoading}
+              range={chartRange === "1d" ? "1mo" : chartRange === "2y" ? "3y" : chartRange}
+              onRangeChange={(r) => {
+                const map: Record<string, string> = { "1mo": "1mo", "6mo": "6mo", "1y": "1y", "3y": "2y", "5y": "5y", "all": "5y" };
+                setChartRange((map[r] || "3mo") as any);
+              }}
+              symbol={symbol}
+            />
+          )}
 
           {/* Analyst Consensus + Key Metrics + Quick Technical */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
@@ -472,16 +510,16 @@ export default function StockDetail() {
                     <MetricCard label="Prev Close" value={formatNumber(detail.previousClose)} icon={DollarSign} />
                     <MetricCard label="Volume" value={formatLargeNumber(detail.volume)} icon={BarChart3} />
                     <MetricCard label="Avg Vol (10d)" value={formatLargeNumber(profile?.tvAvgVolume10d ?? detail.avgVolume)} icon={Activity} />
-                    <MetricCard label="Market Cap" value={formatLargeNumber(detail.marketCap || profile?.marketCap)} icon={DollarSign} />
-                    <MetricCard label="P/E Ratio" value={formatNumber(detail.pe || profile?.trailingPE, 1)} icon={Gauge} />
-                    <MetricCard label="EPS" value={formatNumber(detail.eps || profile?.trailingEps)} icon={TrendingUp} />
+                    <MetricCard label="Market Cap" metricKey="marketCap" value={formatLargeNumber(detail.marketCap || profile?.marketCap)} icon={DollarSign} />
+                    <MetricCard label="P/E Ratio" metricKey="pe" value={formatNumber(detail.pe || profile?.trailingPE, 1)} icon={Gauge} />
+                    <MetricCard label="EPS" metricKey="eps" value={formatNumber(detail.eps || profile?.trailingEps)} icon={TrendingUp} />
                     <MetricCard label="52W High" value={formatNumber(detail.week52High || profile?.fiftyTwoWeekHigh)} icon={ArrowUp} />
                     <MetricCard label="52W Low" value={formatNumber(detail.week52Low || profile?.fiftyTwoWeekLow)} icon={ArrowDown} />
-                    <MetricCard label="Div Yield" value={detail.dividendYield != null ? detail.dividendYield.toFixed(2) + "%" : profile?.tvDividendYield ? formatPercent(profile.tvDividendYield) : "—"} icon={DollarSign} />
-                    <MetricCard label="Beta" value={formatNumber(profile?.tvBeta ?? detail.beta, 2)} icon={Activity} />
+                    <MetricCard label="Div Yield" metricKey="dividendYield" value={detail.dividendYield != null ? detail.dividendYield.toFixed(2) + "%" : profile?.tvDividendYield ? formatPercent(profile.tvDividendYield) : "—"} icon={DollarSign} />
+                    <MetricCard label="Beta" metricKey="beta" value={formatNumber(profile?.tvBeta ?? detail.beta, 2)} icon={Activity} />
                     <MetricCard label="Shares Out" value={formatLargeNumber(profile?.tvSharesOutstanding ?? profile?.sharesOutstanding)} icon={Hash} />
                     <MetricCard label="EV" value={formatLargeNumber(profile?.tvEnterpriseValue)} icon={Layers} />
-                    <MetricCard label="P/B Ratio" value={formatNumber(profile?.priceToBook, 2)} icon={BookOpen} />
+                    <MetricCard label="P/B Ratio" metricKey="pb" value={formatNumber(profile?.priceToBook, 2)} icon={BookOpen} />
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-8">No data available</p>
@@ -591,6 +629,49 @@ export default function StockDetail() {
             </Card>
           </div>
 
+          {/* Stock Score & Valuation (inspired by uaeequity.app) */}
+          {profile && detail && price != null && (() => {
+            const stockScore = calculateStockScore({
+              pe: detail.pe || profile.trailingPE,
+              dividendYield: profile.tvDividendYield ?? (detail.dividendYield != null ? detail.dividendYield / 100 : null),
+              debtToEquity: profile.tvDebtToEquity ?? profile.debtToEquity,
+              currentRatio: profile.tvCurrentRatio ?? profile.currentRatio,
+              returnOnEquity: profile.tvROE,
+              perfYear: profile.tvPerfYear ?? null,
+              priceToBook: profile.priceToBook,
+              beta: profile.tvBeta ?? detail.beta,
+              marketCap: detail.marketCap || profile.marketCap,
+            });
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                {/* Stock Score */}
+                <Card className="border-border/50 lg:col-span-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Stock Score
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StockScoreDisplay score={stockScore} />
+                  </CardContent>
+                </Card>
+                {/* EPS vs Dividend */}
+                <EPSDividendChart
+                  eps={detail.eps || profile.trailingEps}
+                  dividendPerShare={profile.tvDividendPerShare}
+                  symbol={symbol}
+                />
+              </div>
+            );
+          })()}
+          {/* Valuation Badge */}
+          {snowflakeData && price != null && snowflakeData.fairValue?.fairValue != null && (
+            <ValuationBadge
+              discount={snowflakeData.fairValue.discount ?? null}
+              fairValue={snowflakeData.fairValue.fairValue}
+              currentPrice={price}
+            />
+          )}
           {/* Performance & Volatility */}
           {profile && (profile.tvPerfWeek != null || profile.tvPerfMonth != null) && (
             <Card className="border-border/50">
