@@ -292,6 +292,7 @@ function SectorTreemap({
 export default function Heatmap() {
   const [exchange, setExchange] = useState<"ALL" | "DFM" | "ADX">("DFM");
   const [viewMode, setViewMode] = useState<"sector" | "flat">("sector");
+  const [sizeBy, setSizeBy] = useState<"marketCap" | "volume">("marketCap");
 
   const { data: allStocks, isLoading, refetch } = trpc.stocks.fetchAll.useQuery(
     { exchange },
@@ -320,8 +321,8 @@ export default function Heatmap() {
   }, [allStocks]);
 
   const totalMarketCap = useMemo(() => {
-    return stocksWithData.reduce((s, st) => s + (st.marketCap || st.volume || 1000), 0);
-  }, [stocksWithData]);
+    return stocksWithData.reduce((s, st) => s + (sizeBy === "volume" ? (st.volume || 1000) : (st.marketCap || st.volume || 1000)), 0);
+  }, [stocksWithData, sizeBy]);
 
   const sectorGroups = useMemo(() => {
     const groups = new Map<string, StockData[]>();
@@ -342,10 +343,10 @@ export default function Heatmap() {
     if (viewMode !== "flat") return [];
     const items = stocksWithData.map(s => ({
       stock: s,
-      value: s.marketCap || s.volume || 1000,
+      value: sizeBy === "volume" ? (s.volume || 1000) : (s.marketCap || s.volume || 1000),
     }));
     return squarify(items, 0, 0, 100, 100);
-  }, [stocksWithData, viewMode]);
+  }, [stocksWithData, viewMode, sizeBy]);
 
   const marketSummary = useMemo(() => {
     const gainers = stocksWithData.filter(s => (s.changePercent || 0) > 0).length;
@@ -395,6 +396,22 @@ export default function Heatmap() {
             onClick={() => setViewMode("flat")}
           >
             Flat
+          </Button>
+          <Button
+            variant={sizeBy === "marketCap" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 text-[10px] px-2"
+            onClick={() => setSizeBy("marketCap")}
+          >
+            By Cap
+          </Button>
+          <Button
+            variant={sizeBy === "volume" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 text-[10px] px-2"
+            onClick={() => setSizeBy("volume")}
+          >
+            By Vol
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-[10px] px-2" onClick={() => refetch()}>
             <RefreshCw className="h-3 w-3" />

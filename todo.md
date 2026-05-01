@@ -1442,3 +1442,13 @@
 - [x] Add ValuationBadge component for stock valuation status
 - [x] Unit tests for stock scoring system (6 tests passing)
 - [x] Bump version to v13.0.0
+
+## v13.1.0 — Advanced Features
+- [x] Historical EPS/Dividend 5-year grouped bar chart (fetches from SA financials API, shows EPS vs DPS bars)
+- [x] Full-page interactive Heatmap enhanced with size-by toggle (Market Cap vs Volume)
+- [x] Stock Comparison tool (/compare) — search & add up to 3 stocks, side-by-side metrics, radar chart, bar comparison
+- [x] Compare page added to sidebar navigation with Scale icon
+- [x] MetricExplanation DOM nesting fix (span instead of div)
+- [x] Unit tests for scoring system (6 tests passing)
+- [x] Bump version to v13.1.0
+- [ ] Deploy to Northflank

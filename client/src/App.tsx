@@ -28,6 +28,7 @@ const MarketNews = lazy(() => import("./pages/MarketNews"));
 const MarketSummary = lazy(() => import("./pages/MarketSummary"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Compare = lazy(() => import("./pages/Compare"));
 
 // ─── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -64,6 +65,7 @@ function Router() {
               <Route path={"/summary"} component={MarketSummary} />
               <Route path={"/notifications"} component={NotificationSettings} />
               <Route path={"/admin"} component={Admin} />
+              <Route path={"/compare"} component={Compare} />
               <Route path={"/analytics"} component={Analytics} />
               <Route path={"/profile"} component={Profile} />
               <Route path={"/stock/:symbol"} component={StockDetail} />

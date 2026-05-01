@@ -41,6 +41,7 @@ import {
   Zap,
   BellRing,
   Search,
+  Scale,
 } from "lucide-react";
 
 const navItems = [
@@ -53,6 +54,7 @@ const navItems = [
   { icon: Newspaper, label: "News", path: "/news" },
   { icon: FileText, label: "Summary", path: "/summary" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
+  { icon: Scale, label: "Compare", path: "/compare" },
 ];
 
 const adminNavItems = [

@@ -83,7 +83,7 @@ function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: str
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">{label}{metricKey && <MetricExplanation metric={metricKey} />}</p>
+        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">{label}{metricKey && <MetricExplanation metric={metricKey} />}</span>
         <p className="text-[11px] font-semibold font-mono truncate">{value}</p>
       </div>
     </div>
@@ -660,6 +660,7 @@ export default function StockDetail() {
                   eps={detail.eps || profile.trailingEps}
                   dividendPerShare={profile.tvDividendPerShare}
                   symbol={symbol}
+                  exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"}
                 />
               </div>
             );

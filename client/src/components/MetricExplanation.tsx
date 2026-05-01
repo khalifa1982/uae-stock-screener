@@ -79,7 +79,7 @@ export function MetricExplanation({ metric, className = "" }: MetricExplanationP
   if (!info) return null;
 
   return (
-    <div className={`relative inline-block ${className}`}>
+    <span className={`relative inline-block ${className}`}>
       <button
         onClick={(e) => { e.stopPropagation(); setShow(!show); }}
         className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
@@ -109,7 +109,7 @@ export function MetricExplanation({ metric, className = "" }: MetricExplanationP
           </div>
         </>
       )}
-    </div>
+    </span>
   );
 }
 
