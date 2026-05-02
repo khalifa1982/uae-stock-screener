@@ -9,8 +9,8 @@
  */
 
 import { invokeLLM } from "../_core/llm";
-import { fetchFullProfile } from "../stockService";
-import { fetchTVForecast } from "./tvExtendedService";
+import { fetchTVForecast, fetchTVExtendedFinancials } from "./tvExtendedService";
+import { fetchTVStocksByTickers } from "./tradingViewService";
 import { ALL_STOCKS } from "../../shared/stockData";
 
 const FMP_API_KEY = "mxE7tjUStkNWrahGNalQTcB7GPeI36zg";
@@ -63,37 +63,49 @@ async function generateTranscriptFromData(
   symbol: string,
   companyName: string,
   exchange: string,
-  profileData: any,
-  forecastData: any
+  tvData: any,
+  forecastData: any,
+  extFinancials?: any
 ): Promise<TranscriptData | null> {
   try {
-    const earnings = profileData?.earnings?.history || [];
-    const incomeStatement = profileData?.financialStatements?.incomeStatements || [];
-    const officers = profileData?.company?.officers || [];
-    
-    // Build context from available data
+    // Build context from TradingView data (company-specific)
     const context = {
       symbol,
       company: companyName,
       exchange,
-      sector: profileData?.company?.sector || "N/A",
-      industry: profileData?.company?.industry || "N/A",
-      price: profileData?.tradingInfo?.previousClose || null,
-      marketCap: profileData?.keyStats?.marketCap || null,
-      pe: profileData?.keyStats?.trailingPE || null,
-      eps: profileData?.keyStats?.trailingEps || null,
-      revenue: incomeStatement[0]?.totalRevenue || null,
-      netIncome: incomeStatement[0]?.netIncome || null,
-      officers: officers.slice(0, 5).map((o: any) => ({
-        name: o.name,
-        title: o.title,
-        age: o.age,
-      })),
-      recentEarnings: earnings.slice(0, 4),
+      sector: tvData?.sector || "N/A",
+      industry: tvData?.industry || "N/A",
+      price: tvData?.close || null,
+      marketCap: tvData?.marketCap || null,
+      pe: tvData?.pe || null,
+      eps: tvData?.eps || null,
+      epsDiluted: tvData?.epsDiluted || null,
+      revenue: tvData?.totalRevenue || extFinancials?.revenueAnnual || null,
+      grossProfit: tvData?.grossProfit || extFinancials?.grossProfitAnnual || null,
+      netIncome: tvData?.netIncome || extFinancials?.netIncomeAnnual || null,
+      ebitda: tvData?.ebitda || extFinancials?.ebitdaAnnual || null,
+      totalAssets: tvData?.totalAssets || null,
+      totalDebt: tvData?.totalDebt || null,
+      freeCashFlow: tvData?.freeCashFlow || null,
+      dividendYield: tvData?.dividendYield || extFinancials?.dividendYield || null,
+      dividendPerShare: tvData?.dividendPerShare || extFinancials?.dpsAnnual || null,
+      grossMargin: tvData?.grossMargin || extFinancials?.grossMarginTTM || null,
+      operatingMargin: tvData?.operatingMargin || extFinancials?.operatingMarginTTM || null,
+      netMargin: tvData?.netMargin || extFinancials?.netMarginTTM || null,
+      returnOnEquity: tvData?.returnOnEquity || extFinancials?.roe || null,
+      returnOnAssets: tvData?.returnOnAssets || extFinancials?.roa || null,
+      debtToEquity: tvData?.debtToEquity || null,
+      currentRatio: tvData?.currentRatio || null,
+      employees: tvData?.employees || extFinancials?.employees || null,
+      sharesOutstanding: tvData?.sharesOutstanding || extFinancials?.sharesOutstanding || null,
+      bookValuePerShare: tvData?.bookValuePerShare || null,
+      priceToBook: tvData?.priceToBook || extFinancials?.pbRatio || null,
+      enterpriseValue: tvData?.enterpriseValue || extFinancials?.enterpriseValue || null,
       forecast: forecastData ? {
         priceTarget: forecastData.priceTargetMedian,
         recommendation: forecastData.recommendationMark,
         epsForecast: forecastData.epsForecastNextFQ,
+        revenueEstimate: forecastData.revenueEstimateAvg || null,
       } : null,
     };
 
@@ -101,7 +113,9 @@ async function generateTranscriptFromData(
       messages: [
         {
           role: "system",
-          content: `You are a financial data formatter. Generate a realistic structured earnings call transcript summary for a UAE-listed stock. Return valid JSON matching this exact schema:
+          content: `You are a financial data formatter. Generate a realistic structured earnings call transcript summary for a specific UAE-listed stock. You MUST use the actual financial data provided (revenue, net income, EPS, margins, etc.) to make the transcript unique and specific to THIS company. Do NOT generate generic content.
+
+Return valid JSON matching this exact schema:
 {
   "title": "string - e.g. 'Q4 2025 Earnings Call - EMAAR Properties'",
   "date": "string - recent date in YYYY-MM-DD format",
@@ -116,15 +130,21 @@ async function generateTranscriptFromData(
     ...more sections
   ]
 }
-
 Section types:
 - "header": Chapter headers (Opening Remarks, Financial Highlights, Business Update, Guidance, Q&A)
 - "speaker": A speaker's statement with their name, role, company
 - "text": Plain text content
 - "qa-header": Start of Q&A section
 
-Make it realistic with 15-25 sections. Include CEO and CFO as main speakers. Add 2-3 analyst questions in Q&A.
-Use real financial data provided. Keep each content block 2-4 sentences.`
+IMPORTANT RULES:
+- Make it realistic with 15-25 sections
+- Include CEO and CFO as main speakers (use realistic Arabic/UAE names appropriate for the company's sector)
+- Add 2-3 analyst questions in Q&A
+- You MUST reference the actual financial numbers provided (revenue, EPS, margins, debt ratios, etc.)
+- Discuss sector-specific topics relevant to the company's industry
+- Mention specific strategic initiatives relevant to the company's sector and size
+- Keep each content block 2-4 sentences
+- The transcript MUST be unique to this specific company — do not use generic boilerplate language`
         },
         {
           role: "user",
@@ -259,15 +279,17 @@ export async function getEarningsTranscript(symbol: string): Promise<TranscriptD
     return parsed;
   }
 
-  // Fall back to LLM-generated transcript from available data
+   // Fall back to LLM-generated transcript from available data
   try {
-    const [profileData, forecastData] = await Promise.all([
-      fetchFullProfile(stock.yahooSymbol).catch(() => null),
+    const tvKey = `${stock.exchange}:${stock.symbol}`;
+    const [tvStocks, forecastData, extFinancials] = await Promise.all([
+      fetchTVStocksByTickers([tvKey]).catch(() => []),
       fetchTVForecast(stock.symbol, stock.exchange).catch(() => null),
+      fetchTVExtendedFinancials(stock.symbol, stock.exchange).catch(() => null),
     ]);
-
+    const tvData = tvStocks.length > 0 ? tvStocks[0] : null;
     const generated = await generateTranscriptFromData(
-      symbol, stock.name, stock.exchange, profileData, forecastData
+      symbol, stock.name, stock.exchange, tvData, forecastData, extFinancials
     );
 
     transcriptCache.set(symbol, { data: generated, timestamp: Date.now() });

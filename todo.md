@@ -1451,4 +1451,13 @@
 - [x] MetricExplanation DOM nesting fix (span instead of div)
 - [x] Unit tests for scoring system (6 tests passing)
 - [x] Bump version to v13.1.0
+- [x] Deploy to Northflank (v13.1.0 image confirmed on Northflank)
+
+## v13.2.0 — Fix Replicated Data Bug
+- [x] Investigated all sections: SA Financials, Ownership, News, Forecasts, Dividends all use company-specific symbols
+- [x] Found root cause: Earnings Transcripts used dead fetchFullProfile() stub returning null
+- [x] Fixed: Replaced fetchFullProfile with fetchTVStocksByTickers + fetchTVExtendedFinancials (real data)
+- [x] Fixed: LLM now receives 30+ company-specific metrics (revenue, EPS, margins, debt, etc.)
+- [x] Fixed: Updated LLM prompt to enforce unique company-specific content generation
+- [x] Bump version to v13.2.0
 - [ ] Deploy to Northflank
