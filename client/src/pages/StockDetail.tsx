@@ -422,7 +422,7 @@ export default function StockDetail() {
           <TabsTrigger value="ownership" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
-          <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> AI Analysis</TabsTrigger>
+          <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> Analysis</TabsTrigger>
         </TabsList>
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
@@ -1533,9 +1533,9 @@ export default function StockDetail() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <span className="glass-section-icon"><Brain className="h-3.5 w-3.5 text-primary" /></span> AI Deep Analysis
+                    <span className="glass-section-icon"><Brain className="h-3.5 w-3.5 text-primary" /></span> Data-Driven Analysis
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">Comprehensive AI-powered research report</p>
+                  <p className="text-xs text-muted-foreground mt-1">Comprehensive analysis based on real financial metrics</p>
                 </div>
                 <Button
                   variant="outline"
@@ -1545,7 +1545,7 @@ export default function StockDetail() {
                   disabled={aiAnalysisMutation.isPending}
                 >
                   {aiAnalysisMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  Generate Report
+                  Analyze
                 </Button>
               </div>
             </CardHeader>
@@ -1618,13 +1618,13 @@ export default function StockDetail() {
               ) : aiAnalysisMutation.isPending ? (
                 <div className="flex items-center gap-1 py-8">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <span className="text-[11px] text-muted-foreground">Generating comprehensive analysis report...</span>
+                  <span className="text-[11px] text-muted-foreground">Analyzing real financial metrics...</span>
                 </div>
-              ) : aiAnalysisMutation.data?.summary === "AI analysis temporarily unavailable. Please try again later." ? (
-                <p className="text-[11px] text-muted-foreground py-1.5">AI analysis temporarily unavailable. Please try again later.</p>
+              ) : aiAnalysisMutation.data?.summary === "Insufficient data available for analysis." ? (
+                <p className="text-[11px] text-muted-foreground py-1.5">Insufficient data available for analysis.</p>
               ) : (
                 <p className="text-[11px] text-muted-foreground py-1.5">
-                  Click "Generate Report" to get a comprehensive AI-powered analysis including investment thesis, rewards, risks, and forward outlook.
+                  Click "Analyze" for a data-driven analysis based on real financial metrics including valuation, profitability, growth, and risk indicators.
                 </p>
               )}
             </CardContent>
@@ -1635,7 +1635,7 @@ export default function StockDetail() {
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Quick Sentiment
+                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Technical Sentiment
                 </CardTitle>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => sentimentMutation.mutate({ symbol, name: stockInfo.name })} disabled={sentimentMutation.isPending}>
                   {sentimentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}
@@ -1658,11 +1658,11 @@ export default function StockDetail() {
               ) : sentimentMutation.isPending ? (
                 <div className="flex items-center gap-1 py-1.5">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <span className="text-[11px] text-muted-foreground">Checking sentiment...</span>
+                  <span className="text-[11px] text-muted-foreground">Analyzing technical indicators...</span>
                 </div>
               ) : (
                 <p className="text-[11px] text-muted-foreground py-1.5">
-                  Quick AI sentiment check based on current market conditions.
+                  Technical sentiment based on RSI, moving averages, and price momentum.
                 </p>
               )}
             </CardContent>

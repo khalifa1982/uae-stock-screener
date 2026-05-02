@@ -1460,4 +1460,16 @@
 - [x] Fixed: LLM now receives 30+ company-specific metrics (revenue, EPS, margins, debt, etc.)
 - [x] Fixed: Updated LLM prompt to enforce unique company-specific content generation
 - [x] Bump version to v13.2.0
-- [ ] Deploy to Northflank
+- [x] Deploy to Northflank (v13.2.0 confirmed running on Northflank)
+
+## v13.3.0 — Remove LLM-Generated Content, Use Real API Data Only
+- [x] Audit all LLM usage across the codebase (4 locations found)
+- [x] Remove LLM fallback from earningsTranscriptService.ts — show only real FMP data or "No transcript available"
+- [x] Replace AI Stock Analysis (routers.ts aiAnalysis) with data-driven analysis using real TradingView metrics
+- [x] Replace AI Sentiment (routers.ts sentiment) with technical indicator-based sentiment (RSI, MA from TradingView)
+- [x] Replace Market Summary LLM narrative with data-driven template using real market statistics
+- [x] Update frontend StockDetail.tsx — rename "AI Analysis" tab to "Analysis", remove LLM-dependent UI
+- [x] Remove invokeLLM import from routers.ts and earningsTranscriptService.ts
+- [x] Bump version to v13.3.0
+- [x] Run tests and verify (60/61 pass, 1 pre-existing failure)
+- [ ] Deploy to Northflank (user to click Publish)

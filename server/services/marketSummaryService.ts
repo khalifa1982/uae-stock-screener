@@ -2,15 +2,14 @@
  * Market Summary Service
  * 
  * Generates automated daily market summaries for ADX and DFM
- * in both English and Arabic using LLM.
+ * using real market data and structured templates (NO LLM).
  * 
  * Runs after market close (3:15 PM UAE time, Mon-Fri)
- * Collects market stats, top movers, and generates narrative summaries.
+ * Collects market stats, top movers, and generates data-driven summaries.
  */
 
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, StockInfo } from "../../shared/stockData";
 import { fetchAllTVStocks } from "./tradingViewService";
-import { invokeLLM } from "../_core/llm";
 import { getDb } from "../db";
 import { marketSummaries, InsertMarketSummary } from "../../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -97,7 +96,6 @@ function shouldGenerateSummary(): boolean {
 
 async function collectExchangeStats(exchange: "ADX" | "DFM"): Promise<ExchangeStats> {
   const stockList = exchange === "ADX" ? ADX_STOCKS : DFM_STOCKS;
-  const tickers = stockList.map(s => `${exchange}:${s.symbol}`);
   
   // Fetch from TradingView scanner
   const tvData = await fetchAllTVStocks();
@@ -129,7 +127,6 @@ async function collectExchangeStats(exchange: "ADX" | "DFM"): Promise<ExchangeSt
 
     totalVolume += volume;
     totalValue += value;
-    // Note: totalTrades counted by loop iterations
 
     if (changePercent > 0.01) advancers++;
     else if (changePercent < -0.01) decliners++;
@@ -168,7 +165,7 @@ async function collectExchangeStats(exchange: "ADX" | "DFM"): Promise<ExchangeSt
 
   return {
     exchange,
-    indexValue: null, // Will be filled from specific index data if available
+    indexValue: null,
     indexChange: null,
     indexChangePercent: null,
     totalVolume,
@@ -184,106 +181,102 @@ async function collectExchangeStats(exchange: "ADX" | "DFM"): Promise<ExchangeSt
   };
 }
 
-// ─── LLM Narrative Generation ───────────────────────────────────────
+// ─── Data-Driven Narrative Generation (No LLM) ─────────────────────
 
-async function generateNarrative(
+function generateNarrative(
   stats: ExchangeStats,
   language: "en" | "ar"
-): Promise<string> {
-  const gainersStr = stats.topGainers.map(s => 
-    `${s.name} (${s.symbol}): ${s.changePercent > 0 ? '+' : ''}${s.changePercent.toFixed(2)}%, AED ${s.price.toFixed(2)}`
-  ).join("\n");
-  
-  const losersStr = stats.topLosers.map(s => 
-    `${s.name} (${s.symbol}): ${s.changePercent.toFixed(2)}%, AED ${s.price.toFixed(2)}`
-  ).join("\n");
-  
-  const activeStr = stats.mostActive.map(s => 
-    `${s.name} (${s.symbol}): ${s.volume.toLocaleString()} shares, AED ${s.price.toFixed(2)}`
-  ).join("\n");
+): string {
+  const exchangeName = language === "en"
+    ? (stats.exchange === "ADX" ? "Abu Dhabi Securities Exchange (ADX)" : "Dubai Financial Market (DFM)")
+    : (stats.exchange === "ADX" ? "سوق أبوظبي للأوراق المالية" : "سوق دبي المالي");
 
-  const sectorStr = Object.entries(stats.sectorPerformance)
-    .sort((a, b) => b[1].avgChange - a[1].avgChange)
-    .map(([sector, data]) => `${sector}: ${data.avgChange > 0 ? '+' : ''}${data.avgChange.toFixed(2)}% (${data.count} stocks)`)
-    .join("\n");
+  const totalStocks = stats.advancers + stats.decliners + stats.unchanged;
+  const advanceRatio = totalStocks > 0 ? (stats.advancers / totalStocks * 100).toFixed(0) : "0";
+  const declineRatio = totalStocks > 0 ? (stats.decliners / totalStocks * 100).toFixed(0) : "0";
 
-  const prompt = language === "en" 
-    ? `Generate a professional daily market summary report for the ${stats.exchange === "ADX" ? "Abu Dhabi Securities Exchange (ADX)" : "Dubai Financial Market (DFM)"}.
+  // Determine market direction
+  const direction = stats.advancers > stats.decliners ? "positive" : stats.decliners > stats.advancers ? "negative" : "mixed";
 
-Date: ${getUAEDate()}
-Market Statistics:
-- Total Volume: ${stats.totalVolume.toLocaleString()} shares
-- Total Value: AED ${(stats.totalValue / 1e6).toFixed(2)} million
-- Stocks Traded: ${stats.totalTrades}
-- Advancers: ${stats.advancers} | Decliners: ${stats.decliners} | Unchanged: ${stats.unchanged}
+  // Best and worst sectors
+  const sortedSectors = Object.entries(stats.sectorPerformance)
+    .sort((a, b) => b[1].avgChange - a[1].avgChange);
+  const bestSector = sortedSectors[0];
+  const worstSector = sortedSectors[sortedSectors.length - 1];
 
-Top Gainers:
-${gainersStr || "No significant gainers"}
+  if (language === "en") {
+    const directionText = direction === "positive" 
+      ? `closed on a positive note with **${stats.advancers}** stocks advancing (${advanceRatio}% of traded stocks)`
+      : direction === "negative"
+      ? `closed lower with **${stats.decliners}** stocks declining (${declineRatio}% of traded stocks)`
+      : `ended the session mixed with advancers and decliners nearly balanced`;
 
-Top Losers:
-${losersStr || "No significant losers"}
+    const volumeText = `Total trading volume reached **${stats.totalVolume.toLocaleString()}** shares with a turnover of **AED ${(stats.totalValue / 1e6).toFixed(2)} million** across **${stats.totalTrades}** traded stocks.`;
 
-Most Active by Volume:
-${activeStr || "N/A"}
+    const gainersText = stats.topGainers.length > 0
+      ? `**Top Gainers:** ${stats.topGainers.slice(0, 3).map(s => `${s.name} (${s.symbol}) +${s.changePercent.toFixed(2)}%`).join(", ")}.`
+      : "";
 
-Sector Performance:
-${sectorStr || "N/A"}
+    const losersText = stats.topLosers.length > 0
+      ? `**Top Losers:** ${stats.topLosers.slice(0, 3).map(s => `${s.name} (${s.symbol}) ${s.changePercent.toFixed(2)}%`).join(", ")}.`
+      : "";
 
-Write a comprehensive 3-4 paragraph market summary in professional financial journalism style. Include:
-1. Overall market direction and sentiment
-2. Key movers and what drove them
-3. Sector highlights
-4. Brief outlook for the next session
+    const activeText = stats.mostActive.length > 0
+      ? `**Most Active:** ${stats.mostActive.slice(0, 3).map(s => `${s.name} (${s.volume.toLocaleString()} shares)`).join(", ")}.`
+      : "";
 
-Use markdown formatting with **bold** for key figures. Be factual and analytical.`
-    : `اكتب تقريراً يومياً احترافياً لملخص السوق لـ ${stats.exchange === "ADX" ? "سوق أبوظبي للأوراق المالية (ADX)" : "سوق دبي المالي (DFM)"}.
+    const sectorText = bestSector && worstSector && bestSector[0] !== worstSector[0]
+      ? `**Sector Performance:** ${bestSector[0]} led with an average gain of +${bestSector[1].avgChange.toFixed(2)}%, while ${worstSector[0]} underperformed at ${worstSector[1].avgChange.toFixed(2)}%.`
+      : "";
 
-التاريخ: ${getUAEDate()}
-إحصائيات السوق:
-- إجمالي حجم التداول: ${stats.totalVolume.toLocaleString()} سهم
-- إجمالي قيمة التداول: ${(stats.totalValue / 1e6).toFixed(2)} مليون درهم
-- عدد الأسهم المتداولة: ${stats.totalTrades}
-- الأسهم المرتفعة: ${stats.advancers} | المنخفضة: ${stats.decliners} | دون تغيير: ${stats.unchanged}
+    return [
+      `**${exchangeName}** ${directionText}. ${stats.decliners} stocks declined and ${stats.unchanged} remained unchanged.`,
+      "",
+      volumeText,
+      "",
+      [gainersText, losersText].filter(Boolean).join(" "),
+      "",
+      activeText,
+      "",
+      sectorText,
+    ].filter(line => line !== undefined).join("\n");
+  } else {
+    // Arabic version
+    const directionText = direction === "positive"
+      ? `أغلق على ارتفاع مع صعود **${stats.advancers}** سهماً (${advanceRatio}% من الأسهم المتداولة)`
+      : direction === "negative"
+      ? `أغلق على انخفاض مع تراجع **${stats.decliners}** سهماً (${declineRatio}% من الأسهم المتداولة)`
+      : `أنهى الجلسة بأداء متباين مع تقارب عدد الأسهم المرتفعة والمنخفضة`;
 
-أكبر الرابحين:
-${gainersStr || "لا توجد ارتفاعات ملحوظة"}
+    const volumeText = `بلغ إجمالي حجم التداول **${stats.totalVolume.toLocaleString()}** سهم بقيمة إجمالية **${(stats.totalValue / 1e6).toFixed(2)} مليون درهم** عبر **${stats.totalTrades}** سهماً متداولاً.`;
 
-أكبر الخاسرين:
-${losersStr || "لا توجد انخفاضات ملحوظة"}
+    const gainersText = stats.topGainers.length > 0
+      ? `**أبرز الرابحين:** ${stats.topGainers.slice(0, 3).map(s => `${s.name} (${s.symbol}) +${s.changePercent.toFixed(2)}%`).join("، ")}.`
+      : "";
 
-الأكثر نشاطاً من حيث الحجم:
-${activeStr || "غير متوفر"}
+    const losersText = stats.topLosers.length > 0
+      ? `**أبرز الخاسرين:** ${stats.topLosers.slice(0, 3).map(s => `${s.name} (${s.symbol}) ${s.changePercent.toFixed(2)}%`).join("، ")}.`
+      : "";
 
-أداء القطاعات:
-${sectorStr || "غير متوفر"}
+    const activeText = stats.mostActive.length > 0
+      ? `**الأكثر نشاطاً:** ${stats.mostActive.slice(0, 3).map(s => `${s.name} (${s.volume.toLocaleString()} سهم)`).join("، ")}.`
+      : "";
 
-اكتب ملخصاً شاملاً للسوق من 3-4 فقرات بأسلوب صحافة مالية احترافية باللغة العربية. يتضمن:
-1. الاتجاه العام للسوق والمعنويات
-2. الأسهم الرئيسية المحركة وأسباب تحركها
-3. أبرز أداء القطاعات
-4. نظرة مختصرة للجلسة القادمة
+    const sectorText = bestSector && worstSector && bestSector[0] !== worstSector[0]
+      ? `**أداء القطاعات:** تصدر قطاع ${bestSector[0]} بمتوسط ارتفاع +${bestSector[1].avgChange.toFixed(2)}%، بينما تراجع قطاع ${worstSector[0]} بنسبة ${worstSector[1].avgChange.toFixed(2)}%.`
+      : "";
 
-استخدم تنسيق markdown مع **خط عريض** للأرقام الرئيسية. كن واقعياً وتحليلياً.`;
-
-  try {
-    const result = await invokeLLM({
-      messages: [
-        { 
-          role: "system", 
-          content: language === "en" 
-            ? "You are a senior financial journalist specializing in UAE capital markets. Write clear, data-driven market summaries in professional English. Use markdown formatting."
-            : "أنت صحفي مالي متخصص في أسواق رأس المال الإماراتية. اكتب ملخصات سوقية واضحة ومبنية على البيانات باللغة العربية الفصحى المهنية. استخدم تنسيق markdown."
-        },
-        { role: "user", content: prompt }
-      ],
-    });
-    const content = result.choices[0]?.message?.content;
-    return (typeof content === "string" ? content : null) || (language === "en" ? "Summary generation failed." : "فشل إنشاء الملخص.");
-  } catch (e) {
-    console.error("[MarketSummary] LLM generation failed:", e);
-    return language === "en" 
-      ? "Market summary temporarily unavailable. Please check back later." 
-      : "ملخص السوق غير متوفر مؤقتاً. يرجى المحاولة لاحقاً.";
+    return [
+      `**${exchangeName}** ${directionText}. تراجع ${stats.decliners} سهماً واستقر ${stats.unchanged} دون تغيير.`,
+      "",
+      volumeText,
+      "",
+      [gainersText, losersText].filter(Boolean).join(" "),
+      "",
+      activeText,
+      "",
+      sectorText,
+    ].filter(line => line !== undefined).join("\n");
   }
 }
 
@@ -390,7 +383,7 @@ export async function generateDailySummary(forceDate?: string): Promise<{
 
     for (const task of tasks) {
       try {
-        const narrative = await generateNarrative(task.stats, task.lang);
+        const narrative = generateNarrative(task.stats, task.lang);
         await saveSummary(date, task.stats.exchange, task.lang, task.stats, narrative);
         summaryCount++;
         console.log(`[MarketSummary] Saved ${task.stats.exchange} ${task.lang} summary`);

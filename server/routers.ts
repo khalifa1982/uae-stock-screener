@@ -7,7 +7,7 @@ import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
 import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats, recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors } from "./db";
-import { invokeLLM } from "./_core/llm";
+// LLM import removed — all analysis is now data-driven from real API metrics
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
 import { getCreditMonitorStatus, forceCheckCredits } from "./services/scrapflyCreditMonitor";
@@ -1160,118 +1160,139 @@ export const appRouter = router({
         };
       }),
 
-    // ─── AI Company Analysis (Gemini-powered) ─────────────────────
+    // ─── Data-Driven Stock Analysis (Real Metrics Only) ─────────────
     aiAnalysis: publicProcedure
       .input(z.object({ symbol: z.string() }))
       .mutation(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
         
-        // Get stock data for context
+        // Get real stock data from TradingView
         const tvKey = `${stock.exchange}:${stock.symbol}`;
         const tvStocks = await fetchTVStocksByTickers([tvKey]);
         const tv = tvStocks.length > 0 ? tvStocks[0] : null;
         
-        const stockContext = tv ? `
-Company: ${tv.description || stock.name} (${stock.symbol})
-Exchange: ${stock.exchange}
-Sector: ${tv.sector || stock.sector}
-Industry: ${tv.industry || 'N/A'}
-Current Price: AED ${tv.close?.toFixed(2) || 'N/A'}
-Market Cap: AED ${tv.marketCap ? (tv.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
-P/E Ratio: ${tv.pe?.toFixed(2) || 'N/A'}
-P/B Ratio: ${tv.priceToBook?.toFixed(2) || 'N/A'}
-ROE: ${tv.returnOnEquity?.toFixed(2) || 'N/A'}%
-ROA: ${tv.returnOnAssets?.toFixed(2) || 'N/A'}%
-Debt/Equity: ${tv.debtToEquity?.toFixed(2) || 'N/A'}%
-Dividend Yield: ${tv.dividendYield?.toFixed(2) || 'N/A'}%
-Net Margin: ${tv.netMargin?.toFixed(2) || 'N/A'}%
-Revenue: AED ${tv.totalRevenue ? (tv.totalRevenue / 1e9).toFixed(2) + 'B' : 'N/A'}
-Net Income: AED ${tv.netIncome ? (tv.netIncome / 1e6).toFixed(0) + 'M' : 'N/A'}
-1Y Performance: ${tv.perfYear?.toFixed(2) || 'N/A'}%
-5Y Performance: ${tv.perf5Year?.toFixed(2) || 'N/A'}%
-RSI: ${tv.rsi?.toFixed(1) || 'N/A'}
-Beta: ${tv.beta?.toFixed(2) || 'N/A'}
-` : `Company: ${stock.name} (${stock.symbol}), Exchange: ${stock.exchange}`;
-        
-        try {
-          const result = await invokeLLM({
-            messages: [
-              { role: "system", content: `You are a senior equity research analyst specializing in UAE markets (ADX and DFM). Provide comprehensive, data-driven analysis in the style of Simply Wall St. Be specific with numbers and comparisons. Return JSON with the exact schema specified.` },
-              { role: "user", content: `Provide a comprehensive analysis for this UAE-listed stock:\n${stockContext}\n\nReturn a detailed analysis as JSON.` }
-            ],
-            response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "stock_analysis",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    summary: { type: "string", description: "2-3 paragraph executive summary of the company and its investment thesis" },
-                    rewards: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "3-5 key rewards/positive factors for investing"
-                    },
-                    risks: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "3-5 key risks/negative factors for investing"
-                    },
-                    outlook: { type: "string", description: "1-2 paragraph forward-looking outlook" },
-                    rating: { type: "string", description: "One of: Strong Buy, Buy, Hold, Sell, Strong Sell" },
-                    confidence: { type: "number", description: "Confidence level 0-100" },
-                  },
-                  required: ["summary", "rewards", "risks", "outlook", "rating", "confidence"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          });
-          const content = result.choices[0]?.message?.content;
-          if (typeof content === "string") return JSON.parse(content);
-          return { summary: "Analysis unavailable.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
-        } catch (e) {
-          console.warn("[AI Analysis] Failed:", e);
-          return { summary: "AI analysis temporarily unavailable. Please try again later.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
+        if (!tv) {
+          return { summary: "Insufficient data available for analysis.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
         }
+
+        // Build data-driven analysis from real metrics
+        const rewards: string[] = [];
+        const risks: string[] = [];
+
+        // Valuation signals
+        if (tv.pe && tv.pe < 15) rewards.push(`Attractive P/E ratio of ${tv.pe.toFixed(1)}x (below market average)`);
+        if (tv.pe && tv.pe > 30) risks.push(`Elevated P/E ratio of ${tv.pe.toFixed(1)}x suggests premium valuation`);
+        if (tv.priceToBook && tv.priceToBook < 1.5) rewards.push(`Low P/B ratio of ${tv.priceToBook.toFixed(2)}x indicates potential undervaluation`);
+        if (tv.priceToBook && tv.priceToBook > 5) risks.push(`High P/B ratio of ${tv.priceToBook.toFixed(2)}x — stock trades at significant premium to book value`);
+
+        // Profitability signals
+        if (tv.returnOnEquity && tv.returnOnEquity > 15) rewards.push(`Strong ROE of ${tv.returnOnEquity.toFixed(1)}% demonstrates efficient capital allocation`);
+        if (tv.returnOnEquity && tv.returnOnEquity < 5) risks.push(`Low ROE of ${tv.returnOnEquity.toFixed(1)}% suggests weak profitability`);
+        if (tv.netMargin && tv.netMargin > 20) rewards.push(`Healthy net margin of ${tv.netMargin.toFixed(1)}% indicates strong pricing power`);
+        if (tv.netMargin && tv.netMargin < 5) risks.push(`Thin net margin of ${tv.netMargin.toFixed(1)}% leaves little room for error`);
+
+        // Dividend signals
+        if (tv.dividendYield && tv.dividendYield > 4) rewards.push(`Attractive dividend yield of ${tv.dividendYield.toFixed(2)}% provides income`);
+
+        // Growth signals
+        if (tv.perfYear && tv.perfYear > 20) rewards.push(`Strong 1-year performance of +${tv.perfYear.toFixed(1)}% shows positive momentum`);
+        if (tv.perfYear && tv.perfYear < -20) risks.push(`Weak 1-year performance of ${tv.perfYear.toFixed(1)}% indicates negative momentum`);
+
+        // Risk signals
+        if (tv.debtToEquity && tv.debtToEquity > 100) risks.push(`High debt/equity ratio of ${tv.debtToEquity.toFixed(0)}% raises leverage concerns`);
+        if (tv.beta && tv.beta > 1.5) risks.push(`High beta of ${tv.beta.toFixed(2)} means above-average volatility`);
+        if (tv.rsi && tv.rsi > 70) risks.push(`RSI at ${tv.rsi.toFixed(0)} indicates overbought conditions`);
+        if (tv.rsi && tv.rsi < 30) rewards.push(`RSI at ${tv.rsi.toFixed(0)} indicates oversold conditions — potential buying opportunity`);
+
+        // Determine rating based on signals
+        const rewardCount = rewards.length;
+        const riskCount = risks.length;
+        let rating = "Hold";
+        let confidence = 50;
+        if (rewardCount >= 4 && riskCount <= 1) { rating = "Strong Buy"; confidence = 75; }
+        else if (rewardCount >= 3 && riskCount <= 2) { rating = "Buy"; confidence = 65; }
+        else if (riskCount >= 4 && rewardCount <= 1) { rating = "Strong Sell"; confidence = 75; }
+        else if (riskCount >= 3 && rewardCount <= 2) { rating = "Sell"; confidence = 65; }
+        else { rating = "Hold"; confidence = 55; }
+
+        // Build summary from real data
+        const summary = `${tv.description || stock.name} (${stock.symbol}) is listed on ${stock.exchange} in the ${tv.sector || stock.sector} sector.` +
+          (tv.marketCap ? ` Market capitalization: AED ${(tv.marketCap / 1e9).toFixed(2)}B.` : "") +
+          (tv.close ? ` Current price: AED ${tv.close.toFixed(2)}.` : "") +
+          (tv.pe ? ` P/E: ${tv.pe.toFixed(1)}x.` : "") +
+          (tv.dividendYield ? ` Dividend yield: ${tv.dividendYield.toFixed(2)}%.` : "") +
+          (tv.returnOnEquity ? ` ROE: ${tv.returnOnEquity.toFixed(1)}%.` : "") +
+          (tv.netMargin ? ` Net margin: ${tv.netMargin.toFixed(1)}%.` : "");
+
+        const outlook = (tv.perfYear != null ? `1-year performance: ${tv.perfYear > 0 ? "+" : ""}${tv.perfYear.toFixed(1)}%.` : "") +
+          (tv.perf5Year != null ? ` 5-year performance: ${tv.perf5Year > 0 ? "+" : ""}${tv.perf5Year.toFixed(1)}%.` : "") +
+          (tv.rsi ? ` RSI: ${tv.rsi.toFixed(0)}.` : "") +
+          (tv.beta ? ` Beta: ${tv.beta.toFixed(2)}.` : "");
+
+        return { summary, rewards: rewards.slice(0, 5), risks: risks.slice(0, 5), outlook, rating, confidence };
       }),
 
+    // ─── Technical Sentiment (Real Indicators Only) ───────────────
     sentiment: publicProcedure
       .input(z.object({ symbol: z.string(), name: z.string() }))
       .mutation(async ({ input }) => {
-        try {
-          const result = await invokeLLM({
-            messages: [
-              { role: "system", content: "You are a financial analyst specializing in UAE stock markets (ADX and DFM). Analyze the given stock and provide a brief sentiment assessment. Return JSON with: sentiment (bullish/bearish/neutral), score (-1 to 1), and summary (2-3 sentences)." },
-              { role: "user", content: `Analyze the current market sentiment for ${input.name} (${input.symbol}) listed on the UAE stock exchange. Consider recent market conditions, sector trends, and the company's position in the UAE economy. Return your analysis as JSON.` }
-            ],
-            response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "sentiment_analysis",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    sentiment: { type: "string", description: "bullish, bearish, or neutral" },
-                    score: { type: "number", description: "Sentiment score from -1 (very bearish) to 1 (very bullish)" },
-                    summary: { type: "string", description: "2-3 sentence analysis" },
-                  },
-                  required: ["sentiment", "score", "summary"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          });
-          const content = result.choices[0]?.message?.content;
-          if (typeof content === "string") return JSON.parse(content);
-          return { sentiment: "neutral", score: 0, summary: "Unable to analyze sentiment at this time." };
-        } catch (e) {
-          console.warn("[Sentiment] Analysis failed:", e);
-          return { sentiment: "neutral", score: 0, summary: "Sentiment analysis temporarily unavailable." };
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) return { sentiment: "neutral", score: 0, summary: "Stock not found." };
+
+        // Get real technical data from TradingView
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        const tv = tvStocks.length > 0 ? tvStocks[0] : null;
+
+        if (!tv) return { sentiment: "neutral", score: 0, summary: "Insufficient data for sentiment analysis." };
+
+        // Calculate sentiment from real technical indicators
+        let score = 0;
+        let signals = 0;
+        const factors: string[] = [];
+
+        // RSI signal
+        if (tv.rsi) {
+          if (tv.rsi > 70) { score -= 0.3; factors.push(`RSI overbought (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi > 60) { score += 0.1; factors.push(`RSI bullish (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi < 30) { score += 0.3; factors.push(`RSI oversold (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi < 40) { score -= 0.1; factors.push(`RSI bearish (${tv.rsi.toFixed(0)})`); }
+          else { factors.push(`RSI neutral (${tv.rsi.toFixed(0)})`); }
+          signals++;
         }
+
+        // Price vs moving averages
+        if (tv.close && tv.sma50) {
+          if (tv.close > tv.sma50) { score += 0.2; factors.push("Price above 50-day MA"); }
+          else { score -= 0.2; factors.push("Price below 50-day MA"); }
+          signals++;
+        }
+        if (tv.close && tv.sma200) {
+          if (tv.close > tv.sma200) { score += 0.2; factors.push("Price above 200-day MA"); }
+          else { score -= 0.2; factors.push("Price below 200-day MA"); }
+          signals++;
+        }
+
+        // Recent performance
+        if (tv.change) {
+          if (tv.change > 2) { score += 0.15; factors.push(`Today +${tv.change.toFixed(2)}%`); }
+          else if (tv.change < -2) { score -= 0.15; factors.push(`Today ${tv.change.toFixed(2)}%`); }
+          signals++;
+        }
+        if (tv.perfWeek) {
+          if (tv.perfWeek > 3) { score += 0.1; }
+          else if (tv.perfWeek < -3) { score -= 0.1; }
+          signals++;
+        }
+
+        // Normalize score to -1 to 1 range
+        const normalizedScore = Math.max(-1, Math.min(1, score));
+        const sentiment = normalizedScore > 0.15 ? "bullish" : normalizedScore < -0.15 ? "bearish" : "neutral";
+
+        const summary = `Technical sentiment for ${input.name} is ${sentiment} based on ${signals} indicators. ${factors.slice(0, 3).join(". ")}.`;
+
+        return { sentiment, score: parseFloat(normalizedScore.toFixed(2)), summary };
       }),
 
     // ─── TradingView News ─────────────────────────────────────────
