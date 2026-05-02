@@ -1472,4 +1472,4 @@
 - [x] Remove invokeLLM import from routers.ts and earningsTranscriptService.ts
 - [x] Bump version to v13.3.0
 - [x] Run tests and verify (60/61 pass, 1 pre-existing failure)
-- [ ] Deploy to Northflank (user to click Publish)
+- [x] Deploy to Northflank (v13.3.0 deployed via DockerHub + Northflank UI)
