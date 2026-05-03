@@ -22,7 +22,7 @@ import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fet
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, fetchDFMStock, getDFMStats, type DFMStockData } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
-import { fetchSAOverview, fetchSAFinancials, fetchSADividends, getSAStats, clearSACache } from "./services/stockAnalysisService";
+import { fetchSAOverview, fetchSAFinancials, fetchSADividends, fetchSAStatistics, fetchSAProfile, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { fetchMSData } from "./services/marketScreenerService";
 import { fetchINVData } from "./services/investingComService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
@@ -1965,6 +1965,18 @@ export const appRouter = router({
       .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
       .query(async ({ input }) => {
         return fetchSADividends(input.symbol, input.exchange);
+      }),
+
+    statistics: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSAStatistics(input.symbol, input.exchange);
+      }),
+
+    profile: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSAProfile(input.symbol, input.exchange);
       }),
 
     stats: publicProcedure.query(() => getSAStats()),

@@ -302,6 +302,16 @@ export default function StockDetail() {
     { enabled: !!symbol, staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
   );
 
+  const { data: saStatistics } = trpc.sa.statistics.useQuery(
+    { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
+    { enabled: !!symbol && (activeTab === "analysis" || activeTab === "profile"), staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
+
+  const { data: saProfile } = trpc.sa.profile.useQuery(
+    { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
+    { enabled: !!symbol && activeTab === "profile", staleTime: 1800_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
+
   const sentimentMutation = trpc.stocks.sentiment.useMutation();
   const aiAnalysisMutation = trpc.stocks.aiAnalysis.useMutation();
 
@@ -1088,9 +1098,10 @@ export default function StockDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {profile.description && profile.description !== stockInfo.name && (
+                  {/* Use SA profile description if available (much richer), fallback to TradingView */}
+                  {(saProfile?.description || profile.description) && (saProfile?.description || profile.description) !== stockInfo.name && (
                     <>
-                      <p className="text-[11px] text-foreground/80 leading-relaxed">{profile.description}</p>
+                      <p className="text-[11px] text-foreground/80 leading-relaxed">{saProfile?.description || profile.description}</p>
                       <Separator className="my-4" />
                     </>
                   )}
@@ -1099,13 +1110,134 @@ export default function StockDetail() {
                     {profile.industry && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Industry</p><p className="font-medium">{profile.industry}</p></div>}
                     {(profile.tvEmployees || profile.fullTimeEmployees) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Employees</p><p className="font-medium">{(profile.tvEmployees || profile.fullTimeEmployees)?.toLocaleString()}</p></div>}
                     {profile.country && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Country</p><p className="font-medium">{profile.country}</p></div>}
-                    {profile.city && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="font-medium">{profile.city}</p></div>}
-                    {profile.phone && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p><p className="font-medium">{profile.phone}</p></div>}
+                    {(saProfile?.founded || profile.city) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">{saProfile?.founded ? 'Founded' : 'City'}</p><p className="font-medium">{saProfile?.founded || profile.city}</p></div>}
+                    {(saProfile?.phone || profile.phone) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p><p className="font-medium">{saProfile?.phone || profile.phone}</p></div>}
+                    {saProfile?.website && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Website</p><a href={saProfile.website.startsWith('http') ? saProfile.website : `https://${saProfile.website}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline truncate block">{saProfile.website}</a></div>}
+                    {saProfile?.isinNumber && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">ISIN</p><p className="font-medium font-mono">{saProfile.isinNumber}</p></div>}
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Exchange</p><p className="font-medium">{stockInfo.exchange}</p></div>
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Symbol</p><p className="font-medium">{symbol}</p></div>
+                    {saProfile?.fiscalYear && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Fiscal Year</p><p className="font-medium">{saProfile.fiscalYear}</p></div>}
+                    {saProfile?.reportingCurrency && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Currency</p><p className="font-medium">{saProfile.reportingCurrency}</p></div>}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* SA Statistics: Fair Value & Scores */}
+              {saStatistics && (saStatistics.lynchFairValue || saStatistics.grahamNumber || saStatistics.altmanZScore || saStatistics.piotoskiFScore) && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Valuation & Scores
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.lynchFairValue != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Lynch Fair Value</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.lynchFairValue.toFixed(2)} AED</p>
+                          {saStatistics.lynchUpside != null && <p className={`text-[10px] font-mono ${saStatistics.lynchUpside > 0 ? 'text-gain' : 'text-loss'}`}>{saStatistics.lynchUpside > 0 ? '+' : ''}{saStatistics.lynchUpside.toFixed(1)}% upside</p>}
+                        </div>
+                      )}
+                      {saStatistics.grahamNumber != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Graham Number</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.grahamNumber.toFixed(2)} AED</p>
+                          {saStatistics.grahamUpside != null && <p className={`text-[10px] font-mono ${saStatistics.grahamUpside > 0 ? 'text-gain' : 'text-loss'}`}>{saStatistics.grahamUpside > 0 ? '+' : ''}{saStatistics.grahamUpside.toFixed(1)}% upside</p>}
+                        </div>
+                      )}
+                      {saStatistics.altmanZScore != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Altman Z-Score</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.altmanZScore.toFixed(2)}</p>
+                          <p className={`text-[10px] ${saStatistics.altmanZScore > 2.99 ? 'text-gain' : saStatistics.altmanZScore < 1.81 ? 'text-loss' : 'text-amber-500'}`}>{saStatistics.altmanZScore > 2.99 ? 'Safe Zone' : saStatistics.altmanZScore < 1.81 ? 'Distress Zone' : 'Grey Zone'}</p>
+                        </div>
+                      )}
+                      {saStatistics.piotoskiFScore != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Piotroski F-Score</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.piotoskiFScore}/9</p>
+                          <p className={`text-[10px] ${saStatistics.piotoskiFScore >= 7 ? 'text-gain' : saStatistics.piotoskiFScore <= 3 ? 'text-loss' : 'text-amber-500'}`}>{saStatistics.piotoskiFScore >= 7 ? 'Strong' : saStatistics.piotoskiFScore <= 3 ? 'Weak' : 'Moderate'}</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Additional yields */}
+                    {(saStatistics.earningsYield || saStatistics.fcfYield || saStatistics.shareholderYield) && (
+                      <>
+                        <Separator className="my-3" />
+                        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Yield Metrics</h4>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
+                          {saStatistics.earningsYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Earnings Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.earningsYield.toFixed(2)}%</p></div>}
+                          {saStatistics.fcfYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">FCF Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.fcfYield.toFixed(2)}%</p></div>}
+                          {saStatistics.shareholderYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Shareholder Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.shareholderYield.toFixed(2)}%</p></div>}
+                          {saStatistics.buybackYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Buyback Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.buybackYield.toFixed(2)}%</p></div>}
+                          {saStatistics.dividendYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Dividend Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.dividendYield.toFixed(2)}%</p></div>}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SA Statistics: Financial Position & Efficiency */}
+              {saStatistics && (saStatistics.roce || saStatistics.wacc || saStatistics.interestCoverage || saStatistics.debtToEbitda || saStatistics.netCash) && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Financial Health (StockAnalysis)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.roce != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">ROCE</p><p className="text-[11px] font-bold font-mono">{saStatistics.roce.toFixed(2)}%</p></div>}
+                      {saStatistics.wacc != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">WACC</p><p className="text-[11px] font-bold font-mono">{saStatistics.wacc.toFixed(2)}%</p></div>}
+                      {saStatistics.interestCoverage != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Interest Coverage</p><p className="text-[11px] font-bold font-mono">{saStatistics.interestCoverage.toFixed(2)}x</p></div>}
+                      {saStatistics.debtToEbitda != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/EBITDA</p><p className="text-[11px] font-bold font-mono">{saStatistics.debtToEbitda.toFixed(2)}x</p></div>}
+                      {saStatistics.debtToFCF != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/FCF</p><p className="text-[11px] font-bold font-mono">{saStatistics.debtToFCF.toFixed(2)}x</p></div>}
+                      {saStatistics.netCash && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Net Cash</p><p className="text-[11px] font-bold font-mono">{saStatistics.netCash}</p></div>}
+                      {saStatistics.netCashPerShare != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Net Cash/Share</p><p className="text-[11px] font-bold font-mono">{saStatistics.netCashPerShare.toFixed(2)} AED</p></div>}
+                      {saStatistics.workingCapital && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Working Capital</p><p className="text-[11px] font-bold font-mono">{saStatistics.workingCapital}</p></div>}
+                    </div>
+                    {/* Margins from SA */}
+                    {(saStatistics.ebitdaMargin || saStatistics.fcfMargin || saStatistics.ebitMargin) && (
+                      <>
+                        <Separator className="my-3" />
+                        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Extended Margins</h4>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
+                          {saStatistics.ebitdaMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">EBITDA Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.ebitdaMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.ebitMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">EBIT Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.ebitMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.fcfMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">FCF Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.fcfMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.pretaxMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Pretax Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.pretaxMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.effectiveTaxRate != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Eff. Tax Rate</p><p className="text-[11px] font-bold font-mono">{saStatistics.effectiveTaxRate.toFixed(1)}%</p></div>}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SA Statistics: Ownership */}
+              {saStatistics && (saStatistics.insiderOwnership != null || saStatistics.institutionalOwnership != null || saStatistics.floatShares) && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Share Statistics (StockAnalysis)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.insiderOwnership != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Insider Ownership</p><p className="text-[11px] font-bold font-mono">{saStatistics.insiderOwnership.toFixed(2)}%</p></div>}
+                      {saStatistics.institutionalOwnership != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Institutional</p><p className="text-[11px] font-bold font-mono">{saStatistics.institutionalOwnership.toFixed(2)}%</p></div>}
+                      {saStatistics.floatShares && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Float</p><p className="text-[11px] font-bold font-mono">{saStatistics.floatShares}</p></div>}
+                      {saStatistics.sharesOutstanding && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Shares Outstanding</p><p className="text-[11px] font-bold font-mono">{saStatistics.sharesOutstanding}</p></div>}
+                      {saStatistics.sharesChangeYoY && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Shares Change YoY</p><p className="text-[11px] font-bold font-mono">{saStatistics.sharesChangeYoY}</p></div>}
+                      {saStatistics.earningsDate && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Earnings Date</p><p className="text-[11px] font-bold font-mono">{saStatistics.earningsDate}</p></div>}
+                      {saStatistics.exDividendDate && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Ex-Dividend Date</p><p className="text-[11px] font-bold font-mono">{saStatistics.exDividendDate}</p></div>}
+                      {saStatistics.yearsOfDividendGrowth != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Div Growth Years</p><p className="text-[11px] font-bold font-mono">{saStatistics.yearsOfDividendGrowth}</p></div>}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Financial Snapshot */}
               <Card id="profile-financials" className="border-border/50">
@@ -1143,8 +1275,8 @@ export default function StockDetail() {
                 </CardContent>
               </Card>
 
-              {/* Officers */}
-              {profile.officers && profile.officers.length > 0 && (
+              {/* Officers — use SA profile executives as fallback */}
+              {((profile.officers && profile.officers.length > 0) || (saProfile?.executives && saProfile.executives.length > 0)) && (
                 <Card id="profile-officers" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
@@ -1153,19 +1285,33 @@ export default function StockDetail() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      {profile.officers.map((officer: any, i: number) => (
-                        <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
-                            <Briefcase className="h-4 w-4 text-primary" />
+                      {(profile.officers && profile.officers.length > 0) ? (
+                        profile.officers.map((officer: any, i: number) => (
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
+                              <Briefcase className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold truncate">{officer.name}</p>
+                              <p className="text-xs text-muted-foreground">{officer.title}</p>
+                              {officer.age && <p className="text-[11px] text-muted-foreground mt-0.5">Age: {officer.age}</p>}
+                              {officer.totalPay && <p className="text-[11px] text-muted-foreground">Compensation: {formatLargeNumber(officer.totalPay)}</p>}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-semibold truncate">{officer.name}</p>
-                            <p className="text-xs text-muted-foreground">{officer.title}</p>
-                            {officer.age && <p className="text-[11px] text-muted-foreground mt-0.5">Age: {officer.age}</p>}
-                            {officer.totalPay && <p className="text-[11px] text-muted-foreground">Compensation: {formatLargeNumber(officer.totalPay)}</p>}
+                        ))
+                      ) : (
+                        saProfile?.executives?.map((exec: any, i: number) => (
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
+                              <Briefcase className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold truncate">{exec.name}</p>
+                              <p className="text-xs text-muted-foreground">{exec.position}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -1473,3 +1473,17 @@
 - [x] Bump version to v13.3.0
 - [x] Run tests and verify (60/61 pass, 1 pre-existing failure)
 - [x] Deploy to Northflank (v13.3.0 deployed via DockerHub + Northflank UI)
+
+## v13.4.0 — StockAnalysis.com Enhanced Scraping (Statistics + Profile)
+- [x] Research StockAnalysis.com data structure (SvelteKit data blocks)
+- [x] Fix parseJSValue function — string-aware JS-to-JSON converter that handles apostrophes and colons inside strings
+- [x] Fix section name mappings (financialEfficiency, stockSplits, analystForecasts)
+- [x] Fix score ID mappings (zScore, fScore)
+- [x] Add fetchSAStatistics function — extracts 61 data fields (valuation, ratios, margins, dividends, fair values, scores)
+- [x] Add fetchSAProfile function — extracts company info, executives, contact, stock details
+- [x] Fix extractProfileFromHTML to match actual data structure (top-level contact/description/executives/details)
+- [x] Add tRPC endpoints (sa.statistics, sa.profile)
+- [x] Add frontend queries and display in StockDetail Profile tab
+- [x] Write vitest unit tests with real HTML fixtures (10/10 pass)
+- [x] Bump version to v13.4.0
+- [ ] Deploy to Northflank
