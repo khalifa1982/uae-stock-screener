@@ -44,7 +44,8 @@ import {
   Scale,
 } from "lucide-react";
 
-const navItems = [
+// Primary nav items — always visible in the top bar
+const primaryNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Filter, label: "Screener", path: "/screener" },
   { icon: Bell, label: "Alerts", path: "/alerts" },
@@ -52,6 +53,10 @@ const navItems = [
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
   { icon: Newspaper, label: "News", path: "/news" },
+];
+
+// Secondary nav items — shown in "More" dropdown to prevent overflow
+const secondaryNavItems = [
   { icon: FileText, label: "Summary", path: "/summary" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
   { icon: Scale, label: "Compare", path: "/compare" },
@@ -60,6 +65,9 @@ const navItems = [
 const adminNavItems = [
   { icon: Settings2, label: "API", path: "/admin" },
 ];
+
+// Combined for mobile menu and other uses
+const navItems = [...primaryNavItems, ...secondaryNavItems];
 
 const mobileNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -285,7 +293,8 @@ export default function TerminalLayout({
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const menuItems = user?.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+  const allMenuItems = user?.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+  const moreItems = user?.role === "admin" ? [...secondaryNavItems, ...adminNavItems] : secondaryNavItems;
 
   useAbboudAlertNotifications();
 
@@ -304,7 +313,7 @@ export default function TerminalLayout({
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* ─── Top Navigation Bar ─── */}
       <header className="terminal-header">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {/* Logo */}
           <button
             onClick={() => setLocation("/")}
@@ -320,10 +329,10 @@ export default function TerminalLayout({
             </span>
           </button>
 
-          {/* Desktop Nav Links */}
+            {/* Desktop Nav Links — primary items + More dropdown */}
           {!isMobile && (
-            <nav className="flex items-center gap-0.5 ml-2">
-              {menuItems.map((item) => {
+            <nav className="flex items-center gap-0.5 ml-2 min-w-0">
+              {primaryNavItems.map((item) => {
                 const isActive = location === item.path;
                 return (
                   <button
@@ -335,6 +344,30 @@ export default function TerminalLayout({
                   </button>
                 );
               })}
+              {/* More dropdown for secondary items */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`terminal-nav-link flex items-center gap-1 ${moreItems.some(i => location === i.path) ? "active" : ""}`}>
+                    More
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  {moreItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={item.path}
+                        onClick={() => setLocation(item.path)}
+                        className={`cursor-pointer gap-2 ${location === item.path ? "bg-accent" : ""}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           )}
 
@@ -354,7 +387,7 @@ export default function TerminalLayout({
         </div>
 
         {/* Right side: Search + Market Status + Controls */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 ml-2">
           <QuickSearch />
           <MarketStatusBadge />
 
@@ -384,10 +417,10 @@ export default function TerminalLayout({
                       {user?.name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium text-foreground hidden lg:inline max-w-[100px] truncate">
+                  <span className="text-sm font-medium text-foreground hidden xl:inline max-w-[100px] truncate">
                     {user?.name?.split(" ")[0] || "User"}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden lg:inline" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden xl:inline" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -429,7 +462,7 @@ export default function TerminalLayout({
       {/* ─── Mobile Menu Dropdown ─── */}
       {isMobile && mobileMenuOpen && (
         <div className="bg-background dark:bg-[rgba(13,17,23,0.85)] dark:backdrop-blur-xl border-b border-border dark:border-white/[0.06] px-3 py-2 flex flex-wrap gap-1 z-50 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          {menuItems.map((item) => {
+          {allMenuItems.map((item: typeof primaryNavItems[0]) => {
             const isActive = location === item.path;
             return (
               <button

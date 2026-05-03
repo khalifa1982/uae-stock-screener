@@ -807,14 +807,15 @@
   }
 
   .terminal-nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     color: var(--muted-foreground);
     transition: all 0.2s;
     white-space: nowrap;
     border-radius: 8px;
     border: 1px solid transparent;
+    flex-shrink: 0;
   }
   .terminal-nav-link:hover {
     color: var(--foreground);

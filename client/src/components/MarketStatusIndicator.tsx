@@ -119,7 +119,7 @@ export function MarketStatusBadge() {
                 status.label
               )}
               {status.countdown && (
-                <span className="text-[10px] opacity-80 font-mono ml-0.5">({status.countdown})</span>
+                <span className="text-[10px] opacity-80 font-mono ml-0.5 hidden xl:inline">({status.countdown})</span>
               )}
             </Badge>
 
@@ -136,7 +136,7 @@ export function MarketStatusBadge() {
             )}
 
             {/* UAE Time */}
-            <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">
+            <span className="text-[10px] text-muted-foreground font-mono hidden xl:inline">
               {status.uaeTimeStr}
             </span>
           </div>

@@ -1498,4 +1498,12 @@
 - [x] Add annual dividend summary table and payment history table
 - [x] Bump version to v13.5.0
 - [x] Run tests and verify (16/16 pass)
+- [x] Deploy to Northflank (v13.5.0 deployed via DockerHub + Northflank UI)
+
+## v13.5.1 — Navbar Overlap Fix
+- [x] Fix navigation bar items overlapping on desktop (items cramming together)
+- [x] Make navbar responsive for all screen sizes (desktop, tablet, mobile)
+- [x] Add "More" dropdown for secondary nav items (Summary, Notifications, Compare, API)
+- [x] Make search bar, market status, and username responsive (compact on smaller screens)
+- [x] Ensure all nav items are visible and accessible without overlap
 - [ ] Deploy to Northflank

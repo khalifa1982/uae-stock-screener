@@ -175,8 +175,8 @@ export function QuickSearch() {
         className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/30 border border-border/30 hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground group min-w-0"
       >
         <Search className="h-3 w-3 shrink-0 group-hover:text-primary transition-colors" />
-        <span className="text-[10px] hidden sm:inline truncate">Search stocks...</span>
-        <kbd className="hidden md:inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-secondary/50 border border-border/30 text-[8px] font-mono text-muted-foreground/60 ml-1">
+        <span className="text-[10px] hidden lg:inline truncate">Search stocks...</span>
+        <kbd className="hidden xl:inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-secondary/50 border border-border/30 text-[8px] font-mono text-muted-foreground/60 ml-1">
           <span className="text-[9px]">&#8984;</span>K
         </kbd>
       </button>
