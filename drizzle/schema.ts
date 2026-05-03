@@ -1,4 +1,4 @@
-import { int, float, bigint, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex, boolean, index } from "drizzle-orm/mysql-core";
+import { int, float, bigint, json, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex, boolean, index } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -289,3 +289,18 @@ export const pageViews = mysqlTable("page_views", {
 
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = typeof pageViews.$inferInsert;
+
+// ─── SA Statistics Cache ─────────────────────────────────────────────
+export const saStatisticsCache = mysqlTable("sa_statistics_cache", {
+  id: int("id").primaryKey().autoincrement(),
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  exchange: varchar("exchange", { length: 10 }).notNull(),
+  data: json("data"),
+  scrapedAt: timestamp("scraped_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("sa_stats_symbol_exchange_idx").on(table.symbol, table.exchange),
+]);
+
+export type SAStatisticsCache = typeof saStatisticsCache.$inferSelect;
+export type InsertSAStatisticsCache = typeof saStatisticsCache.$inferInsert;

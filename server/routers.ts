@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats, recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors } from "./db";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats, recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors, upsertSAStatisticsCache, getSAStatisticsCached } from "./db";
 // LLM import removed — all analysis is now data-driven from real API metrics
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
@@ -1970,7 +1970,19 @@ export const appRouter = router({
     statistics: publicProcedure
       .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
       .query(async ({ input }) => {
-        return fetchSAStatistics(input.symbol, input.exchange);
+        // Try DB cache first
+        const cached = await getSAStatisticsCached(input.symbol, input.exchange);
+        if (cached && !cached.isStale) {
+          return cached.data;
+        }
+        // Fetch fresh data
+        const fresh = await fetchSAStatistics(input.symbol, input.exchange);
+        if (fresh) {
+          // Cache in background (don't block response)
+          upsertSAStatisticsCache(input.symbol, input.exchange, fresh).catch(() => {});
+        }
+        // Return fresh data, or stale cache as fallback
+        return fresh ?? cached?.data ?? null;
       }),
 
     profile: publicProcedure
@@ -1982,6 +1994,47 @@ export const appRouter = router({
     stats: publicProcedure.query(() => getSAStats()),
 
     clearCache: protectedProcedure.mutation(() => clearSACache()),
+
+    // Batch scraper: scrapes SA statistics for all UAE stocks and caches in DB
+    // Called by scheduled task daily
+    batchScrape: protectedProcedure
+      .input(z.object({ batchSize: z.number().min(1).max(50).default(10), offset: z.number().min(0).default(0) }).optional())
+      .mutation(async ({ input }) => {
+        const batchSize = input?.batchSize ?? 10;
+        const offset = input?.offset ?? 0;
+        const stocks = ALL_STOCKS.slice(offset, offset + batchSize);
+        let success = 0;
+        let failed = 0;
+        const results: { symbol: string; exchange: string; status: string }[] = [];
+        for (const stock of stocks) {
+          try {
+            const data = await fetchSAStatistics(stock.symbol, stock.exchange);
+            if (data) {
+              await upsertSAStatisticsCache(stock.symbol, stock.exchange, data);
+              success++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, status: 'ok' });
+            } else {
+              failed++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, status: 'no_data' });
+            }
+          } catch (e: any) {
+            failed++;
+            results.push({ symbol: stock.symbol, exchange: stock.exchange, status: `error: ${e?.message?.slice(0, 50)}` });
+          }
+          // Rate limit: wait 2s between requests to avoid Scrapfly rate limits
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        return {
+          totalStocks: ALL_STOCKS.length,
+          batchSize,
+          offset,
+          processed: stocks.length,
+          success,
+          failed,
+          nextOffset: offset + batchSize < ALL_STOCKS.length ? offset + batchSize : null,
+          results,
+        };
+      }),
   }),
 
   // ─── MarketScreener Data (Ownership, Consensus, ESG) ──────────

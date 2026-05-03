@@ -21,6 +21,7 @@ import { MetricExplanation } from "@/components/MetricExplanation";
 import { AnalystConsensus } from "@/components/AnalystConsensus";
 import { EarningsTranscripts } from "@/components/EarningsTranscripts";
 import { SADataCard } from "@/components/SADataCard";
+import { StatisticsTab } from "@/components/StatisticsTab";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { useRealtimePrice } from "@/hooks/useRealtimePrices";
 import { DataConnectionIndicator } from "@/components/RealtimeIndicator";
@@ -304,7 +305,7 @@ export default function StockDetail() {
 
   const { data: saStatistics } = trpc.sa.statistics.useQuery(
     { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
-    { enabled: !!symbol && (activeTab === "analysis" || activeTab === "profile"), staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+    { enabled: !!symbol && (activeTab === "analysis" || activeTab === "profile" || activeTab === "statistics"), staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
   );
 
   const { data: saProfile } = trpc.sa.profile.useQuery(
@@ -432,6 +433,7 @@ export default function StockDetail() {
           <TabsTrigger value="ownership" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
           <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
+          <TabsTrigger value="statistics" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Statistics</TabsTrigger>
           <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> Analysis</TabsTrigger>
         </TabsList>
 
@@ -1438,6 +1440,11 @@ export default function StockDetail() {
         {/* ═══════════════ TRANSCRIPTS TAB ═══════════════ */}
         <TabsContent value="transcripts" className="space-y-2 mt-4">
           <EarningsTranscripts symbol={symbol} companyName={stockInfo?.name} />
+        </TabsContent>
+
+        {/* ═══════════════ STATISTICS TAB ═══════════════ */}
+        <TabsContent value="statistics" className="space-y-2 mt-4">
+          <StatisticsTab symbol={symbol} exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"} />
         </TabsContent>
 
         {/* ═══════════════ AI ANALYSIS TAB ═══════════════ */}

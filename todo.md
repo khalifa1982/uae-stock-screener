@@ -1486,4 +1486,16 @@
 - [x] Add frontend queries and display in StockDetail Profile tab
 - [x] Write vitest unit tests with real HTML fixtures (10/10 pass)
 - [x] Bump version to v13.4.0
+- [x] Deploy to Northflank (v13.4.0 deployed via DockerHub + Northflank UI)
+
+## v13.5.0 — Statistics Tab, Scheduled Scraper, Dividend Charts
+- [x] Add dedicated Statistics tab in StockDetail with organized sections (Valuation, EV Ratios, Fair Value, Margins, Financial Health, Scores, Dividends)
+- [x] Create database table (sa_statistics_cache) for caching SA statistics data
+- [x] Build scheduled daily scraper API endpoint (/api/scheduled/sa-scrape) that pre-fetches SA statistics for all 170 UAE stocks
+- [x] Add batchScrape tRPC mutation for admin-triggered batch scraping
+- [ ] Set up scheduled task to run the scraper daily (post-deploy)
+- [x] Add dividend history charts with interactive Recharts visualization (yield trend, dividend amount + growth, payout ratio)
+- [x] Add annual dividend summary table and payment history table
+- [x] Bump version to v13.5.0
+- [x] Run tests and verify (16/16 pass)
 - [ ] Deploy to Northflank

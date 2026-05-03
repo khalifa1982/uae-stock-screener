@@ -120,6 +120,13 @@
       "when": 1775253989404,
       "tag": "0016_volatile_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1777825767935,
+      "tag": "0017_daily_slipstream",
+      "breakpoints": true
     }
   ]
 }
