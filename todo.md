@@ -1512,4 +1512,9 @@
 - [x] Reproduce error when clicking company from heatmap on main screen
 - [x] Root cause: MarketHeatmap.tsx navigated to /stock/${exchange}/${symbol} instead of /stock/${symbol}
 - [x] Fix: Changed MarketHeatmap navigation to use correct /stock/${symbol} path
-- [ ] Deploy fix to Northflank
+- [x] Deploy fix to Northflank (v13.5.2 deployed via DockerHub + Northflank API)
+## v13.5.3 — Update WhatsApp Group Link
+- [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in DashboardLayout.tsx
+- [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in TerminalLayout.tsx
+- [x] Verify no remaining old links in codebase
+- [ ] Deploy to Northflank
