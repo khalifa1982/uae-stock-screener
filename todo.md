@@ -1506,4 +1506,10 @@
 - [x] Add "More" dropdown for secondary nav items (Summary, Notifications, Compare, API)
 - [x] Make search bar, market status, and username responsive (compact on smaller screens)
 - [x] Ensure all nav items are visible and accessible without overlap
-- [ ] Deploy to Northflank
+- [x] Deploy to Northflank (v13.5.1 deployed)
+
+## v13.5.2 — Fix Stock Detail Error Page (Heatmap Navigation Bug)
+- [x] Reproduce error when clicking company from heatmap on main screen
+- [x] Root cause: MarketHeatmap.tsx navigated to /stock/${exchange}/${symbol} instead of /stock/${symbol}
+- [x] Fix: Changed MarketHeatmap navigation to use correct /stock/${symbol} path
+- [ ] Deploy fix to Northflank
