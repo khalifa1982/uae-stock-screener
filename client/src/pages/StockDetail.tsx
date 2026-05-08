@@ -286,10 +286,12 @@ export default function StockDetail() {
     { enabled: !!symbol, staleTime: autoRefreshInterval ? 3_000 : 300_000, refetchInterval: autoRefreshInterval ? 5_000 : undefined, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
-  const chartInterval = chartRange === "1d" ? "15min" : "1d";
+  // TwelveData only provides daily data for UAE stocks (no intraday granularity)
+  // For "1d" range, show last month of daily data instead
+  const effectiveRange = chartRange === "1d" ? "1mo" : chartRange;
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
-    { symbol, range: chartRange, interval: chartInterval } as any,
-    { enabled: !!symbol, staleTime: 300_000, gcTime: 1800_000, refetchOnWindowFocus: false }
+    { symbol, range: effectiveRange, interval: "1d" } as any,
+    { enabled: !!symbol, staleTime: 60_000, gcTime: 600_000, refetchOnWindowFocus: true }
   );
 
   const { data: profileData, isLoading: profileLoading } = trpc.stocks.profile.useQuery(
@@ -326,9 +328,7 @@ export default function StockDetail() {
     return chartData.timestamps.map((t: number, i: number) => {
       const d = new Date(t);
       const isoDate = d.toISOString().split("T")[0]; // "2026-03-12" for indicator matching
-      const displayDate = chartRange === "1d"
-        ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-        : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return {
         date: displayDate,
         isoDate,

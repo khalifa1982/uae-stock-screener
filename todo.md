@@ -1517,4 +1517,19 @@
 - [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in DashboardLayout.tsx
 - [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in TerminalLayout.tsx
 - [x] Verify no remaining old links in codebase
+- [x] Deploy to Northflank (v13.5.3 deployed via DockerHub + Northflank API)
+
+## v13.5.4 — Fix Price Spectrum & MBP to Show All Bid/Offer Records
+- [ ] Investigate current Price Spectrum and MBP data source and rendering
+- [ ] Fix to show all bid/offer levels (price, qty, total) instead of just one record
+- [ ] Ensure data is real, live, and accurate
 - [ ] Deploy to Northflank
+
+## v13.5.5 — Fix Chart Showing Old/Stale Numbers and Getting Stuck
+- [x] Investigate chart component data fetching logic
+- [x] Root cause: fetchYahooChart was NOT using tdSymbolMapper, so TwelveData calls failed for stocks with different symbols (EMAAR→EMAR, DIB→DISB, etc.)
+- [x] Fix: Updated fetchYahooChart to use toTwelveDataSymbol() mapper with proper exchange parameter
+- [x] Fix: Updated all callers (chart procedure, seasonality, fetchStockData) to pass stock.exchange
+- [x] Fix: Changed frontend to use daily interval (TwelveData only supports daily for UAE)
+- [x] Fix: Reduced staleTime from 5min to 60s for fresher chart data
+- [ ] Deploy fix to Northflank

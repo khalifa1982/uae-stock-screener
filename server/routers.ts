@@ -547,7 +547,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
-        return fetchYahooChart(stock.yahooSymbol, input.range, input.interval);
+        return fetchYahooChart(stock.yahooSymbol, input.range, input.interval, stock.exchange);
       }),
 
     detail: publicProcedure
@@ -1344,7 +1344,7 @@ export const appRouter = router({
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
         // Use 5 years of weekly data for seasonality (TwelveData/TradingView)
-        const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk');
+        const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk', stock.exchange);
         if (!rawChart || !rawChart.timestamps || !rawChart.close) {
           return [];
         }
