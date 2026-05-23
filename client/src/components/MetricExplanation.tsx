@@ -90,7 +90,7 @@ export function MetricExplanation({ metric, className = "" }: MetricExplanationP
       {show && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShow(false)} />
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 rounded-lg bg-popover border border-border shadow-lg text-left">
+          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3  bg-popover border border-border shadow-lg text-left">
             <p className="text-xs font-semibold text-foreground mb-1">{info.title}</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed mb-2">{info.description}</p>
             <div className="space-y-1">

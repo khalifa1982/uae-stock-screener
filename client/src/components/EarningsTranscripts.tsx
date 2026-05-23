@@ -85,7 +85,7 @@ function TranscriptSectionView({ section, isActive, onClick }: {
     return (
       <div
         id={section.id}
-        className={`sticky top-0 z-10 py-2 px-3 rounded-md cursor-pointer transition-colors ${
+        className={`sticky top-0 z-10 py-2 px-3 cursor-pointer transition-colors ${
           section.type === "qa-header"
             ? "bg-chart-2/10 border border-chart-2/20"
             : "bg-primary/10 border border-primary/20"
@@ -107,7 +107,7 @@ function TranscriptSectionView({ section, isActive, onClick }: {
   }
 
   return (
-    <div id={section.id} className={`py-1 ${isActive ? "bg-primary/5 rounded-md" : ""}`}>
+    <div id={section.id} className={`py-1 ${isActive ? "bg-primary/5" : ""}`}>
       {section.speaker && (
         <SpeakerBadge name={section.speaker} role={section.role} company={section.company} />
       )}

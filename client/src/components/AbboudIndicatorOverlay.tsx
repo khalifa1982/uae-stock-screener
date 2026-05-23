@@ -710,7 +710,7 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
     : "text-muted-foreground";
 
   return (
-    <Card className="border-border/50 neon-card overflow-hidden">
+    <Card className="border-border/50  overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-semibold flex items-center gap-2">
           <Sparkles className="h-4 w-4" style={{ color: ABBOUD_COLORS.gold }} />
@@ -722,7 +722,7 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Signal Action */}
-        <div className={`flex items-center justify-between p-3 rounded-lg border ${actionBg}`}>
+        <div className={`flex items-center justify-between p-3  border ${actionBg}`}>
           <div className="flex items-center gap-2">
             {signal.action === "BUY" ? (
               <ArrowUp className="h-5 w-5 text-gain" />
@@ -745,13 +745,13 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
         {/* Key Levels Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Current Price */}
-          <div className="bg-secondary/30 rounded-lg p-2 text-center">
+          <div className="bg-secondary/30  p-2 text-center">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Price</p>
             <p className="text-sm font-bold font-mono text-foreground">{currentPrice.toFixed(3)}</p>
           </div>
 
           {/* Trend */}
-          <div className="bg-secondary/30 rounded-lg p-2 text-center">
+          <div className="bg-secondary/30  p-2 text-center">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Trend</p>
             <div className="flex items-center justify-center gap-1">
               {trendIcon}
@@ -761,7 +761,7 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
 
           {/* Entry Zone */}
           {signal.entryZone && (
-            <div className="bg-secondary/30 rounded-lg p-2 text-center">
+            <div className="bg-secondary/30  p-2 text-center">
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
                 <Target className="h-2.5 w-2.5 text-gain" /> Entry
               </p>
@@ -773,7 +773,7 @@ export function AbboudSignalCard({ symbol, exchange, enabled }: AbboudSignalCard
 
           {/* Stop Loss */}
           {signal.stopLoss && (
-            <div className="bg-secondary/30 rounded-lg p-2 text-center">
+            <div className="bg-secondary/30  p-2 text-center">
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
                 <Shield className="h-2.5 w-2.5 text-loss" /> Stop Loss
               </p>

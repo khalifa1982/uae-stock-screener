@@ -64,7 +64,7 @@ function CalendarGrid({ year, month }: { year: number; month: number }) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-border/10 rounded-md overflow-hidden border border-border/20">
+    <div className="grid grid-cols-7 gap-px bg-border/10 overflow-hidden border border-border/20">
       {WEEKDAYS.map((wd, i) => (
         <div
           key={wd}
@@ -153,8 +153,8 @@ function UpcomingHolidayCard({ holiday }: { holiday: UAEHoliday }) {
   const dayName = date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
 
   return (
-    <div className="flex items-center gap-1.5 py-1.5 px-2 rounded-md hover:bg-white/[0.02] transition-all group">
-      <div className="h-12 w-12 rounded-md bg-gradient-to-br from-neon-purple/10 to-primary/5 border border-neon-purple/15 flex flex-col items-center justify-center shrink-0">
+    <div className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-white/[0.02] transition-all group">
+      <div className="h-12 w-12 bg-card border border-neon-purple/15 flex flex-col items-center justify-center shrink-0">
         <span className="text-[10px] text-neon-purple/70 font-semibold uppercase leading-none">
           {date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
         </span>
@@ -210,7 +210,7 @@ function YearSummary({ year }: { year: number }) {
   }
 
   return (
-    <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
+    <Card className="border-border/30 bg-card/30  overflow-hidden">
       <CardHeader className="pb-1">
         <div className="flex items-center justify-between">
           <CardTitle className="text-[11px] font-semibold flex items-center gap-2.5">
@@ -623,7 +623,7 @@ export default function Calendar() {
       <div className="gradient-border-card p-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+            <div className="h-9 w-9 bg-card flex items-center justify-center">
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <div>
@@ -665,7 +665,7 @@ export default function Calendar() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
             {/* Calendar Grid */}
             <div className="xl:col-span-2 space-y-1.5">
-              <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
+              <Card className="border-border/30 bg-card/30  overflow-hidden">
                 <CardHeader className="pb-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
@@ -721,7 +721,7 @@ export default function Calendar() {
 
                   {/* This month's holidays */}
                   {holidaysThisMonth.length > 0 && (
-                    <div className="mt-4 p-3 rounded-md border border-neon-purple/10 bg-neon-purple/[0.02]">
+                    <div className="mt-4 p-3 border border-neon-purple/10 bg-neon-purple/[0.02]">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neon-purple/60 mb-2">
                         Holidays this month
                       </p>
@@ -742,10 +742,10 @@ export default function Calendar() {
 
             {/* Upcoming Holidays Sidebar */}
             <div className="space-y-1.5">
-              <Card className="border-border/30 bg-card/30 backdrop-blur-sm overflow-hidden">
+              <Card className="border-border/30 bg-card/30  overflow-hidden">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-[11px] font-semibold flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded bg-gradient-to-br from-neon-purple/15 to-neon-purple/5 flex items-center justify-center">
+                    <div className="h-7 w-7 rounded bg-card flex items-center justify-center">
                       <AlertTriangle className="h-3.5 w-3.5 text-neon-purple" />
                     </div>
                     Upcoming Holidays
@@ -766,7 +766,7 @@ export default function Calendar() {
                 </CardContent>
               </Card>
 
-              <div className="p-3.5 rounded-md border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground leading-relaxed">
+              <div className="p-3.5 border border-primary/10 bg-primary/[0.02] text-[11px] text-muted-foreground leading-relaxed">
                 <p className="font-semibold text-foreground/60 mb-1">Note on Islamic Holidays</p>
                 <p>
                   Islamic holidays follow the Hijri (lunar) calendar and may shift by 1-2 days 

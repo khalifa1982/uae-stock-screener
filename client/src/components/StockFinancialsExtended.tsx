@@ -45,7 +45,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-48 " />
         ))}
       </div>
     );
@@ -156,19 +156,19 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Yield</p>
                 <p className="text-lg font-bold font-mono">{data.dividendYield != null ? formatPercent(data.dividendYield) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Per Share (Annual)</p>
                 <p className="text-lg font-bold font-mono">{data.dpsAnnual != null ? formatNumber(data.dpsAnnual, 3) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payout Ratio</p>
                 <p className="text-lg font-bold font-mono">{data.payoutRatioTTM != null ? formatPercent(data.payoutRatioTTM) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Shares Outstanding</p>
                 <p className="text-lg font-bold font-mono">{formatLargeNumber(data.sharesOutstanding)}</p>
               </div>
@@ -187,13 +187,13 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {data.floatShares != null && (
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Float Shares</p>
                 <p className="text-lg font-bold font-mono">{formatLargeNumber(data.floatShares)}</p>
               </div>
             )}
             {data.employees != null && (
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Employees</p>
                 <p className="text-lg font-bold font-mono">{data.employees.toLocaleString()}</p>
               </div>

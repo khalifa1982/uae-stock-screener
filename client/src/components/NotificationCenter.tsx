@@ -415,7 +415,7 @@ export default function NotificationCenter() {
       {/* Dropdown panel */}
       {open && (
         <div
-          className={`absolute z-[200] border border-border rounded-lg shadow-2xl overflow-hidden ${
+          className={`absolute z-[200] border border-border  shadow-2xl overflow-hidden ${
             isMobile
               ? "fixed inset-x-2 top-12 max-h-[calc(100vh-8rem)]"
               : "right-0 top-full mt-2 w-[380px] max-h-[500px]"

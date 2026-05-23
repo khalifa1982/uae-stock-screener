@@ -67,7 +67,7 @@ function StockSelector({
   if (selected) {
     const stock = ALL_STOCKS.find(s => s.symbol === selected);
     return (
-      <div className={`flex items-center gap-2 p-2 rounded-lg border-2 ${color} bg-card/50`}>
+      <div className={`flex items-center gap-2 p-2  border-2 ${color} bg-card/50`}>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold truncate">{selected}</p>
           <p className="text-[10px] text-muted-foreground truncate">{stock?.name || ""}</p>
@@ -81,7 +81,7 @@ function StockSelector({
 
   return (
     <div className="relative">
-      <div className={`flex items-center gap-2 p-2 rounded-lg border-2 border-dashed ${color} bg-card/30`}>
+      <div className={`flex items-center gap-2 p-2  border-2 border-dashed ${color} bg-card/30`}>
         <Plus className="h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={`Stock ${index + 1}...`}
@@ -93,7 +93,7 @@ function StockSelector({
         />
       </div>
       {isOpen && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border  shadow-xl max-h-48 overflow-y-auto">
           {filtered.map(s => (
             <button
               key={s.symbol}

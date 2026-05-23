@@ -57,7 +57,7 @@ export function SimpleChart({ data, isLoading, range, onRangeChange, symbol }: S
           <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[280px] w-full rounded-lg" />
+          <Skeleton className="h-[280px] w-full " />
         </CardContent>
       </Card>
     );
@@ -82,7 +82,7 @@ export function SimpleChart({ data, isLoading, range, onRangeChange, symbol }: S
               <button
                 key={r.value}
                 onClick={() => onRangeChange(r.value)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 text-xs font-medium transition-all ${
                   range === r.value
                     ? "bg-primary text-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

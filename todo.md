@@ -1532,4 +1532,15 @@
 - [x] Fix: Updated all callers (chart procedure, seasonality, fetchStockData) to pass stock.exchange
 - [x] Fix: Changed frontend to use daily interval (TwelveData only supports daily for UAE)
 - [x] Fix: Reduced staleTime from 5min to 60s for fresher chart data
-- [ ] Deploy fix to Northflank
+- [x] Deploy fix to Northflank (v13.5.5 deployed)
+
+## v14.0.0 — Premium Corporate Redesign (Gemini 3.5 Flash Design System)
+- [x] Generate design system using Gemini 3.5 Flash API
+- [x] Implement new color palette (OKLCH brass-gold) and typography in global CSS
+- [x] Add Google Fonts (Cinzel, Plus Jakarta Sans, JetBrains Mono)
+- [x] Redesign TerminalLayout (sidebar, header) with premium corporate styling
+- [x] Redesign Dashboard/Home page with institutional look
+- [x] Redesign Stock Detail page with premium data presentation
+- [x] Update component styling (cards, buttons, tables, badges) - sharp brutalist edges
+- [x] Bulk update all pages (Screener, Heatmap, Calendar, Compare, MarketNews, etc.)
+- [ ] Deploy to Northflank

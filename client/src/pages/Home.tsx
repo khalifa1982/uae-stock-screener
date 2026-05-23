@@ -13,9 +13,9 @@ import { useLocation } from "wouter";
 import { MarketHeatmap } from "@/components/MarketHeatmap";
 import { toast } from "sonner";
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    TYPES & HELPERS
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 type SortField = "symbol" | "price" | "changePercent" | "pe" | "volume" | "marketCap" | "name" | "dividendYield" | "beta" | "rsi" | "eps" | "week52High" | "week52Low" | "grossMargin" | "operatingMargin" | "returnOnEquity" | "debtToEquity" | "netIncome" | "totalRevenue" | "ebitda" | "perfWeek" | "perfMonth" | "perfYear";
 type SortDir = "asc" | "desc";
 type TableView = "overview" | "performance" | "valuation" | "dividends" | "profitability" | "income" | "balance" | "cashflow" | "technicals";
@@ -108,9 +108,9 @@ function getSectorColor(sector: string): string {
   return map[sector] || "#1a73e8";
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    REUSABLE COMPONENTS
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 
 /** Colored ticker badge */
 function TickerBadge({ symbol, size = "sm" }: { symbol: string; size?: "sm" | "md" }) {
@@ -162,13 +162,10 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
     <div
       onClick={onClick}
       className={`
-        relative rounded-xl overflow-hidden transition-all duration-300
-        bg-white/60 dark:bg-white/[0.04]
-        backdrop-blur-xl
-        border border-white/30 dark:border-white/[0.08]
-        shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]
-        hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]
-        hover:border-white/50 dark:hover:border-white/[0.14]
+        relative overflow-hidden transition-all duration-150
+        bg-card
+        border border-border
+        hover:border-[oklch(0.32_0.015_80)]
         ${onClick ? "cursor-pointer" : ""}
         ${className}
       `}
@@ -182,10 +179,10 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
 function SectionTitle({ children, icon: Icon, action }: { children: React.ReactNode; icon?: any; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="flex items-center gap-2.5 text-lg font-bold text-foreground">
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.06em] text-foreground">
         {Icon && (
-          <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_10px_rgba(59,130,246,0.12)] dark:shadow-[0_0_12px_rgba(59,130,246,0.18)]">
-            <Icon className="h-4 w-4 text-primary" />
+          <div className="h-7 w-7 flex items-center justify-center border border-border bg-accent">
+            <Icon className="h-3.5 w-3.5 text-primary" />
           </div>
         )}
         {children}
@@ -194,10 +191,9 @@ function SectionTitle({ children, icon: Icon, action }: { children: React.ReactN
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    FILTER PILL BAR (TradingView-style scrollable pills)
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: FilterId) => void }) {
   return (
     <div className="flex flex-wrap gap-1 py-1">
@@ -208,11 +204,11 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
             key={cat.id}
             onClick={() => onChange(cat.id)}
             className={`
-              px-2.5 py-[3px] rounded-full text-[12px] leading-tight
-              whitespace-nowrap transition-all duration-150
+              px-2.5 py-1 text-[11px] leading-tight uppercase tracking-[0.04em]
+              whitespace-nowrap transition-all duration-150 border
               ${isActive
-                ? "bg-white/90 text-[#131722] shadow-[0_0_12px_rgba(255,255,255,0.15)] font-semibold backdrop-blur-sm border border-white/30"
-                : "bg-white/[0.04] text-[#b2b5be] hover:text-white border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.08] hover:shadow-[0_0_8px_rgba(255,255,255,0.06)] backdrop-blur-[2px] font-normal"
+                ? "bg-primary text-primary-foreground font-semibold border-primary"
+                : "bg-transparent text-muted-foreground hover:text-foreground border-border hover:border-primary/40 font-normal"
               }
             `}
           >
@@ -222,7 +218,7 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
       })}
       <a
         href="/screener"
-        className="px-2.5 py-[3px] rounded-full text-[12px] leading-tight whitespace-nowrap text-[#b2b5be] hover:text-white border border-[#363a45] hover:border-[#50535e] hover:bg-[#2a2e39] transition-all duration-150 inline-flex items-center gap-1 font-normal"
+        className="px-2.5 py-1 text-[11px] leading-tight uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 transition-all duration-150 inline-flex items-center gap-1 font-normal"
       >
         Create more lists in Screener <ChevronRight className="h-3 w-3" />
       </a>
@@ -230,9 +226,7 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TABLE VIEW TABS
-   ═══════════════════════════════════════════════════════════════════════ */
+/* TABLE VIEW TABS */
 const TABLE_VIEWS: { id: TableView; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "performance", label: "Performance" },
@@ -245,9 +239,9 @@ const TABLE_VIEWS: { id: TableView; label: string }[] = [
   { id: "technicals", label: "Technicals" },
 ];
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    SECTOR CARD
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]; onClick: () => void }) {
   const sectorStocks = stocks.filter((s: any) => s.sector === sector);
   const withPrice = sectorStocks.filter((s: any) => s.price != null);
@@ -262,7 +256,7 @@ function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]
     <GlassCard onClick={onClick} className="p-4 min-w-[220px]">
       <div className="flex items-start justify-between mb-3">
         <div
-          className="h-9 w-9 rounded-lg flex items-center justify-center backdrop-blur-md border shadow-lg"
+          className="h-9 w-9  flex items-center justify-center  border shadow-lg"
           style={{
             backgroundColor: `${color}15`,
             borderColor: `${color}30`,
@@ -280,9 +274,9 @@ function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]
         <span>{fmtLg(totalMcap)}</span>
       </div>
       <div className="mt-2 flex items-center gap-1">
-        <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+        <div className="flex-1 h-1.5  bg-muted/50 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gain"
+            className="h-full  bg-gain"
             style={{ width: `${withPrice.length > 0 ? (gainers / withPrice.length) * 100 : 0}%` }}
           />
         </div>
@@ -292,9 +286,9 @@ function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    NEWS CARD
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 function NewsCard({ item }: { item: any }) {
   const timeAgo = (ts: number | string) => {
     // TradingView timestamps are Unix seconds; JS Date expects milliseconds
@@ -340,9 +334,9 @@ function NewsCard({ item }: { item: any }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    MARKET OVERVIEW CARDS (top movers strip)
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 function MoverCard({ stock, rank, onClick }: { stock: any; rank: number; onClick: () => void }) {
   const isUp = (stock.changePercent ?? 0) > 0;
   const isDown = (stock.changePercent ?? 0) < 0;
@@ -368,9 +362,9 @@ function MoverCard({ stock, rank, onClick }: { stock: any; rank: number; onClick
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* 
    MAIN HOME COMPONENT
-   ═══════════════════════════════════════════════════════════════════════ */
+    */
 export default function Home() {
   const [, setLocation] = useLocation();
   const [exchange, setExchange] = useState<"ADX" | "DFM" | "ALL">("ALL");
@@ -711,19 +705,19 @@ export default function Home() {
     return descriptions[activeFilter] || "";
   }, [activeFilter]);
 
-  /* ═══════════════════════════════════════════════════════════════════
+  /* 
      RENDER
-     ═══════════════════════════════════════════════════════════════════ */
+      */
   return (
     <div className="flex flex-col gap-8 pb-8">
 
-      {/* ═══ HERO: Market Overview Stats ═══ */}
+      {/*  HERO: Market Overview Stats  */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/3 dark:from-primary/10 dark:via-transparent dark:to-primary/5 rounded-2xl" />
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-xl bg-white/40 dark:bg-white/[0.03] backdrop-blur-sm border border-white/20 dark:border-white/[0.06] p-4">
+              <div key={i} className="bg-card border border-border p-4">
                 <Skeleton className="h-3 w-16 mb-2" />
                 <Skeleton className="h-6 w-20" />
               </div>
@@ -732,7 +726,7 @@ export default function Home() {
             <>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_12px_rgba(59,130,246,0.15)] dark:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
                     <Layers className="h-5 w-5 text-primary" />
                   </div>
                   <div>
@@ -743,7 +737,7 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gain/10 dark:bg-gain/15 backdrop-blur-md border border-gain/20 dark:border-gain/25 shadow-[0_0_12px_rgba(34,197,94,0.15)] dark:shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
                     <TrendingUp className="h-5 w-5 text-gain" />
                   </div>
                   <div>
@@ -758,7 +752,7 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-cyan-500/10 dark:bg-cyan-500/15 backdrop-blur-md border border-cyan-500/20 dark:border-cyan-500/25 shadow-[0_0_12px_rgba(6,182,212,0.15)] dark:shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
                     <BarChart3 className="h-5 w-5 text-cyan-500" />
                   </div>
                   <div>
@@ -769,7 +763,7 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-amber-500/10 dark:bg-amber-500/15 backdrop-blur-md border border-amber-500/20 dark:border-amber-500/25 shadow-[0_0_12px_rgba(245,158,11,0.15)] dark:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
                     <DollarSign className="h-5 w-5 text-amber-500" />
                   </div>
                   <div>
@@ -783,7 +777,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ═══ TOP MOVERS CAROUSEL ═══ */}
+      {/*  TOP MOVERS CAROUSEL  */}
       {topMovers && (
         <section>
           <SectionTitle icon={TrendingUp}>
@@ -802,14 +796,14 @@ export default function Home() {
         </section>
       )}
 
-      {/* ═══ MARKET HEATMAP ═══ */}
+      {/*  MARKET HEATMAP  */}
       {stocks && stocks.length > 0 && (
         <section>
           <SectionTitle icon={BarChart3}>Market Heatmap</SectionTitle>
           <MarketHeatmap stocks={stocks} />
         </section>
       )}
-      {/* ═══ SECTORS & INDUSTRIES ═══ */}
+      {/*  SECTORS & INDUSTRIES  */}
       {sectorData.length > 0 && (
         <section>
           <SectionTitle icon={Building2} action={
@@ -840,26 +834,26 @@ export default function Home() {
         </section>
       )}
 
-      {/* ═══ FILTER PILLS + TABLE SECTION ═══ */}
+      {/*  FILTER PILLS + TABLE SECTION  */}
       <section>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 dark:bg-primary/15 backdrop-blur-md border border-primary/20 dark:border-primary/25 shadow-[0_0_10px_rgba(59,130,246,0.12)] dark:shadow-[0_0_12px_rgba(59,130,246,0.18)]">
-                <Filter className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-foreground flex items-center gap-2">
+              <div className="h-7 w-7 flex items-center justify-center border border-border bg-accent">
+                <Filter className="h-3.5 w-3.5 text-primary" />
               </div>
               Emirati Stocks
             </h2>
             {/* Exchange tabs */}
-            <div className="flex items-center rounded-full bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] p-0.5">
+            <div className="flex items-center border border-border">
               {(["ALL", "ADX", "DFM"] as const).map((ex) => (
                 <button
                   key={ex}
                   onClick={() => setExchange(ex)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  className={`px-3 py-1 text-xs font-medium transition-all border-r last:border-r-0 border-border ${
                     exchange === ex
-                      ? "bg-primary/90 text-white shadow-[0_0_10px_rgba(59,130,246,0.25)] backdrop-blur-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
                   {ex}
@@ -876,14 +870,14 @@ export default function Home() {
                 placeholder="Search stocks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8 pl-9 pr-3 rounded-full text-sm bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-48"
+                className="h-8 pl-9 pr-3  text-sm bg-card  border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-48"
               />
             </div>
             {/* Export */}
             <button
               onClick={handleExportCSV}
               disabled={csvFetching}
-              className="h-8 px-3 rounded-full text-xs font-medium bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              className="h-8 px-3  text-xs font-medium bg-card  border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
             >
               <Download className="h-3.5 w-3.5" />
               CSV
@@ -908,10 +902,10 @@ export default function Home() {
             <button
               key={tv.id}
               onClick={() => setTableView(tv.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5  text-sm font-medium whitespace-nowrap transition-all ${
                 tableView === tv.id
-                  ? "bg-primary/15 text-primary backdrop-blur-sm border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover:backdrop-blur-sm border border-transparent hover:border-white/[0.08]"
+                  ? "bg-primary/15 text-primary  border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover: border border-transparent hover:border-white/[0.08]"
               }`}
             >
               {tv.label}
@@ -1229,7 +1223,7 @@ export default function Home() {
         </GlassCard>
       </section>
 
-      {/* ═══ NEWS SECTION ═══ */}
+      {/*  NEWS SECTION  */}
       {marketNews && marketNews.items && marketNews.items.length > 0 && (
         <section>
           <SectionTitle icon={Newspaper} action={

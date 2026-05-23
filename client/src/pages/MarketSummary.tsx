@@ -319,7 +319,7 @@ function ExchangeSummaryView({
 
       {/* AI Narrative */}
       {summary.narrative && (
-        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <Card className="border-primary/20 bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />

@@ -42,8 +42,8 @@ export function ValuationBadge({ discount, fairValue, currentPrice, compact }: V
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${color.replace('text-', 'bg-').split(' ')[0]} backdrop-blur-md border ${color.split(' ')[2]}`}>
+    <div className="flex items-center gap-3 p-3  bg-secondary/30 border border-border/30">
+      <div className={`h-9 w-9  flex items-center justify-center ${color.replace('text-', 'bg-').split(' ')[0]}  border ${color.split(' ')[2]}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1 min-w-0">
@@ -85,12 +85,12 @@ export function ValuationFilterButtons({
   ];
 
   return (
-    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/30 dark:border-white/[0.08]">
+    <div className="flex items-center gap-1 p-0.5  bg-white/50 dark:bg-white/[0.04]  border border-white/30 dark:border-white/[0.08]">
       {buttons.map((btn) => (
         <button
           key={btn.id}
           onClick={() => onChange(btn.id)}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+          className={`px-3 py-1.5 text-xs font-medium transition-all ${
             active === btn.id
               ? "bg-primary/90 text-white shadow-sm"
               : `${btn.color || "text-muted-foreground"} hover:text-foreground hover:bg-white/[0.06]`

@@ -13,8 +13,8 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-64 rounded-lg" />
-        <Skeleton className="h-48 rounded-lg" />
+        <Skeleton className="h-64 " />
+        <Skeleton className="h-48 " />
       </div>
     );
   }
@@ -136,7 +136,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
                 .sort((a, b) => b.avgReturn - a.avgReturn)
                 .slice(0, 3)
                 .map((m) => (
-                  <div key={m.month} className="flex items-center justify-between p-2 rounded-lg bg-[oklch(0.72_0.17_155/5%)] border border-[oklch(0.72_0.17_155/15%)]">
+                  <div key={m.month} className="flex items-center justify-between p-2  bg-[oklch(0.72_0.17_155/5%)] border border-[oklch(0.72_0.17_155/15%)]">
                     <span className="text-sm font-medium">{m.month}</span>
                     <span className="text-sm font-mono font-bold text-gain">+{m.avgReturn.toFixed(2)}%</span>
                   </div>
@@ -157,7 +157,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
                 .sort((a, b) => a.avgReturn - b.avgReturn)
                 .slice(0, 3)
                 .map((m) => (
-                  <div key={m.month} className="flex items-center justify-between p-2 rounded-lg bg-[oklch(0.65_0.22_25/5%)] border border-[oklch(0.65_0.22_25/15%)]">
+                  <div key={m.month} className="flex items-center justify-between p-2  bg-[oklch(0.65_0.22_25/5%)] border border-[oklch(0.65_0.22_25/15%)]">
                     <span className="text-sm font-medium">{m.month}</span>
                     <span className="text-sm font-mono font-bold text-loss">{m.avgReturn.toFixed(2)}%</span>
                   </div>

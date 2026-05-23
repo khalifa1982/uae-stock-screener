@@ -112,7 +112,7 @@ export function EPSDividendChart({ eps, dividendPerShare, symbol, exchange = "DF
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
             <div className="inline-flex flex-col items-center gap-1">
-              <div className="h-14 w-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <div className="h-14 w-14  bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <span className="text-base font-bold text-primary tabular-nums">
                   {eps != null ? eps.toFixed(2) : "—"}
                 </span>
@@ -128,7 +128,7 @@ export function EPSDividendChart({ eps, dividendPerShare, symbol, exchange = "DF
           </div>
           <div className="text-center">
             <div className="inline-flex flex-col items-center gap-1">
-              <div className="h-14 w-14 rounded-xl bg-gain/10 border border-gain/20 flex items-center justify-center">
+              <div className="h-14 w-14  bg-gain/10 border border-gain/20 flex items-center justify-center">
                 <span className="text-base font-bold text-gain tabular-nums">
                   {dividendPerShare != null ? dividendPerShare.toFixed(2) : "—"}
                 </span>
@@ -144,7 +144,7 @@ export function EPSDividendChart({ eps, dividendPerShare, symbol, exchange = "DF
           </div>
           <div className="text-center">
             <div className="inline-flex flex-col items-center gap-1">
-              <div className="h-14 w-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <div className="h-14 w-14  bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                 <span className="text-base font-bold text-amber-500 tabular-nums">
                   {payoutRatio != null ? `${payoutRatio.toFixed(0)}%` : "—"}
                 </span>

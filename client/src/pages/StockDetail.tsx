@@ -79,8 +79,8 @@ function formatRawPercent(num: number | null | undefined): string {
 // ─── Reusable Components ───────────────────────────────────────────
 function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: string; value: string; icon: any; color?: string; metricKey?: string }) {
   return (
-    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 backdrop-blur-md border ${color || "bg-primary/10 border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
+    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 ">
+      <div className={`h-9 w-9  flex items-center justify-center shrink-0  border ${color || "bg-primary/10 border-primary/20 "}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
@@ -93,7 +93,7 @@ function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: str
 
 function DataRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex justify-between items-center py-2 px-3 rounded-md hover:bg-muted/10">
+    <div className="flex justify-between items-center py-2 px-3 hover:bg-muted/10">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={`font-mono text-[11px] ${highlight ? "font-semibold text-foreground" : "text-foreground/80"}`}>{value}</span>
     </div>
@@ -111,8 +111,8 @@ function RSIGauge({ value }: { value: number | null | undefined }) {
         <span className="text-xs text-muted-foreground">RSI (14)</span>
         <span className={`text-[11px] font-mono font-semibold ${color}`}>{value.toFixed(1)}</span>
       </div>
-      <div className="h-2 rounded-full bg-secondary/50 overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${value > 70 ? "bg-[oklch(0.65_0.22_25)]" : value < 30 ? "bg-[oklch(0.72_0.17_155)]" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+      <div className="h-2 bg-secondary/50 overflow-hidden">
+        <div className={`h-full transition-all ${value > 70 ? "bg-[oklch(0.65_0.22_25)]" : value < 30 ? "bg-[oklch(0.72_0.17_155)]" : "bg-primary"}`} style={{ width: `${pct}%` }} />
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground">
         <span>0 — Oversold</span>
@@ -201,7 +201,7 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
     <Card className="border-border/50">
       <CardHeader className="pb-2">
         <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
-          <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-primary/10 border border-primary/20 backdrop-blur-sm shadow-[0_0_8px_rgba(59,130,246,0.1)]">
+          <span className="inline-flex items-center justify-center h-6 w-6  bg-primary/10 border border-primary/20  shadow-[0_0_8px_rgba(59,130,246,0.1)]">
             <Icon className="h-3.5 w-3.5 text-primary" />
           </span>
           {title}
@@ -364,53 +364,49 @@ export default function StockDetail() {
   return (
     <div className="space-y-2">
       {/* ─── Header ─── */}
-      <div className="flex flex-col gap-1.5">
-        <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2" onClick={() => setLocation("/")}>
+      <div className="border-b-2 border-primary pb-6 mb-2">
+        <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2 mb-4" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <div className="flex flex-col gap-3">
-          {/* Company info row */}
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          {/* Company info */}
+          <div className="flex items-center gap-4">
             {profile?.logo ? (
-              <div className="h-10 w-10 rounded-full bg-white border border-border/30 flex items-center justify-center overflow-hidden shrink-0">
-                <img src={profile.logo} alt={stockInfo.name} className="h-8 w-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <div className="h-12 w-12 bg-card border-2 border-primary flex items-center justify-center overflow-hidden shrink-0">
+                <img src={profile.logo} alt={stockInfo.name} className="h-9 w-9 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             ) : (
-              <div className="h-10 w-10 rounded-full bg-muted/50 border border-border/30 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
+              <div className="h-12 w-12 bg-card border-2 border-primary flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-primary">{symbol.slice(0, 3)}</span>
               </div>
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-semibold text-foreground">{stockInfo.name}</h1>
+                <span className="font-mono text-xs uppercase tracking-[0.08em] text-primary bg-card px-2 py-0.5 border border-border">{stockInfo.exchange}: {symbol}</span>
                 <DataConnectionIndicator isConnected={wsConnected} />
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span
-                  style={{ backgroundColor: (() => { const c = ["#1a73e8","#1e8e3e","#e8710a","#d93025","#9334e6","#185abc","#137333","#b31412","#7b1fa2","#0d652d","#174ea6","#c5221f"]; let h=0; for(let i=0;i<symbol.length;i++){h=((h<<5)-h)+symbol.charCodeAt(i);h=h&h;} return c[Math.abs(h)%c.length]; })() }}
-                  className="text-white font-bold rounded px-2 py-0.5 text-[11px] inline-flex items-center shrink-0 leading-none tracking-wide"
-                >{symbol}</span>
-                <Badge variant="outline" className={`text-[10px] h-5 ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
-                  {stockInfo.exchange}
-                </Badge>
-                <Badge variant="secondary" className="text-[10px] h-5">{stockInfo.sector}</Badge>
-                {profile?.industry && <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground">{profile.industry}</Badge>}
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground uppercase mt-1" style={{ fontFamily: 'Cinzel, serif' }}>{stockInfo.name}</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <Badge variant="secondary" className="text-[10px] h-5 uppercase tracking-wider">{stockInfo.sector}</Badge>
+                {profile?.industry && <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground uppercase tracking-wider">{profile.industry}</Badge>}
               </div>
             </div>
           </div>
-          {/* Price row — Google Finance style large price */}
+          {/* Price block */}
           {detail && (
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-semibold text-foreground tabular-nums">{price != null ? formatNumber(price) : "—"}</span>
-              <span className="text-sm text-muted-foreground">AED</span>
-              {priceChange != null && (
-                <span className={`flex items-center gap-1 text-sm font-medium tabular-nums ${priceChange > 0 ? "text-gain" : priceChange < 0 ? "text-loss" : "text-muted-foreground"}`}>
-                  {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
-                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
-                </span>
-              )}
+            <div className="flex flex-col items-start md:items-end gap-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-muted-foreground">Current Price (AED)</span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl md:text-4xl font-mono font-semibold tracking-tight text-foreground tabular-nums">{price != null ? formatNumber(price) : "—"}</span>
+                {priceChange != null && (
+                  <span className={`font-mono text-sm font-semibold px-2 py-1 border flex items-center gap-1 ${priceChange > 0 ? "text-gain border-gain bg-gain/10" : priceChange < 0 ? "text-loss border-loss bg-loss/10" : "text-muted-foreground border-border"}`}>
+                    {priceChange > 0 ? <ArrowUp className="h-3 w-3" /> : priceChange < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+                    {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
+                  </span>
+                )}
+              </div>
               {profile?.website && (
-                <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 ml-auto">
+                <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
                   <Globe className="h-3 w-3" /> {(profile.website as string).replace(/^https?:\/\//, '')}
                 </a>
               )}
@@ -421,38 +417,38 @@ export default function StockDetail() {
 
       {/* ─── Tabs ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-secondary/50 h-auto gap-1 p-1.5 overflow-x-auto flex-wrap">
-          <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
-          <TabsTrigger value="orderbook" className="text-xs gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
-          <TabsTrigger value="technicals" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
-          <TabsTrigger value="financials" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
-          <TabsTrigger value="news" className="text-xs gap-1.5"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
-          <TabsTrigger value="forecasts" className="text-xs gap-1.5"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
-          <TabsTrigger value="seasonals" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
-          <TabsTrigger value="dividends" className="text-xs gap-1.5"><DollarSign className="h-3.5 w-3.5" /> Dividends</TabsTrigger>
-          <TabsTrigger value="ownership" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
-          <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
-          <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
-          <TabsTrigger value="statistics" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Statistics</TabsTrigger>
-          <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> Analysis</TabsTrigger>
+        <TabsList className="bg-transparent border-b border-border h-auto gap-0 p-0 overflow-x-auto flex-nowrap w-full">
+          <TabsTrigger value="overview" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="orderbook" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
+          <TabsTrigger value="technicals" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
+          <TabsTrigger value="financials" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
+          <TabsTrigger value="news" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
+          <TabsTrigger value="forecasts" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
+          <TabsTrigger value="seasonals" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
+          <TabsTrigger value="dividends" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><DollarSign className="h-3.5 w-3.5" /> Dividends</TabsTrigger>
+          <TabsTrigger value="ownership" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
+          <TabsTrigger value="profile" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
+          <TabsTrigger value="transcripts" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
+          <TabsTrigger value="statistics" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BarChart3 className="h-3.5 w-3.5" /> Statistics</TabsTrigger>
+          <TabsTrigger value="analysis" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Brain className="h-3.5 w-3.5" /> Analysis</TabsTrigger>
         </TabsList>
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
         <TabsContent value="overview" className="space-y-2 mt-4">
           {/* Chart Mode Toggle */}
-          <div className="flex items-center gap-1 mb-1">
+          <div className="flex items-center gap-0 mb-2 border border-border">
             <button
               onClick={() => setChartMode("advanced")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                chartMode === "advanced" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all border-r border-border ${
+                chartMode === "advanced" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               }`}
             >
               Advanced
             </button>
             <button
               onClick={() => setChartMode("simple")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                chartMode === "simple" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
+                chartMode === "simple" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               }`}
             >
               Simple
@@ -1075,7 +1071,7 @@ export default function StockDetail() {
           ) : profile ? (
             <>
               {/* Quick Nav for Profile Sections */}
-              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20 rounded-lg border border-border/30">
+              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20  border border-border/30">
                 {["About", "Financials", "Officers", "Analysts", "Holdings"].map(section => (
                   <Button
                     key={section}
@@ -1290,7 +1286,7 @@ export default function StockDetail() {
                       {(profile.officers && profile.officers.length > 0) ? (
                         profile.officers.map((officer: any, i: number) => (
                           <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
                               <Briefcase className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0">
@@ -1304,7 +1300,7 @@ export default function StockDetail() {
                       ) : (
                         saProfile?.executives?.map((exec: any, i: number) => (
                           <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 backdrop-blur-md border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
                               <Briefcase className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0">
@@ -1505,7 +1501,7 @@ export default function StockDetail() {
                           { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
                           { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
                         ].map(({ cat, icon, desc }) => (
-                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
+                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 ">
                             <span className="text-[11px]">{icon}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">

@@ -225,7 +225,7 @@ export default function NotificationSettings() {
             return (
               <div key={at.key} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${active ? at.color : "bg-muted/30 text-muted-foreground"} transition-colors`}>
+                  <div className={`p-2  ${active ? at.color : "bg-muted/30 text-muted-foreground"} transition-colors`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div>
@@ -259,7 +259,7 @@ export default function NotificationSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <div className={`p-2  ${browserEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   <Monitor className="h-4 w-4" />
                 </div>
                 <div>
@@ -332,7 +332,7 @@ export default function NotificationSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <div className={`p-2  ${soundEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 </div>
                 <div>
@@ -371,7 +371,7 @@ export default function NotificationSettings() {
           {/* In-App Notifications */}
           <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+              <div className={`p-2  ${inAppEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                 <Bell className="h-4 w-4" />
               </div>
               <div>
@@ -405,7 +405,7 @@ export default function NotificationSettings() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <div className={`p-2  ${quietHoursEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   <Moon className="h-4 w-4" />
                 </div>
                 <div>
@@ -450,7 +450,7 @@ export default function NotificationSettings() {
           {/* Minimum Interval */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+              <div className="p-2  bg-muted text-muted-foreground">
                 <Clock className="h-4 w-4" />
               </div>
               <div className="flex-1">
@@ -532,7 +532,7 @@ export default function NotificationSettings() {
             {SEVERITIES.map(sev => {
               const cfg = severityConfig[sev];
               return (
-                <div key={sev} className={`flex items-center gap-2 p-3 rounded-lg border ${cfg.color}`}>
+                <div key={sev} className={`flex items-center gap-2 p-3  border ${cfg.color}`}>
                   <Badge variant="outline" className={`text-[10px] uppercase tracking-wider font-semibold ${cfg.color}`}>
                     {cfg.label}
                   </Badge>

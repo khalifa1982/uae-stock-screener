@@ -102,7 +102,7 @@ export function MarketStatusBadge() {
             {/* Phase Badge */}
             <Badge
               variant="outline"
-              className={`gap-1.5 px-2.5 py-1 text-[11px] font-medium cursor-default select-none backdrop-blur-sm dark:shadow-[0_0_8px_rgba(255,255,255,0.04)] ${config.color}`}
+              className={`gap-1.5 px-2.5 py-1 text-[11px] font-medium cursor-default select-none  dark:shadow-[0_0_8px_rgba(255,255,255,0.04)] ${config.color}`}
             >
               <span className="relative flex h-2 w-2">
                 {isActive && (

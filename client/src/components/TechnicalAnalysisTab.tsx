@@ -105,7 +105,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 " />)}
       </div>
     );
   }
@@ -273,15 +273,15 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Upper</p>
                 <p className="text-sm font-bold font-mono text-emerald-400">{formatNum(bbands.upper)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Middle</p>
                 <p className="text-sm font-bold font-mono text-primary">{formatNum(bbands.middle)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Lower</p>
                 <p className="text-sm font-bold font-mono text-red-400">{formatNum(bbands.lower)}</p>
               </div>

@@ -375,7 +375,7 @@ export function SAFinancialsView({
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-48 " />
         ))}
       </div>
     );

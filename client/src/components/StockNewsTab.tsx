@@ -24,7 +24,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-lg" />
+          <Skeleton key={i} className="h-20 " />
         ))}
       </div>
     );

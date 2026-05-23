@@ -153,7 +153,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-48 " />
         ))}
       </div>
     );
@@ -277,25 +277,25 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {forecast.epsActualFQ != null && (
-                <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                <div className="p-3  bg-secondary/30 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">EPS Actual (FQ)</p>
                   <p className="text-lg font-bold font-mono">{formatNumber(forecast.epsActualFQ, 3)}</p>
                 </div>
               )}
               {forecast.epsForecastFQ != null && (
-                <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                <div className="p-3  bg-secondary/30 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">EPS Estimate (FQ)</p>
                   <p className="text-lg font-bold font-mono">{formatNumber(forecast.epsForecastFQ, 3)}</p>
                 </div>
               )}
               {forecast.epsForecastNextFQ != null && (
-                <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                <div className="p-3  bg-secondary/30 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">EPS Next FQ</p>
                   <p className="text-lg font-bold font-mono text-primary">{formatNumber(forecast.epsForecastNextFQ, 3)}</p>
                 </div>
               )}
               {forecast.epsSurprisePercentFQ != null && (
-                <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                <div className="p-3  bg-secondary/30 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">EPS Surprise</p>
                   <p className={`text-lg font-bold font-mono ${forecast.epsSurprisePercentFQ > 0 ? "text-gain" : forecast.epsSurprisePercentFQ < 0 ? "text-loss" : ""}`}>
                     {forecast.epsSurprisePercentFQ > 0 ? "+" : ""}{forecast.epsSurprisePercentFQ.toFixed(1)}%
@@ -310,13 +310,13 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Revenue Forecast</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {forecast.revenueForecastFQ != null && (
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <div className="p-3  bg-secondary/30 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Revenue Est (FQ)</p>
                       <p className="text-lg font-bold font-mono">{formatLargeNumber(forecast.revenueForecastFQ)}</p>
                     </div>
                   )}
                   {forecast.revenueForecastNextFQ != null && (
-                    <div className="p-3 rounded-lg bg-secondary/30 text-center">
+                    <div className="p-3  bg-secondary/30 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Revenue Est (Next FQ)</p>
                       <p className="text-lg font-bold font-mono text-primary">{formatLargeNumber(forecast.revenueForecastNextFQ)}</p>
                     </div>

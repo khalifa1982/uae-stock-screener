@@ -196,7 +196,7 @@ export default function Alerts() {
 
       {/* Notification Settings Panel */}
       {showSettings && (
-        <Card className="border-primary/20 bg-gradient-to-r from-card to-card/80">
+        <Card className="border-primary/20 bg-card">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs flex items-center gap-2">
               <BellRing className="h-4 w-4 text-primary" />
@@ -396,7 +396,7 @@ export default function Alerts() {
       </div>
 
       {/* Trading Hours Banner */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+      <Card className="bg-card border-primary/20">
         <CardContent className="p-2">
           <div className="flex items-center gap-1">
             <Volume2 className="h-3.5 w-3.5 text-primary shrink-0" />

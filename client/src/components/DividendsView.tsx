@@ -31,7 +31,7 @@ function StatCard({ icon: Icon, label, value, subValue, color }: {
     <Card className="bg-card/50 border-border/40">
       <CardContent className="py-4">
         <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-lg bg-${color}/10`}>
+          <div className={`p-2  bg-${color}/10`}>
             <Icon className={`w-4 h-4 text-${color}`} />
           </div>
           <div>
@@ -48,7 +48,7 @@ function StatCard({ icon: Icon, label, value, subValue, color }: {
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-2 shadow-xl">
+    <div className="bg-popover/95  border border-border/50  px-3 py-2 shadow-xl">
       <p className="text-xs font-medium text-foreground mb-1">{label}</p>
       {payload.map((entry: any, i: number) => (
         <p key={i} className="text-xs" style={{ color: entry.color }}>

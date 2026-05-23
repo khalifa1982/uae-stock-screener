@@ -172,7 +172,7 @@ export function QuickSearch() {
       {/* Search Trigger */}
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/30 border border-border/30 hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground group min-w-0"
+        className="flex items-center gap-1.5 px-2 py-1 bg-secondary/30 border border-border/30 hover:border-primary/30 hover:bg-secondary/50 transition-all text-muted-foreground group min-w-0"
       >
         <Search className="h-3 w-3 shrink-0 group-hover:text-primary transition-colors" />
         <span className="text-[10px] hidden lg:inline truncate">Search stocks...</span>
@@ -185,11 +185,11 @@ export function QuickSearch() {
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
           <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/80 "
             onClick={() => { setIsOpen(false); setQuery(""); }}
           />
           <div
-            className="relative w-full max-w-lg mx-4 bg-card border border-border/50 rounded-xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-lg mx-4 bg-card border border-border/50  shadow-2xl overflow-hidden"
             style={{ boxShadow: "0 0 40px oklch(0.72 0.18 195 / 10%)" }}
           >
             {/* Input */}
@@ -245,7 +245,7 @@ export function QuickSearch() {
                             key={result.symbol}
                             onClick={() => handleSelect(result)}
                             onMouseEnter={() => setSelectedIndex(globalIdx)}
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${
+                            className={`w-full flex items-center gap-2 px-2 py-1.5  text-left transition-colors ${
                               isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-secondary/30 border border-transparent"
                             }`}
                           >
@@ -299,7 +299,7 @@ export function QuickSearch() {
                             key={result.path}
                             onClick={() => handleSelect(result)}
                             onMouseEnter={() => setSelectedIndex(globalIdx)}
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${
+                            className={`w-full flex items-center gap-2 px-2 py-1.5  text-left transition-colors ${
                               isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-secondary/30 border border-transparent"
                             }`}
                           >
@@ -324,7 +324,7 @@ export function QuickSearch() {
                             key={result.name}
                             onClick={() => handleSelect(result)}
                             onMouseEnter={() => setSelectedIndex(globalIdx)}
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${
+                            className={`w-full flex items-center gap-2 px-2 py-1.5  text-left transition-colors ${
                               isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-secondary/30 border border-transparent"
                             }`}
                           >

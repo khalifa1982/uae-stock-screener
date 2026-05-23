@@ -162,7 +162,7 @@ function ChartToolbar({
   return (
     <div className="flex items-center gap-0.5 flex-wrap">
       {/* Chart Type Selector */}
-      <div className="flex items-center bg-secondary/30 rounded-md p-0.5 mr-1">
+      <div className="flex items-center bg-secondary/30 p-0.5 mr-1">
         {chartTypes.map(ct => (
           <Button
             key={ct.type}
@@ -317,7 +317,7 @@ function EnhancedTooltip({ active, payload, label }: any) {
 
   return (
     <div
-      className="rounded-lg border px-3 py-2 text-[10px] shadow-lg"
+      className=" border px-3 py-2 text-[10px] shadow-lg"
       style={{
         backgroundColor: NEON.tooltip,
         borderColor: NEON.tooltipBorder,
@@ -605,7 +605,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   const chartHeight = isExpanded ? 450 : 280;
 
   return (
-    <Card className={`border-border/50 neon-card ${isExpanded ? "fixed inset-4 z-50 overflow-auto" : ""}`}>
+    <Card className={`border-border/50  ${isExpanded ? "fixed inset-4 z-50 overflow-auto" : ""}`}>
       <CardHeader className="pb-1">
         <div className="flex flex-col gap-1">
           {/* Row 1: Title + Chart Tools */}

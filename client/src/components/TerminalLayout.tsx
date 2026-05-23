@@ -317,15 +317,15 @@ export default function TerminalLayout({
           {/* Logo */}
           <button
             onClick={() => setLocation("/")}
-            className="flex items-center gap-2 px-1 py-1 hover:opacity-80 transition-opacity shrink-0"
+            className="flex items-center gap-2.5 px-1 py-1 hover:opacity-80 transition-opacity shrink-0"
           >
             <img
               src="https://d2xsxph8kpxj0f.cloudfront.net/86205309/DiXZqGqijcrECmHgT5LC5F/uae-market-favicon-Z32CLT2cHbBTajhEohDmkp.webp"
               alt=""
-              className="h-6 w-6 rounded"
+              className="h-6 w-6"
             />
-            <span className="text-foreground font-semibold text-base tracking-tight hidden sm:inline">
-              uae.market
+            <span className="font-brand text-sm text-foreground hidden sm:inline">
+              UAE.MARKET
             </span>
           </button>
 
@@ -448,7 +448,7 @@ export default function TerminalLayout({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-sm px-4 rounded-full"
+              className="h-8 text-xs px-4 uppercase tracking-[0.05em] font-semibold border-border hover:border-primary hover:text-primary"
               onClick={() => {
                 window.location.href = getLoginUrl();
               }}
@@ -461,7 +461,7 @@ export default function TerminalLayout({
 
       {/* ─── Mobile Menu Dropdown ─── */}
       {isMobile && mobileMenuOpen && (
-        <div className="bg-background dark:bg-[rgba(13,17,23,0.85)] dark:backdrop-blur-xl border-b border-border dark:border-white/[0.06] px-3 py-2 flex flex-wrap gap-1 z-50 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <div className="bg-background border-b border-border px-3 py-2 flex flex-wrap gap-1 z-50">
           {allMenuItems.map((item: typeof primaryNavItems[0]) => {
             const isActive = location === item.path;
             return (
@@ -471,16 +471,14 @@ export default function TerminalLayout({
                   setLocation(item.path);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-primary/15 text-primary backdrop-blur-sm border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] dark:hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08]"
+                    ? "text-primary bg-accent border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
                 }`}
               >
-                <div className={`h-6 w-6 rounded-md flex items-center justify-center ${
-                  isActive
-                    ? "bg-primary/20 shadow-[0_0_6px_rgba(59,130,246,0.15)]"
-                    : "bg-white/[0.06] dark:bg-white/[0.06]"
+                <div className={`h-6 w-6 flex items-center justify-center ${
+                  isActive ? "text-primary" : ""
                 }`}>
                   <item.icon className="h-3.5 w-3.5" />
                 </div>
@@ -504,7 +502,7 @@ export default function TerminalLayout({
       {/* ─── Footer ─── */}
       <footer className={`terminal-footer flex-col !gap-3 py-4 ${isMobile ? "mb-16" : ""}`}>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 uppercase tracking-[0.08em]">
               <img src="https://d2xsxph8kpxj0f.cloudfront.net/86205309/DiXZqGqijcrECmHgT5LC5F/aboood-ai-logo-new_f66f6c69.png" alt="" className="h-4 w-4 rounded-full" />
               Aboood.ai Network
             </span>

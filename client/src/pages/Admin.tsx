@@ -403,22 +403,22 @@ function DataFlowDiagram({ sources }: { sources?: ApiSource[] }) {
           Processing Layer
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="p-3 rounded-md bg-primary/10 border border-primary/20 text-center">
+          <div className="p-3 bg-primary/10 border border-primary/20 text-center">
             <Server className="w-5 h-5 text-primary mx-auto mb-1" />
             <div className="text-[11px] font-medium text-foreground">tRPC Server</div>
             <div className="text-[10px] text-muted-foreground">API Routing</div>
           </div>
-          <div className="p-3 rounded-md bg-purple-500/10 border border-purple-500/20 text-center">
+          <div className="p-3 bg-purple-500/10 border border-purple-500/20 text-center">
             <Globe className="w-5 h-5 text-purple-400 mx-auto mb-1" />
             <div className="text-[11px] font-medium text-foreground">Scrapfly Service</div>
             <div className="text-[10px] text-muted-foreground">HTML Parse & Extract</div>
           </div>
-          <div className="p-3 rounded-md bg-blue-500/10 border border-blue-500/20 text-center">
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-center">
             <Database className="w-5 h-5 text-blue-400 mx-auto mb-1" />
             <div className="text-[11px] font-medium text-foreground">In-Memory Cache</div>
             <div className="text-[10px] text-muted-foreground">24h TTL per stock</div>
           </div>
-          <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20 text-center">
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-center">
             <Brain className="w-5 h-5 text-amber-400 mx-auto mb-1" />
             <div className="text-[11px] font-medium text-foreground">Aboood.AI Engine</div>
             <div className="text-[10px] text-muted-foreground">Fibonacci + RSI Analysis</div>
@@ -611,9 +611,9 @@ export default function Admin() {
 
       {/* Overall Health Banner */}
       {isLoading ? (
-        <Skeleton className="h-20 w-full rounded-md" />
+        <Skeleton className="h-20 w-full" />
       ) : data ? (
-        <div className={`rounded-md border p-2 ${healthBg}`}>
+        <div className={`border p-2 ${healthBg}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <div className={`p-2 rounded ${healthBg}`}>
@@ -647,7 +647,7 @@ export default function Admin() {
       {/* Summary Cards */}
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-md" />)}
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24" />)}
         </div>
       ) : data ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
@@ -687,7 +687,7 @@ export default function Admin() {
         <h2 className="text-xs font-semibold text-foreground">Source Health Status</h2>
         {isLoading ? (
           [1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-md" />
+            <Skeleton key={i} className="h-48" />
           ))
         ) : data ? (
           data.sources.map((source) => (
@@ -796,7 +796,7 @@ function ScrapflyCreditMonitorPanel() {
       </CardHeader>
       <CardContent>
         {creditQuery.isLoading ? (
-          <Skeleton className="h-32 w-full rounded-md" />
+          <Skeleton className="h-32 w-full" />
         ) : data ? (
           <div className="space-y-4">
             {/* Credit gauge */}
@@ -944,7 +944,7 @@ function CacheMetricsPanel() {
       </CardHeader>
       <CardContent>
         {cacheQuery.isLoading ? (
-          <Skeleton className="h-48 w-full rounded-md" />
+          <Skeleton className="h-48 w-full" />
         ) : data ? (
           <div className="space-y-4">
             {/* Overall summary */}
