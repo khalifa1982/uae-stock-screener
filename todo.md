@@ -1523,7 +1523,7 @@
 - [ ] Investigate current Price Spectrum and MBP data source and rendering
 - [ ] Fix to show all bid/offer levels (price, qty, total) instead of just one record
 - [ ] Ensure data is real, live, and accurate
-- [ ] Deploy to Northflank
+- [x] Deploy to Northflank (v14.0.0 deployed)
 
 ## v13.5.5 — Fix Chart Showing Old/Stale Numbers and Getting Stuck
 - [x] Investigate chart component data fetching logic
@@ -1543,4 +1543,16 @@
 - [x] Redesign Stock Detail page with premium data presentation
 - [x] Update component styling (cards, buttons, tables, badges) - sharp brutalist edges
 - [x] Bulk update all pages (Screener, Heatmap, Calendar, Compare, MarketNews, etc.)
+- [x] Deploy to Northflank (v14.0.0 deployed)
+
+## v14.1.0 — Full Dependency Upgrade
+- [x] Upgrade all patch/minor dependencies (react 19.2.6, vite 8.0.14, typescript 6.0.3, trpc 11.17.0, axios 1.16.1, mysql2 3.22.3, zod, framer-motion, tailwindcss 4.3.0, vitest 4.1.7, etc.)
+- [x] Upgrade major: lucide-react 0.453 → 1.16.0
+- [x] Upgrade major: react-day-picker 9.14 → 10.0.1
+- [x] Upgrade major: drizzle-orm 0.44 → 0.45.2 + drizzle-kit
+- [x] Upgrade major: esbuild 0.27 → 0.28
+- [x] Upgrade major: pnpm 10 → 11
+- [x] Fix breaking changes: react-day-picker v10 ClassNames (table → month_grid), removed deprecated @types/bcryptjs
+- [x] Run TypeScript compilation — zero errors
+- [x] Run test suite — 510 passed, 2 pre-existing failures (not caused by upgrade)
 - [ ] Deploy to Northflank
