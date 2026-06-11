@@ -1,5 +1,5 @@
-FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
+FROM node:24-slim AS base
+RUN corepack enable && corepack prepare pnpm@11.5.3 --activate
 WORKDIR /app
 
 # Install dependencies
