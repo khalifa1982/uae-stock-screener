@@ -914,7 +914,7 @@
 - [x] Grouped view reduces clutter for 800+ accumulated alerts
 
 ### Deployment
-- [ ] Build Docker image and push to Northflank for live deployment
+- [x] Build Docker image and push to Northflank for live deployment
 
 ### Tab Overlap Fix (Mobile)
 - [ ] Fix stock detail page tabs overlapping on mobile (3rd row overlaps 2nd row)
@@ -1166,7 +1166,7 @@
 - [x] Updated getSWSStats() to include urlMapSize and discoveredUrls count
 - [x] Updated getCanonicalUrlCache() to include both static map and discovered URLs
 - [ ] Push code to GitHub repository
-- [ ] Build Docker image v10.8.1 and push to DockerHub
+- [x] Build Docker image v10.8.1 and push to DockerHub
 - [ ] Deploy v10.8.1 to Northflank
 - [ ] Trigger SWS bulk population on live site
 - [ ] Verify deployment and SWS data population
@@ -1560,10 +1560,10 @@
 ## v14.2.0 — Comprehensive Upgrade (Gemini Model + NPM + Docker + Node.js)
 - [ ] Upgrade Gemini model from gemini-2.5-flash to gemini-3.5-flash in server/_core/llm.ts
 - [ ] Upgrade all npm packages to latest (40+ packages)
-- [ ] Upgrade Docker base image from node:22-slim to node:24-slim
-- [ ] Upgrade pnpm in Dockerfile from 10.4.1 to 11.5.3
-- [ ] Update packageManager field in package.json to pnpm@11.5.3
+- [x] Upgrade Docker base image from node:22-slim to node:24-slim
+- [x] Upgrade pnpm in Dockerfile from 10.4.1 to 11.5.3
+- [x] Update packageManager field in package.json to pnpm@11.5.3
 - [ ] Run TypeScript compilation — zero errors
 - [ ] Run test suite — verify all tests pass
-- [ ] Bump version to v14.2.0 in shared/const.ts
-- [ ] Deploy to Northflank
+- [x] Bump version to v14.2.0 in shared/const.ts
+- [x] Deploy to Northflank
