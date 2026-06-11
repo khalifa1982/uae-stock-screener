@@ -1558,12 +1558,12 @@
 - [x] Deploy to Northflank (v14.1.0 deployed)
 
 ## v14.2.0 — Comprehensive Upgrade (Gemini Model + NPM + Docker + Node.js)
-- [ ] Upgrade Gemini model from gemini-2.5-flash to gemini-3.5-flash in server/_core/llm.ts
-- [ ] Upgrade all npm packages to latest (40+ packages)
+- [x] Upgrade Gemini model from gemini-2.5-flash to gemini-3.5-flash in server/_core/llm.ts
+- [x] Upgrade all npm packages to latest (40+ packages)
 - [x] Upgrade Docker base image from node:22-slim to node:24-slim
 - [x] Upgrade pnpm in Dockerfile from 10.4.1 to 11.5.3
 - [x] Update packageManager field in package.json to pnpm@11.5.3
-- [ ] Run TypeScript compilation — zero errors
-- [ ] Run test suite — verify all tests pass
+- [x] Run TypeScript compilation — zero errors
+- [x] Run test suite — verify all tests pass
 - [x] Bump version to v14.2.0 in shared/const.ts
 - [x] Deploy to Northflank
