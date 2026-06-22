@@ -152,7 +152,7 @@ export const DFM_STOCKS: StockInfo[] = [
   { symbol: "SHUAA", yahooSymbol: "SHUAA.AE", name: "SHUAA Capital PSC", exchange: "DFM", sector: "Financial Services" },
   { symbol: "DSI", yahooSymbol: "DSI.AE", name: "Drake and Scull International P.J.S.C.", exchange: "DFM", sector: "Construction" },
   { symbol: "SALAMA", yahooSymbol: "SALAMA.AE", name: "Islamic Arab Insurance Co. (Salama) PJSC", exchange: "DFM", sector: "Insurance" },
-  { symbol: "GULFNAV", yahooSymbol: "GULFNAV.AE", name: "Gulf Navigation Holding PJSC", exchange: "DFM", sector: "Transport" },
+  { symbol: "ETIHADENERGY", yahooSymbol: "ETIHADENERGY.AE", name: "Etihad Energy Holding PJSC", exchange: "DFM", sector: "Energy" },
   { symbol: "DUBAIRESI", yahooSymbol: "DUBAIRESI.AE", name: "Dubai Residential REIT", exchange: "DFM", sector: "Real Estate" },
   { symbol: "AMAN", yahooSymbol: "AMAN.AE", name: "Dubai Islamic Insurance & Reinsurance Co. (Aman) (P.J.S.C)", exchange: "DFM", sector: "Insurance" },
   { symbol: "ALEC", yahooSymbol: "ALEC.AE", name: "ALEC Holdings PJSC", exchange: "DFM", sector: "Construction" },

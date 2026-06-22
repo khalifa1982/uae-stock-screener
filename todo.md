@@ -1569,16 +1569,16 @@
 - [x] Deploy to Northflank
 
 ## v15.0.0 — Glassy Dark UI Redesign
-- [ ] Redesign global theme: glass morphism CSS variables, new color palette (cyan/purple on dark navy)
-- [ ] Update background to gradient dark navy (#0a0e1a to #111827) with glass morphism utilities
-- [ ] Increase border-radius from 2px to 12-16px for modern rounded glass panels
-- [ ] Redesign navigation: glassy frosted header with backdrop-blur, glowing cyan icons
-- [ ] Add animated hover states: scale transforms, glow effects on icons and nav items
-- [ ] Redesign ticker bar with glass morphism and subtle glow
-- [ ] Redesign stat-cells and cards with glass panels (semi-transparent, blurred backgrounds)
-- [ ] Redesign stock tables with glass frames and animated row hover effects
-- [ ] Improve chart viewing area with glass overlay toolbar and glowing indicators
-- [ ] Add micro-interactions: hover glow on buttons, pulse on active states, smooth transitions
-- [ ] Update mobile bottom nav with glass morphism
-- [ ] Update footer with glass styling
-- [ ] Bump version to v15.0.0
+- [x] Redesign global theme: glass morphism CSS variables, new color palette (cyan/purple on dark navy)
+- [x] Update background to gradient dark navy (#0a0e1a to #111827) with glass morphism utilities
+- [x] Increase border-radius from 2px to 12-16px for modern rounded glass panels
+- [x] Redesign navigation: glassy frosted header with backdrop-blur, glowing cyan icons
+- [x] Add animated hover states: scale transforms, glow effects on icons and nav items
+- [x] Redesign ticker bar with glass morphism and subtle glow
+- [x] Redesign stat-cells and cards with glass panels (semi-transparent, blurred backgrounds)
+- [x] Redesign stock tables with glass frames and animated row hover effects
+- [x] Improve chart viewing area with glass overlay toolbar and glowing indicators
+- [x] Add micro-interactions: hover glow on buttons, pulse on active states, smooth transitions
+- [x] Update mobile bottom nav with glass morphism
+- [x] Update footer with glass styling
+- [x] Bump version to v15.0.0

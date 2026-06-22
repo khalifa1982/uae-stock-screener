@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, symbol, name, nameAr, exchange FROM stock_snapshots WHERE symbol LIKE '%GULFNAV%' OR name LIKE '%Gulf Nav%' OR nameAr LIKE '%الخليج%ملاحة%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4MsZBfwRPU6d4dR.54192b262fde --database DiXZqGqijcrECmHgT5LC5F --execute SELECT id, symbol, name, nameAr, exchange FROM stock_snapshots WHERE symbol LIKE '%GULFNAV%' OR name LIKE '%Gulf Nav%' OR nameAr LIKE '%الخليج%ملاحة%';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'name' in 'where clause'"
+  ]
+}
