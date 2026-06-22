@@ -93,7 +93,7 @@ function StockSelector({
         />
       </div>
       {isOpen && filtered.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border  shadow-xl max-h-48 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1 glass-card  shadow-xl max-h-48 overflow-y-auto">
           {filtered.map(s => (
             <button
               key={s.symbol}
@@ -149,7 +149,7 @@ function CompareRow({
   }
 
   return (
-    <div className="grid gap-2 py-2 border-b border-border/20 items-center" style={{ gridTemplateColumns: `120px repeat(${values.length}, 1fr)` }}>
+    <div className="grid gap-2 py-2 border-b border-border/20/20 items-center" style={{ gridTemplateColumns: `120px repeat(${values.length}, 1fr)` }}>
       <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
       {formatted.map((val, i) => (
         <span
@@ -288,7 +288,7 @@ export default function Compare() {
       {activeSymbols.length >= 2 && !isLoading && stockData.every(Boolean) && (
         <div className="space-y-4">
           {/* Price & Change */}
-          <Card className="border-border/50">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold flex items-center gap-2">
                 <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span>
@@ -306,7 +306,7 @@ export default function Compare() {
           </Card>
 
           {/* Valuation */}
-          <Card className="border-border/50">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold flex items-center gap-2">
                 <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span>
@@ -322,7 +322,7 @@ export default function Compare() {
           </Card>
 
           {/* Dividends & Returns */}
-          <Card className="border-border/50">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold flex items-center gap-2">
                 <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span>
@@ -338,7 +338,7 @@ export default function Compare() {
           </Card>
 
           {/* Financial Health */}
-          <Card className="border-border/50">
+          <Card className="glass-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold flex items-center gap-2">
                 <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span>
@@ -353,7 +353,7 @@ export default function Compare() {
 
           {/* Radar Chart - Score Comparison */}
           {radarData.length > 0 && (
-            <Card className="border-border/50">
+            <Card className="glass-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><Zap className="h-3.5 w-3.5 text-primary" /></span>
@@ -401,7 +401,7 @@ export default function Compare() {
 
           {/* Bar Chart - Key Metrics */}
           {barData.length > 0 && (
-            <Card className="border-border/50">
+            <Card className="glass-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span>

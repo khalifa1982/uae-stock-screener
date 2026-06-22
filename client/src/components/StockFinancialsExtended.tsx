@@ -53,7 +53,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
 
   if (!data) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">Extended financial data is not available.</p>
@@ -65,7 +65,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
   return (
     <div className="space-y-6">
       {/* Valuation Ratios */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <PieChart className="h-4 w-4 text-primary" /> Valuation Ratios
@@ -85,7 +85,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       </Card>
 
       {/* Growth & Profitability */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" /> Margins & Returns
@@ -116,7 +116,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       </Card>
 
       {/* Income Statement */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-primary" /> Income Statement
@@ -148,7 +148,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
 
       {/* Dividends */}
       {(data.dividendYield != null || data.dpsAnnual != null) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" /> Dividend Information
@@ -178,7 +178,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       )}
 
       {/* Ownership & Other */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" /> Other Information

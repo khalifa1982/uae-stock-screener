@@ -62,7 +62,7 @@ export function MarketHeatmap({ stocks, maxItems = 30 }: MarketHeatmapProps) {
           <button
             key={`${stock.exchange}:${stock.symbol}`}
             onClick={() => setLocation(`/stock/${stock.symbol}`)}
-            className={`group relative flex flex-col items-center justify-center p-2  border  transition-all hover:scale-105 hover:shadow-lg cursor-pointer ${getHeatColor(stock.changePercent)}`}
+            className={`group relative flex flex-col items-center justify-center p-2  border  transition-all hover:scale-105 hover:shadow-[0_0_15px_var(--neon-cyan-dim)] cursor-pointer ${getHeatColor(stock.changePercent)}`}
             title={`${stock.name} (${stock.symbol})`}
           >
             {/* Logo or symbol */}

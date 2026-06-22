@@ -93,7 +93,7 @@ export function EPSDividendChart({ eps, dividendPerShare, symbol, exchange = "DF
     : null;
 
   return (
-    <Card className="border-border/50">
+    <Card className="glass-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <span className="glass-section-icon">

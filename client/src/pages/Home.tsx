@@ -162,11 +162,8 @@ function GlassCard({ children, className = "", onClick }: { children: React.Reac
     <div
       onClick={onClick}
       className={`
-        relative overflow-hidden transition-all duration-150
-        bg-card
-        border border-border
-        hover:border-[oklch(0.32_0.015_80)]
-        ${onClick ? "cursor-pointer" : ""}
+        glass-card group/card
+        ${onClick ? "cursor-pointer hover:scale-[1.01]" : ""}
         ${className}
       `}
     >
@@ -181,8 +178,8 @@ function SectionTitle({ children, icon: Icon, action }: { children: React.ReactN
     <div className="flex items-center justify-between mb-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.06em] text-foreground">
         {Icon && (
-          <div className="h-7 w-7 flex items-center justify-center border border-border bg-accent">
-            <Icon className="h-3.5 w-3.5 text-primary" />
+          <div className="h-7 w-7 flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 shadow-[0_0_8px_var(--neon-cyan-dim)]">
+            <Icon className="h-3.5 w-3.5 text-primary drop-shadow-[0_0_3px_var(--neon-cyan)]" />
           </div>
         )}
         {children}
@@ -196,7 +193,7 @@ function SectionTitle({ children, icon: Icon, action }: { children: React.ReactN
     */
 function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: FilterId) => void }) {
   return (
-    <div className="flex flex-wrap gap-1 py-1">
+    <div className="flex flex-wrap gap-1.5 py-1">
       {FILTER_CATEGORIES.map((cat) => {
         const isActive = active === cat.id;
         return (
@@ -204,11 +201,11 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
             key={cat.id}
             onClick={() => onChange(cat.id)}
             className={`
-              px-2.5 py-1 text-[11px] leading-tight uppercase tracking-[0.04em]
-              whitespace-nowrap transition-all duration-150 border
+              px-2.5 py-1.5 text-[11px] leading-tight uppercase tracking-[0.04em]
+              whitespace-nowrap transition-all duration-300 border rounded-lg
               ${isActive
-                ? "bg-primary text-primary-foreground font-semibold border-primary"
-                : "bg-transparent text-muted-foreground hover:text-foreground border-border hover:border-primary/40 font-normal"
+                ? "bg-primary/15 text-primary font-semibold border-primary/30 shadow-[0_0_10px_var(--neon-cyan-dim)]"
+                : "bg-transparent text-muted-foreground hover:text-foreground border-border/50 hover:border-primary/30 hover:bg-primary/5 font-normal"
               }
             `}
           >
@@ -218,7 +215,7 @@ function FilterPillBar({ active, onChange }: { active: FilterId; onChange: (id: 
       })}
       <a
         href="/screener"
-        className="px-2.5 py-1 text-[11px] leading-tight uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground hover:text-foreground border border-border hover:border-primary/40 transition-all duration-150 inline-flex items-center gap-1 font-normal"
+        className="px-2.5 py-1.5 text-[11px] leading-tight uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground hover:text-foreground border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 inline-flex items-center gap-1 font-normal rounded-lg"
       >
         Create more lists in Screener <ChevronRight className="h-3 w-3" />
       </a>
@@ -713,8 +710,8 @@ export default function Home() {
 
       {/*  HERO: Market Overview Stats  */}
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/3 dark:from-primary/10 dark:via-transparent dark:to-primary/5 rounded-2xl" />
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-[var(--neon-purple)]/5 rounded-2xl" />
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 stagger-children">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-card border border-border p-4">
@@ -726,8 +723,8 @@ export default function Home() {
             <>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
-                    <Layers className="h-5 w-5 text-primary" />
+                  <div className="h-9 w-9 flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 shadow-[0_0_8px_var(--neon-cyan-dim)]">
+                    <Layers className="h-5 w-5 text-primary drop-shadow-[0_0_3px_var(--neon-cyan)]" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">Total Stocks</p>
@@ -737,8 +734,8 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
-                    <TrendingUp className="h-5 w-5 text-gain" />
+                  <div className="h-9 w-9 flex items-center justify-center rounded-lg border border-green-500/20 bg-green-500/10 shadow-[0_0_8px_rgba(34,197,94,0.15)]">
+                    <TrendingUp className="h-5 w-5 text-gain drop-shadow-[0_0_3px_rgba(34,197,94,0.5)]" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">Gainers / Losers</p>
@@ -752,8 +749,8 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
-                    <BarChart3 className="h-5 w-5 text-cyan-500" />
+                  <div className="h-9 w-9 flex items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 shadow-[0_0_8px_rgba(6,182,212,0.15)]">
+                    <BarChart3 className="h-5 w-5 text-cyan-500 drop-shadow-[0_0_3px_rgba(6,182,212,0.5)]" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">Total Volume</p>
@@ -763,8 +760,8 @@ export default function Home() {
               </GlassCard>
               <GlassCard className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 flex items-center justify-center border border-border bg-accent">
-                    <DollarSign className="h-5 w-5 text-amber-500" />
+                  <div className="h-9 w-9 flex items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+                    <DollarSign className="h-5 w-5 text-amber-500 drop-shadow-[0_0_3px_rgba(245,158,11,0.5)]" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-0.5">Market Cap</p>
@@ -783,7 +780,7 @@ export default function Home() {
           <SectionTitle icon={TrendingUp}>
             Today&apos;s Movers
           </SectionTitle>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide stagger-children" style={{ scrollbarWidth: "none" }}>
             {[...(topMovers.gainers || []), ...(topMovers.losers || [])].map((stock: any, i: number) => (
               <MoverCard
                 key={stock.symbol}
@@ -839,21 +836,21 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-[0.06em] text-foreground flex items-center gap-2">
-              <div className="h-7 w-7 flex items-center justify-center border border-border bg-accent">
-                <Filter className="h-3.5 w-3.5 text-primary" />
+              <div className="h-7 w-7 flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 shadow-[0_0_8px_var(--neon-cyan-dim)]">
+                <Filter className="h-3.5 w-3.5 text-primary drop-shadow-[0_0_3px_var(--neon-cyan)]" />
               </div>
               Emirati Stocks
             </h2>
             {/* Exchange tabs */}
-            <div className="flex items-center border border-border">
+            <div className="flex items-center rounded-lg border border-border/50 overflow-hidden backdrop-blur-sm">
               {(["ALL", "ADX", "DFM"] as const).map((ex) => (
                 <button
                   key={ex}
                   onClick={() => setExchange(ex)}
-                  className={`px-3 py-1 text-xs font-medium transition-all border-r last:border-r-0 border-border ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-all duration-300 border-r last:border-r-0 border-border/30 ${
                     exchange === ex
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-primary/20 text-primary shadow-[inset_0_0_12px_var(--neon-cyan-dim)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
                   }`}
                 >
                   {ex}
@@ -870,14 +867,14 @@ export default function Home() {
                 placeholder="Search stocks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8 pl-9 pr-3  text-sm bg-card  border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-48"
+                className="h-8 pl-9 pr-3 rounded-lg text-sm bg-card/50 backdrop-blur-sm border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 w-48 transition-all duration-300"
               />
             </div>
             {/* Export */}
             <button
               onClick={handleExportCSV}
               disabled={csvFetching}
-              className="h-8 px-3  text-xs font-medium bg-card  border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              className="h-8 px-3 rounded-lg text-xs font-medium bg-card/50 backdrop-blur-sm border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 flex items-center gap-1.5"
             >
               <Download className="h-3.5 w-3.5" />
               CSV
@@ -897,15 +894,15 @@ export default function Home() {
         )}
 
         {/* Table view tabs */}
-        <div className="flex items-center gap-1 mt-4 mb-3 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+        <div className="flex items-center gap-1.5 mt-4 mb-3 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: "none" }}>
           {TABLE_VIEWS.map((tv) => (
             <button
               key={tv.id}
               onClick={() => setTableView(tv.id)}
-              className={`px-3 py-1.5  text-sm font-medium whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                 tableView === tv.id
-                  ? "bg-primary/15 text-primary  border border-primary/20 shadow-[0_0_10px_rgba(59,130,246,0.12)]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] hover: border border-transparent hover:border-white/[0.08]"
+                  ? "bg-primary/15 text-primary border border-primary/25 shadow-[0_0_12px_var(--neon-cyan-dim)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04] border border-transparent hover:border-white/[0.08]"
               }`}
             >
               {tv.label}

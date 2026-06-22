@@ -387,7 +387,7 @@ function ExchangeSummaryView({
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-border/30">
+                  <tr className="border-b border-border/20/30">
                     <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-right" : "text-left"}`}>{t.sector}</th>
                     <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.avgChange}</th>
                     <th className={`px-2 py-2 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.count}</th>
@@ -397,7 +397,7 @@ function ExchangeSummaryView({
                   {Object.entries(sectorPerf)
                     .sort((a, b) => b[1].avgChange - a[1].avgChange)
                     .map(([sector, data]) => (
-                      <tr key={sector} className="border-b border-border/10 hover:bg-accent/20 transition-colors">
+                      <tr key={sector} className="border-b border-border/20/10 hover:bg-accent/20 transition-colors">
                         <td className={`px-2 py-2 font-medium ${isArabic ? "text-right" : "text-left"}`}>{sector}</td>
                         <td className={`px-2 py-2 font-mono ${isArabic ? "text-left" : "text-right"} ${
                           data.avgChange > 0 ? "text-emerald-500" : data.avgChange < 0 ? "text-red-500" : "text-muted-foreground"
@@ -459,7 +459,7 @@ function MoverTable({
   return (
     <table className="w-full text-xs">
       <thead>
-        <tr className="border-b border-border/30">
+        <tr className="border-b border-border/20/30">
           <th className={`px-3 py-1.5 font-medium text-muted-foreground ${isArabic ? "text-right" : "text-left"}`}>{t.stock}</th>
           <th className={`px-3 py-1.5 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>{t.price}</th>
           <th className={`px-3 py-1.5 font-medium text-muted-foreground ${isArabic ? "text-left" : "text-right"}`}>
@@ -469,7 +469,7 @@ function MoverTable({
       </thead>
       <tbody>
         {movers.map((m, i) => (
-          <tr key={m.symbol + i} className="border-b border-border/10 hover:bg-accent/20 transition-colors">
+          <tr key={m.symbol + i} className="border-b border-border/20/10 hover:bg-accent/20 transition-colors">
             <td className={`px-3 py-1.5 ${isArabic ? "text-right" : "text-left"}`}>
               <span className="font-medium">{m.symbol}</span>
               <span className="text-muted-foreground ml-1 hidden sm:inline">

@@ -79,7 +79,7 @@ function formatRawPercent(num: number | null | undefined): string {
 // ─── Reusable Components ───────────────────────────────────────────
 function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: string; value: string; icon: any; color?: string; metricKey?: string }) {
   return (
-    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 ">
+    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30/30 ">
       <div className={`h-9 w-9  flex items-center justify-center shrink-0  border ${color || "bg-primary/10 border-primary/20 "}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
@@ -198,7 +198,7 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
     return String(v);
   };
   return (
-    <Card className="border-border/50">
+    <Card className="glass-card border-border/30">
       <CardHeader className="pb-2">
         <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
           <span className="inline-flex items-center justify-center h-6 w-6  bg-primary/10 border border-primary/20  shadow-[0_0_8px_rgba(59,130,246,0.1)]">
@@ -382,7 +382,7 @@ export default function StockDetail() {
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-xs uppercase tracking-[0.08em] text-primary bg-card px-2 py-0.5 border border-border">{stockInfo.exchange}: {symbol}</span>
+                <span className="font-mono text-xs uppercase tracking-[0.08em] text-primary bg-card px-2 py-0.5 border border-border/30">{stockInfo.exchange}: {symbol}</span>
                 <DataConnectionIndicator isConnected={wsConnected} />
               </div>
               <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground uppercase mt-1" style={{ fontFamily: 'Cinzel, serif' }}>{stockInfo.name}</h1>
@@ -417,7 +417,7 @@ export default function StockDetail() {
 
       {/* ─── Tabs ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-transparent border-b border-border h-auto gap-0 p-0 overflow-x-auto flex-nowrap w-full">
+        <TabsList className="bg-transparent border-b border-border/30 h-auto gap-0 p-0 overflow-x-auto flex-nowrap w-full backdrop-blur-sm">
           <TabsTrigger value="overview" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="orderbook" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
           <TabsTrigger value="technicals" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
@@ -436,11 +436,11 @@ export default function StockDetail() {
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
         <TabsContent value="overview" className="space-y-2 mt-4">
           {/* Chart Mode Toggle */}
-          <div className="flex items-center gap-0 mb-2 border border-border">
+          <div className="flex items-center gap-0 mb-2 rounded-lg border border-border/30 overflow-hidden backdrop-blur-sm">
             <button
               onClick={() => setChartMode("advanced")}
               className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all border-r border-border ${
-                chartMode === "advanced" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                chartMode === "advanced" ? "bg-primary/20 text-primary shadow-[inset_0_0_12px_var(--neon-cyan-dim)]" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               }`}
             >
               Advanced
@@ -448,7 +448,7 @@ export default function StockDetail() {
             <button
               onClick={() => setChartMode("simple")}
               className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
-                chartMode === "simple" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                chartMode === "simple" ? "bg-primary/20 text-primary shadow-[inset_0_0_12px_var(--neon-cyan-dim)]" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               }`}
             >
               Simple
@@ -501,7 +501,7 @@ export default function StockDetail() {
             )}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-            <Card className="border-border/50 lg:col-span-2">
+            <Card className="glass-card border-border/30 lg:col-span-2">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span> Key Metrics
@@ -536,7 +536,7 @@ export default function StockDetail() {
             </Card>
 
             {/* Quick Technical Snapshot */}
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Technical Snapshot
@@ -653,7 +653,7 @@ export default function StockDetail() {
             return (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                 {/* Stock Score */}
-                <Card className="border-border/50 lg:col-span-2">
+                <Card className="glass-card border-border/30 lg:col-span-2">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Stock Score
@@ -683,7 +683,7 @@ export default function StockDetail() {
           )}
           {/* Performance & Volatility */}
           {profile && (profile.tvPerfWeek != null || profile.tvPerfMonth != null) && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><TrendingUp className="h-3.5 w-3.5 text-primary" /></span> Performance & Volatility
@@ -726,7 +726,7 @@ export default function StockDetail() {
 
           {/* Key Statistics */}
           {profile && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Key Statistics
@@ -813,7 +813,7 @@ export default function StockDetail() {
 
           {/* Volume Analysis from TradingView */}
           {profile && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
                   <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Volume Analysis
@@ -874,7 +874,7 @@ export default function StockDetail() {
                 <FinancialTable title="Cash Flow Statement (Annual)" data={profile.cashFlow} icon={DollarSign} />
               )}
               {profile.earnings && profile.earnings.length > 0 && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Earnings History
@@ -915,7 +915,7 @@ export default function StockDetail() {
                (!profile.cashFlow || profile.cashFlow.length === 0) && (
                 <>
                   {(profile.tvNetIncome != null || profile.tvEBITDA != null || profile.tvTotalAssets != null) ? (
-                    <Card className="border-border/50">
+                    <Card className="glass-card border-border/30">
                       <CardHeader className="pb-1">
                         <CardTitle className="text-xs font-semibold flex items-center gap-2">
                           <span className="glass-section-icon"><FileText className="h-3.5 w-3.5 text-primary" /></span> Financial Summary
@@ -965,7 +965,7 @@ export default function StockDetail() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="border-border/50">
+                    <Card className="glass-card border-border/30">
                       <CardContent className="py-12 text-center">
                         <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                         <p className="text-muted-foreground">Financial statements are not available for this stock.</p>
@@ -977,7 +977,7 @@ export default function StockDetail() {
 
               {/* Dividends Section */}
               {(profile.dividendRate || profile.tvDividendYield || profile.tvDividendPerShare || profile.exDividendDate) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><Calendar className="h-3.5 w-3.5 text-primary" /></span> Dividend Information
@@ -1012,7 +1012,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12 text-center">
                 <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">Financial data is not available for this stock.</p>
@@ -1071,7 +1071,7 @@ export default function StockDetail() {
           ) : profile ? (
             <>
               {/* Quick Nav for Profile Sections */}
-              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20  border border-border/30">
+              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20  border border-border/30/30">
                 {["About", "Financials", "Officers", "Analysts", "Holdings"].map(section => (
                   <Button
                     key={section}
@@ -1122,7 +1122,7 @@ export default function StockDetail() {
 
               {/* SA Statistics: Fair Value & Scores */}
               {saStatistics && (saStatistics.lynchFairValue || saStatistics.grahamNumber || saStatistics.altmanZScore || saStatistics.piotoskiFScore) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Valuation & Scores
@@ -1179,7 +1179,7 @@ export default function StockDetail() {
 
               {/* SA Statistics: Financial Position & Efficiency */}
               {saStatistics && (saStatistics.roce || saStatistics.wacc || saStatistics.interestCoverage || saStatistics.debtToEbitda || saStatistics.netCash) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Financial Health (StockAnalysis)
@@ -1216,7 +1216,7 @@ export default function StockDetail() {
 
               {/* SA Statistics: Ownership */}
               {saStatistics && (saStatistics.insiderOwnership != null || saStatistics.institutionalOwnership != null || saStatistics.floatShares) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Share Statistics (StockAnalysis)
@@ -1285,7 +1285,7 @@ export default function StockDetail() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                       {(profile.officers && profile.officers.length > 0) ? (
                         profile.officers.map((officer: any, i: number) => (
-                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/30/20">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
                               <Briefcase className="h-4 w-4 text-primary" />
                             </div>
@@ -1299,7 +1299,7 @@ export default function StockDetail() {
                         ))
                       ) : (
                         saProfile?.executives?.map((exec: any, i: number) => (
-                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/30/20">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
                               <Briefcase className="h-4 w-4 text-primary" />
                             </div>
@@ -1405,7 +1405,7 @@ export default function StockDetail() {
               )}
 
               {!profile.description && (!profile.officers || profile.officers.length === 0) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardContent className="py-12 text-center">
                     <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                     <p className="text-muted-foreground">Company profile data is not available for this stock.</p>
@@ -1414,7 +1414,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12 text-center">
                 <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">Profile data is not available for this stock.</p>
@@ -1447,7 +1447,7 @@ export default function StockDetail() {
         <TabsContent value="analysis" className="space-y-2 mt-4">
           {/* Snowflake Score Overview */}
           {snowflakeLoading ? (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12">
                 <div className="flex flex-col items-center gap-1">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1458,7 +1458,7 @@ export default function StockDetail() {
           ) : snowflakeData ? (
             <>
               {/* Snowflake Score Card */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <span className="glass-section-icon"><Zap className="h-3.5 w-3.5 text-primary" /></span> Snowflake Score
@@ -1501,7 +1501,7 @@ export default function StockDetail() {
                           { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
                           { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
                         ].map(({ cat, icon, desc }) => (
-                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 ">
+                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30/30 ">
                             <span className="text-[11px]">{icon}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
@@ -1531,7 +1531,7 @@ export default function StockDetail() {
               </Card>
 
               {/* Fair Value Estimation */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Fair Value Estimation
@@ -1567,7 +1567,7 @@ export default function StockDetail() {
               </Card>
 
               {/* Detailed Checks */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
                     <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Detailed Analysis Checks
@@ -1589,7 +1589,7 @@ export default function StockDetail() {
 
               {/* Peer Comparison */}
               {snowflakeData.peers && snowflakeData.peers.length > 0 && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><Layers className="h-3.5 w-3.5 text-primary" /></span> Peer Comparison
@@ -1642,7 +1642,7 @@ export default function StockDetail() {
 
               {/* Market Averages */}
               {snowflakeData.marketAverages && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
                       <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Market Context
@@ -1658,7 +1658,7 @@ export default function StockDetail() {
                         { label: 'Div Yield 25th %', value: (snowflakeData.marketAverages.dividendYield25 * 100).toFixed(2) + '%' },
                         { label: 'Div Yield 75th %', value: (snowflakeData.marketAverages.dividendYield75 * 100).toFixed(2) + '%' },
                       ].map(m => (
-                        <div key={m.label} className="p-3 rounded bg-secondary/30 border border-border/30">
+                        <div key={m.label} className="p-3 rounded bg-secondary/30 border border-border/30/30">
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</div>
                           <div className="text-[11px] font-mono font-semibold mt-0.5">{m.value}</div>
                         </div>
@@ -1669,7 +1669,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-8">
                 <p className="text-[11px] text-muted-foreground text-center">Unable to load Snowflake analysis. Please try again.</p>
               </CardContent>
@@ -1677,7 +1677,7 @@ export default function StockDetail() {
           )}
 
           {/* AI Deep Analysis */}
-          <Card className="border-border/50">
+          <Card className="glass-card border-border/30">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <div>
@@ -1780,7 +1780,7 @@ export default function StockDetail() {
           </Card>
 
           {/* Quick Sentiment (kept from original) */}
-          <Card className="border-border/50">
+          <Card className="glass-card border-border/30">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">

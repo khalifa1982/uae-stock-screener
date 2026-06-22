@@ -334,12 +334,14 @@ export default function TerminalLayout({
             <nav className="flex items-center gap-0.5 ml-2 min-w-0">
               {primaryNavItems.map((item) => {
                 const isActive = location === item.path;
+                const Icon = item.icon;
                 return (
                   <button
                     key={item.path}
                     onClick={() => setLocation(item.path)}
-                    className={`terminal-nav-link ${isActive ? "active" : ""}`}
+                    className={`terminal-nav-link group ${isActive ? "active" : ""}`}
                   >
+                    <Icon className={`h-3.5 w-3.5 inline-block mr-1.5 transition-all duration-300 ${isActive ? "drop-shadow-[0_0_4px_var(--neon-cyan)]" : "group-hover:drop-shadow-[0_0_4px_var(--neon-cyan)] group-hover:scale-110"}`} />
                     {item.label}
                   </button>
                 );
@@ -375,10 +377,10 @@ export default function TerminalLayout({
           {isMobile && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-full hover:bg-accent transition-colors"
+              className="p-2 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300"
             >
               {mobileMenuOpen ? (
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-primary" />
               ) : (
                 <Menu className="h-5 w-5" />
               )}
@@ -411,7 +413,7 @@ export default function TerminalLayout({
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-accent transition-colors">
+                <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300">
                   <Avatar className="h-7 w-7 border border-border">
                     <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
                       {user?.name?.charAt(0).toUpperCase() || "U"}
@@ -461,7 +463,7 @@ export default function TerminalLayout({
 
       {/* ─── Mobile Menu Dropdown ─── */}
       {isMobile && mobileMenuOpen && (
-        <div className="bg-background border-b border-border px-3 py-2 flex flex-wrap gap-1 z-50">
+        <div className="bg-background/80 dark:bg-[oklch(0.10_0.015_250/80%)] backdrop-blur-xl border-b border-border px-3 py-3 flex flex-wrap gap-1.5 z-50 animate-fade-in-up">
           {allMenuItems.map((item: typeof primaryNavItems[0]) => {
             const isActive = location === item.path;
             return (
@@ -471,16 +473,16 @@ export default function TerminalLayout({
                   setLocation(item.path);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
                   isActive
-                    ? "text-primary bg-accent border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent"
+                    ? "text-primary bg-primary/10 border border-primary/25 shadow-[0_0_12px_oklch(0.82_0.16_185/15%)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-transparent hover:border-border/50"
                 }`}
               >
-                <div className={`h-6 w-6 flex items-center justify-center ${
-                  isActive ? "text-primary" : ""
+                <div className={`h-6 w-6 flex items-center justify-center transition-all duration-300 ${
+                  isActive ? "text-primary drop-shadow-[0_0_4px_var(--neon-cyan)]" : ""
                 }`}>
-                  <item.icon className="h-3.5 w-3.5" />
+                  <item.icon className="h-4 w-4" />
                 </div>
                 {item.label}
               </button>

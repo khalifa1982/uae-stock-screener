@@ -383,7 +383,7 @@ export function SAFinancialsView({
 
   if (error || !data) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">

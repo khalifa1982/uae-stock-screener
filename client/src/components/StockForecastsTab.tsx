@@ -164,7 +164,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
 
   if (!hasForecast && !hasAnalystData) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Target className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">No forecast data available for this stock.</p>
@@ -183,7 +183,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
     <div className="space-y-6">
       {/* Price Target */}
       {priceTarget != null && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Target className="h-4 w-4 text-primary" /> Price Target
@@ -212,7 +212,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
 
       {/* Analyst Rating */}
       {(forecast?.recommendationMark != null || profile?.recommendationKey) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" /> Analyst Rating
@@ -268,7 +268,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
 
       {/* EPS Estimates */}
       {(forecast?.epsActualFQ != null || forecast?.epsForecastFQ != null || forecast?.epsForecastNextFQ != null) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" /> EPS Estimates
@@ -330,7 +330,7 @@ export function StockForecastsTab({ symbol, currentPrice }: { symbol: string; cu
 
       {/* Earnings History */}
       {profile?.earnings && profile.earnings.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" /> Earnings History

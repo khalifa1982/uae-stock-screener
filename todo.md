@@ -1567,3 +1567,18 @@
 - [x] Run test suite — verify all tests pass
 - [x] Bump version to v14.2.0 in shared/const.ts
 - [x] Deploy to Northflank
+
+## v15.0.0 — Glassy Dark UI Redesign
+- [ ] Redesign global theme: glass morphism CSS variables, new color palette (cyan/purple on dark navy)
+- [ ] Update background to gradient dark navy (#0a0e1a to #111827) with glass morphism utilities
+- [ ] Increase border-radius from 2px to 12-16px for modern rounded glass panels
+- [ ] Redesign navigation: glassy frosted header with backdrop-blur, glowing cyan icons
+- [ ] Add animated hover states: scale transforms, glow effects on icons and nav items
+- [ ] Redesign ticker bar with glass morphism and subtle glow
+- [ ] Redesign stat-cells and cards with glass panels (semi-transparent, blurred backgrounds)
+- [ ] Redesign stock tables with glass frames and animated row hover effects
+- [ ] Improve chart viewing area with glass overlay toolbar and glowing indicators
+- [ ] Add micro-interactions: hover glow on buttons, pulse on active states, smooth transitions
+- [ ] Update mobile bottom nav with glass morphism
+- [ ] Update footer with glass styling
+- [ ] Bump version to v15.0.0

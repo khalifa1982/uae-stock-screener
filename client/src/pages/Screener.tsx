@@ -205,14 +205,14 @@ export default function Screener() {
 
       {/* Filters Panel */}
       {showFilters && (
-        <Card className="border-border/50 bg-card/50">
+        <Card className="glass-card">
           <CardContent className="p-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
               {/* Exchange */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Exchange</Label>
                 <Select value={filters.exchange} onValueChange={(v) => setFilters(f => ({ ...f, exchange: v as any }))}>
-                  <SelectTrigger className="h-9 bg-secondary/30 border-border/50 text-[11px]">
+                  <SelectTrigger className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,7 +227,7 @@ export default function Screener() {
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Sector</Label>
                 <Select value={filters.sector || "all"} onValueChange={(v) => setFilters(f => ({ ...f, sector: v }))}>
-                  <SelectTrigger className="h-9 bg-secondary/30 border-border/50 text-[11px]">
+                  <SelectTrigger className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -248,14 +248,14 @@ export default function Screener() {
                     placeholder="Min"
                     value={filters.minPE}
                     onChange={e => setFilters(f => ({ ...f, minPE: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                   <Input
                     type="number"
                     placeholder="Max"
                     value={filters.maxPE}
                     onChange={e => setFilters(f => ({ ...f, maxPE: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                 </div>
               </div>
@@ -269,14 +269,14 @@ export default function Screener() {
                     placeholder="Min"
                     value={filters.minPrice}
                     onChange={e => setFilters(f => ({ ...f, minPrice: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                   <Input
                     type="number"
                     placeholder="Max"
                     value={filters.maxPrice}
                     onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                 </div>
               </div>
@@ -290,14 +290,14 @@ export default function Screener() {
                     placeholder="Min"
                     value={filters.minMarketCap}
                     onChange={e => setFilters(f => ({ ...f, minMarketCap: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                   <Input
                     type="number"
                     placeholder="Max"
                     value={filters.maxMarketCap}
                     onChange={e => setFilters(f => ({ ...f, maxMarketCap: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                 </div>
               </div>
@@ -310,7 +310,7 @@ export default function Screener() {
                   placeholder="e.g. 100000"
                   value={filters.minVolume}
                   onChange={e => setFilters(f => ({ ...f, minVolume: e.target.value }))}
-                  className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                  className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                 />
               </div>
 
@@ -323,14 +323,14 @@ export default function Screener() {
                     placeholder="Min"
                     value={filters.minRSI}
                     onChange={e => setFilters(f => ({ ...f, minRSI: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                   <Input
                     type="number"
                     placeholder="Max"
                     value={filters.maxRSI}
                     onChange={e => setFilters(f => ({ ...f, maxRSI: e.target.value }))}
-                    className="h-9 bg-secondary/30 border-border/50 text-[11px]"
+                    className="h-9 bg-white/[0.04] border-border/30 backdrop-blur-sm text-[11px]"
                   />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function Screener() {
       )}
 
       {/* Results Table */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-1">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xs font-semibold">
@@ -403,7 +403,7 @@ export default function Screener() {
             <div className="overflow-x-auto">
               <table className="w-full text-[11px]">
                 <thead>
-                  <tr className="border-b border-border/50 bg-muted/30">
+                  <tr className="border-b border-border/20 bg-white/[0.02]">
                     <th className="text-left p-3 font-medium text-muted-foreground">
                       <button onClick={() => handleSort("symbol")} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
                         Symbol <SortIcon field="symbol" />
@@ -455,7 +455,7 @@ export default function Screener() {
                     sortedResults.map((stock) => (
                       <tr
                         key={`${stock.exchange}-${stock.symbol}`}
-                        className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer"
+                        className="border-b border-border/20 hover:bg-primary/5 transition-all duration-300 cursor-pointer"
                         onClick={() => setLocation(`/stock/${stock.symbol}`)}
                       >
                         <td className="p-3">

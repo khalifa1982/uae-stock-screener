@@ -553,7 +553,7 @@ export default function Alerts() {
             <div className="overflow-x-auto">
               <table className="w-full text-[11px]">
                 <thead>
-                  <tr className="border-b border-border/50">
+                  <tr className="border-b border-border/20/50">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Time</th>
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Stock</th>
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Severity</th>
@@ -565,7 +565,7 @@ export default function Alerts() {
                 </thead>
                 <tbody>
                   {recentAlerts.slice(0, 30).map((alert: any) => (
-                    <tr key={alert.id} className="border-b border-border/30 hover:bg-accent/5 transition-colors">
+                    <tr key={alert.id} className="border-b border-border/20/30 hover:bg-accent/5 transition-colors">
                       <td className="py-2 px-3 text-xs text-muted-foreground whitespace-nowrap">
                         {formatTimeAgo(alert.detectedAt)}
                       </td>

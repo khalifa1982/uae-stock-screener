@@ -32,7 +32,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
 
   if (!data || data.items.length === 0) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Newspaper className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">No news available for this stock.</p>
@@ -43,7 +43,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">

@@ -112,7 +112,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
   if (!analysis) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">Technical data is not available for this stock.</p>
@@ -174,7 +174,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
       </div>
 
       {/* ═══ Summary Gauges ═══ */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Gauge className="h-4 w-4 text-primary" /> Indicators Summary
@@ -207,7 +207,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Oscillators ═══ */}
       {oscillators && oscillators.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" /> Oscillators
@@ -231,7 +231,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
       )}
 
       {/* ═══ Moving Averages ═══ */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-primary" /> Moving Averages
@@ -265,7 +265,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Bollinger Bands ═══ */}
       {bbands && (bbands.upper != null || bbands.middle != null || bbands.lower != null) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" /> Bollinger Bands (20, 2)
@@ -309,7 +309,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Additional Indicators ═══ */}
       {indicators && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" /> Additional Indicators
