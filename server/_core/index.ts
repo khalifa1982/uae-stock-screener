@@ -4,6 +4,7 @@ import { startVolumeMonitor } from "../volumeMonitor";
 import { startMarketSummaryScheduler } from "../services/marketSummaryService";
 import { startAbboudScanner } from "../services/abboudAlertScanner";
 import { startCreditMonitor } from "../services/scrapflyCreditMonitor";
+import { startNewsScheduler } from "../services/newsSchedulerService";
 import { initWebSocketServer } from "../services/tdWebSocketService";
 
 import { createServer } from "http";
@@ -146,6 +147,8 @@ async function startServer() {
     startAbboudScanner();
     // Start Scrapfly credit monitor (checks every 6h, alerts when low)
     startCreditMonitor();
+    // Start the market news scheduler (fetches news for all stocks)
+    startNewsScheduler();
     // Trigger initial data fetch to populate memory cache + logo cache (non-blocking)
     // This ensures logos are available from the first request
     import('../routers').then(({ prefetchLogosOnStartup }) => {

@@ -127,6 +127,13 @@
       "when": 1777825767935,
       "tag": "0017_daily_slipstream",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1782344499601,
+      "tag": "0018_typical_iron_man",
+      "breakpoints": true
     }
   ]
 }

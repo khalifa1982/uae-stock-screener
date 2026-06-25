@@ -17,6 +17,7 @@ import { getTwelveDataStats } from "./services/twelveDataService";
 import { fetchSWSCompanyData, getSWSStats, checkSWSHealth, getCanonicalUrlCache } from "./services/simplyWallStService";
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
+import { getStoredNews, getStockNews, getNewsSchedulerStatus, triggerFullNewsFetch } from "./services/newsSchedulerService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
 import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
@@ -1295,19 +1296,54 @@ export const appRouter = router({
         return { sentiment, score: parseFloat(normalizedScore.toFixed(2)), summary };
       }),
 
-    // ─── TradingView News ─────────────────────────────────────────
+    // ─── Market News (DB-backed with auto-refresh) ─────────────────
     news: publicProcedure
       .input(z.object({ symbol: z.string(), count: z.number().optional().default(20) }))
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
+        // Try DB-backed news first, falls back to live TradingView
+        const dbNews = await getStockNews(stock.symbol, stock.exchange, input.count);
+        if (dbNews.items.length > 0) return dbNews;
         return fetchTVNews(stock.symbol, stock.exchange, input.count);
       }),
 
     marketNews: publicProcedure
-      .input(z.object({ count: z.number().optional().default(30) }).optional())
+      .input(z.object({
+        count: z.number().optional().default(50),
+        exchange: z.enum(['DFM', 'ADX', 'all']).optional().default('all'),
+        search: z.string().optional(),
+      }).optional())
       .query(async ({ input }) => {
-        return fetchUAEMarketNews(input?.count || 30);
+        const opts = input || { count: 50, exchange: 'all' as const };
+        // Try DB-backed news first
+        const dbNews = await getStoredNews({
+          count: opts.count || 50,
+          exchange: opts.exchange || 'all',
+          search: opts.search,
+        });
+        if (dbNews.items.length > 0) return dbNews;
+        // Fallback to live TradingView fetch
+        const tvNews = await fetchUAEMarketNews(opts.count || 50);
+        return {
+          items: tvNews.items.map(i => ({
+            ...i,
+            id: 0,
+            externalId: i.id,
+          })),
+          totalCount: tvNews.items.length,
+          lastUpdated: tvNews.fetchedAt,
+        };
+      }),
+
+    newsStatus: publicProcedure
+      .query(async () => {
+        return getNewsSchedulerStatus();
+      }),
+
+    triggerNewsFetch: protectedProcedure
+      .mutation(async () => {
+        return triggerFullNewsFetch();
       }),
 
     // ─── TradingView Forecast/Analyst Data ────────────────────────

@@ -17,7 +17,7 @@ function timeAgo(timestamp: number): string {
 export function StockNewsTab({ symbol }: { symbol: string }) {
   const { data, isLoading } = trpc.stocks.news.useQuery(
     { symbol, count: 30 },
-    { staleTime: 600_000, gcTime: 1800_000, refetchOnWindowFocus: false }
+    { staleTime: 120_000, gcTime: 1800_000, refetchInterval: 5 * 60 * 1000, refetchOnWindowFocus: true }
   );
 
   if (isLoading) {
@@ -59,7 +59,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
             {data.items.map((item) => (
               <a
                 key={item.id}
-                href={`https://www.tradingview.com${item.storyPath}`}
+                href={item.storyPath?.startsWith('http') ? item.storyPath : item.storyPath ? `https://www.tradingview.com${item.storyPath}` : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-4 p-4 hover:bg-muted/10 transition-colors group"

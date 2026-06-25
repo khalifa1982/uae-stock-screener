@@ -1474,6 +1474,14 @@
 - [x] Run tests and verify (60/61 pass, 1 pre-existing failure)
 - [x] Deploy to Northflank (v13.3.0 deployed via DockerHub + Northflank UI)
 
+## v15.1.0 — Fix Market News Auto-Update
+- [x] Fix Market News not auto-updating: NewsAPI.ai (primary) + TradingView (secondary) with DB persistence
+- [x] Add market_news database table to store news articles persistently
+- [x] Add scheduled background job (priority every 15min, rotation every 5min for all stocks)
+- [x] Add auto-refresh polling on frontend (every 5 minutes)
+- [x] Cover ALL 171 listed companies in news fetching via rotation batches
+- [ ] Re-apply v15.0.2 changes (candlestick default, 6M range, TP1 label)
+
 ## v13.4.0 — StockAnalysis.com Enhanced Scraping (Statistics + Profile)
 - [x] Research StockAnalysis.com data structure (SvelteKit data blocks)
 - [x] Fix parseJSValue function — string-aware JS-to-JSON converter that handles apostrophes and colons inside strings

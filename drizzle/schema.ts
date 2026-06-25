@@ -304,3 +304,25 @@ export const saStatisticsCache = mysqlTable("sa_statistics_cache", {
 
 export type SAStatisticsCache = typeof saStatisticsCache.$inferSelect;
 export type InsertSAStatisticsCache = typeof saStatisticsCache.$inferInsert;
+
+// ─── Market News ─────────────────────────────────────────────────────
+// Stores news articles fetched from TradingView for all UAE stocks
+export const marketNews = mysqlTable("market_news", {
+  id: int("id").autoincrement().primaryKey(),
+  externalId: varchar("externalId", { length: 255 }).notNull(), // TradingView article ID
+  title: text("title").notNull(),
+  provider: varchar("provider", { length: 128 }),
+  source: varchar("source", { length: 128 }),
+  sourceLogoId: varchar("sourceLogoId", { length: 128 }),
+  publishedAt: timestamp("publishedAt").notNull(), // When the article was published
+  urgency: int("urgency").default(0),
+  storyPath: varchar("storyPath", { length: 512 }),
+  relatedSymbols: json("relatedSymbols"), // JSON array of {symbol, logoid}
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("news_external_id_idx").on(table.externalId),
+  index("news_published_idx").on(table.publishedAt),
+]);
+
+export type MarketNewsItem = typeof marketNews.$inferSelect;
+export type InsertMarketNewsItem = typeof marketNews.$inferInsert;
