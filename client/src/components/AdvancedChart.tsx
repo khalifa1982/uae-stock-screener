@@ -381,7 +381,7 @@ export function AdvancedChart({ symbol, exchange, chartData, chartRange, onRange
   const [showBB, setShowBB] = useState(true);
   const [showMACD, setShowMACD] = useState(true);
   const [showRSI, setShowRSI] = useState(true);
-  const [chartType, setChartType] = useState<ChartType>("area");
+  const [chartType, setChartType] = useState<ChartType>("candlestick");
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [showCrosshair, setShowCrosshair] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);

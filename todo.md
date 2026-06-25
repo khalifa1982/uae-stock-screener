@@ -1480,7 +1480,7 @@
 - [x] Add scheduled background job (priority every 15min, rotation every 5min for all stocks)
 - [x] Add auto-refresh polling on frontend (every 5 minutes)
 - [x] Cover ALL 171 listed companies in news fetching via rotation batches
-- [ ] Re-apply v15.0.2 changes (candlestick default, 6M range, TP1 label)
+- [x] Re-apply v15.0.2 changes (candlestick default, 6M range, TP1 label already correct)
 
 ## v13.4.0 — StockAnalysis.com Enhanced Scraping (Statistics + Profile)
 - [x] Research StockAnalysis.com data structure (SvelteKit data blocks)

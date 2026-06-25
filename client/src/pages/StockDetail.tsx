@@ -272,7 +272,7 @@ export default function StockDetail() {
   const params = useParams<{ symbol: string }>();
   const [, setLocation] = useLocation();
   const symbol = params.symbol || "";
-  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("3mo");
+  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("6mo");
   const [chartMode, setChartMode] = useState<"advanced" | "simple">("advanced");
   const [activeTab, setActiveTab] = useState("overview");
 
