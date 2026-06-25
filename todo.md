@@ -1590,3 +1590,9 @@
 - [x] Update mobile bottom nav with glass morphism
 - [x] Update footer with glass styling
 - [x] Bump version to v15.0.0
+
+## v15.1.2 — Mobile Toolbar Fix
+- [x] Fix mobile toolbar: hamburger menu not clickable (moved to first position, always accessible)
+- [x] Remove "LIVE" text and wifi icon — just show a small green pulsing dot for live feed
+- [x] Simplify market status display on mobile (compact dot + short status text, no badge border)
+- [x] Ensure hamburger menu is always accessible and clickable on mobile (moved theme/notifications to desktop only)

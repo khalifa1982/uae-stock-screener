@@ -313,7 +313,21 @@ export default function TerminalLayout({
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* ─── Top Navigation Bar ─── */}
       <header className="terminal-header">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {/* Mobile hamburger — placed first for easy access */}
+          {isMobile && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300 shrink-0 z-10"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5 text-primary" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          )}
+
           {/* Logo */}
           <button
             onClick={() => setLocation("/")}
@@ -373,27 +387,15 @@ export default function TerminalLayout({
             </nav>
           )}
 
-          {/* Mobile hamburger */}
-          {isMobile && (
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-5 w-5 text-primary" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </button>
-          )}
         </div>
 
         {/* Right side: Search + Market Status + Controls */}
-        <div className="flex items-center gap-1 shrink-0 ml-2">
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
           <QuickSearch />
           <MarketStatusBadge />
 
-          {toggleTheme && (
+          {/* Theme toggle — hidden on mobile to save space */}
+          {toggleTheme && !isMobile && (
             <button
               onClick={toggleTheme}
               className="terminal-icon-btn"
@@ -407,7 +409,8 @@ export default function TerminalLayout({
             </button>
           )}
 
-          <NotificationCenter />
+          {/* Notifications — hidden on mobile (accessible from bottom nav) */}
+          {!isMobile && <NotificationCenter />}
 
           {/* User */}
           {isAuthenticated && user ? (
