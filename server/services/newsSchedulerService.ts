@@ -19,7 +19,8 @@ import { desc, sql, and } from "drizzle-orm";
 
 // ─── NewsAPI.ai Configuration ────────────────────────────────────────────
 const NEWSAPI_BASE_URL = 'https://eventregistry.org/api/v1/article/getArticles';
-const NEWSAPI_KEY = process.env.NEWSAPI_KEY || 'b257f2b4-0b8c-41b2-b9ee-d8c4870befbd';
+import { ENV } from '../_core/env';
+const NEWSAPI_KEY = ENV.newsApiKey;
 
 // Concept URIs for UAE financial markets and major companies
 const UAE_MARKET_CONCEPTS = [

@@ -1596,3 +1596,13 @@
 - [x] Remove "LIVE" text and wifi icon — just show a small green pulsing dot for live feed
 - [x] Simplify market status display on mobile (compact dot + short status text, no badge border)
 - [x] Ensure hamburger menu is always accessible and clickable on mobile (moved theme/notifications to desktop only)
+
+## v15.2.0 — Dependency & API Updates
+- [x] Audit all project dependencies and API integrations
+- [x] Update Gemini LLM: primary model gemini-2.5-flash, fallback gemini-3.1-pro-preview (with auto-retry on 5xx/429)
+- [x] Move NewsAPI.ai key to ENV configuration (server/_core/env.ts)
+- [x] Update npm dependencies: vite 8.0.16→8.1.5, tailwindcss 4.3.1→4.3.3, vitest 4.1.9→4.1.10, tsx 4.22.4→4.23.1, postcss 8.5.15→8.5.21, prettier 3.8.4→3.9.6, autoprefixer 10.5.0→10.5.4
+- [x] Verify TypeScript compilation (no errors)
+- [x] Verify all tests pass (10/10)
+- [x] Note: OpenClaw is a separate system (not part of this project) — no changes needed here
+- [x] Note: yahoo-finance2 v4.0.0 (major) and nanoid v6.0.0 (major) skipped to avoid breaking changes
