@@ -255,7 +255,7 @@ const normalizeResponseFormat = ({
 };
 
 // Model configuration — primary + fallback
-const PRIMARY_MODEL = "gemini-2.5-flash";
+const PRIMARY_MODEL = "gemini-3.6-flash";
 const FALLBACK_MODEL = "gemini-3.1-pro-preview";
 
 /**
