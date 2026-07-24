@@ -29,7 +29,7 @@ function StatCard({ title, value, icon: Icon, subtitle, color }: {
   title: string; value: string | number; icon: any; subtitle?: string; color: string;
 }) {
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+    <Card className="border-border/50 bg-card/50 ">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -37,7 +37,7 @@ function StatCard({ title, value, icon: Icon, subtitle, color }: {
             <p className="text-2xl font-bold mt-1">{value}</p>
             {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
           </div>
-          <div className={`p-3 rounded-xl ${color}`}>
+          <div className={`p-3  ${color}`}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function Analytics() {
         </div>
         <div className="flex items-center gap-2">
           {/* Time range selector */}
-          <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
+          <div className="flex gap-1 bg-muted/50  p-0.5">
             {[7, 14, 30, 90].map(d => (
               <Button
                 key={d}
@@ -206,7 +206,7 @@ export default function Analytics() {
       </div>
 
       {/* Daily Traffic Chart */}
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <Card className="border-border/50 bg-card/50 ">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-emerald-500" />
@@ -244,7 +244,7 @@ export default function Analytics() {
       {/* Two-column layout: Geo + Top Stocks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Geographic Breakdown */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/50 ">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin className="h-4 w-4 text-violet-500" />
@@ -289,7 +289,7 @@ export default function Analytics() {
         </Card>
 
         {/* Visitors by City */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/50 ">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Globe className="h-4 w-4 text-cyan-500" />
@@ -337,7 +337,7 @@ export default function Analytics() {
       {/* Two-column: Top Stocks + Top Pages */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Most Viewed Stocks */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/50 ">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-amber-500" />
@@ -385,7 +385,7 @@ export default function Analytics() {
         </Card>
 
         {/* Top Pages */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/50 ">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Eye className="h-4 w-4 text-emerald-500" />
@@ -430,7 +430,7 @@ export default function Analytics() {
       </div>
 
       {/* Recent Visitors */}
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <Card className="border-border/50 bg-card/50 ">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />

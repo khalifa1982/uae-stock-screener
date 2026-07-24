@@ -254,9 +254,15 @@ const normalizeResponseFormat = ({
   };
 };
 
+// Model configuration — primary + fallback
+const PRIMARY_MODEL = "gemini-3.6-flash";
+const FALLBACK_MODEL = "gemini-3.1-pro-preview";
+
 /**
  * Invoke LLM using Google Gemini API (OpenAI-compatible endpoint)
  * Uses GEMINI_API_KEY environment variable
+ * Primary model: gemini-2.5-flash
+ * Fallback model: gemini-3.1-pro-preview (used if primary fails)
  */
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const apiKey = ENV.geminiApiKey;
@@ -275,47 +281,62 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
-  const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
-    messages: messages.map(normalizeMessage),
+  const buildPayload = (model: string): Record<string, unknown> => {
+    const p: Record<string, unknown> = {
+      model,
+      messages: messages.map(normalizeMessage),
+    };
+
+    if (tools && tools.length > 0) {
+      p.tools = tools;
+    }
+
+    const normalizedToolChoice = normalizeToolChoice(
+      toolChoice || tool_choice,
+      tools
+    );
+    if (normalizedToolChoice) {
+      p.tool_choice = normalizedToolChoice;
+    }
+
+    p.max_tokens = 32768;
+
+    const normalizedResponseFormat = normalizeResponseFormat({
+      responseFormat,
+      response_format,
+      outputSchema,
+      output_schema,
+    });
+
+    if (normalizedResponseFormat) {
+      p.response_format = normalizedResponseFormat;
+    }
+
+    return p;
   };
-
-  if (tools && tools.length > 0) {
-    payload.tools = tools;
-  }
-
-  const normalizedToolChoice = normalizeToolChoice(
-    toolChoice || tool_choice,
-    tools
-  );
-  if (normalizedToolChoice) {
-    payload.tool_choice = normalizedToolChoice;
-  }
-
-  payload.max_tokens = 32768;
-
-  const normalizedResponseFormat = normalizeResponseFormat({
-    responseFormat,
-    response_format,
-    outputSchema,
-    output_schema,
-  });
-
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
-  }
 
   // Use Gemini OpenAI-compatible endpoint
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`;
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const doRequest = async (model: string): Promise<Response> => {
+    return fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(buildPayload(model)),
+    });
+  };
+
+  // Try primary model first
+  let response = await doRequest(PRIMARY_MODEL);
+
+  // If primary fails (5xx or rate-limited), try fallback
+  if (!response.ok && (response.status >= 500 || response.status === 429)) {
+    console.warn(`[LLM] Primary model ${PRIMARY_MODEL} failed (${response.status}), trying fallback ${FALLBACK_MODEL}`);
+    response = await doRequest(FALLBACK_MODEL);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

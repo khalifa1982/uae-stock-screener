@@ -17,14 +17,14 @@ function timeAgo(timestamp: number): string {
 export function StockNewsTab({ symbol }: { symbol: string }) {
   const { data, isLoading } = trpc.stocks.news.useQuery(
     { symbol, count: 30 },
-    { staleTime: 600_000, gcTime: 1800_000, refetchOnWindowFocus: false }
+    { staleTime: 120_000, gcTime: 1800_000, refetchInterval: 5 * 60 * 1000, refetchOnWindowFocus: true }
   );
 
   if (isLoading) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-lg" />
+          <Skeleton key={i} className="h-20 " />
         ))}
       </div>
     );
@@ -32,7 +32,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
 
   if (!data || data.items.length === 0) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Newspaper className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">No news available for this stock.</p>
@@ -43,7 +43,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -59,7 +59,7 @@ export function StockNewsTab({ symbol }: { symbol: string }) {
             {data.items.map((item) => (
               <a
                 key={item.id}
-                href={`https://www.tradingview.com${item.storyPath}`}
+                href={item.storyPath?.startsWith('http') ? item.storyPath : item.storyPath ? `https://www.tradingview.com${item.storyPath}` : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-4 p-4 hover:bg-muted/10 transition-colors group"

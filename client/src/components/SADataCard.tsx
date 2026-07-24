@@ -105,7 +105,7 @@ export function SADataCard({ data }: { data: SAOverviewData | null | undefined }
     <div className="space-y-2">
       {/* Price Performance Card */}
       {data.priceChanges && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-semibold flex items-center justify-between">
               <span className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export function SADataCard({ data }: { data: SAOverviewData | null | undefined }
 
       {/* Financial Summary from SA */}
       {(data.financialIntro || data.financialChart.length > 0) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
@@ -236,7 +236,7 @@ export function SADataCard({ data }: { data: SAOverviewData | null | undefined }
 
       {/* SA News */}
       {data.news && data.news.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-semibold flex items-center gap-2">
               <Newspaper className="h-4 w-4 text-primary" />

@@ -48,14 +48,14 @@ function CategorySection({ category }: { category: Category }) {
   const passedCount = category.checks.filter(c => c.passed).length;
 
   return (
-    <div className="border border-border/50 rounded-lg overflow-hidden">
+    <div className="border border-border/50  overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-3 hover:bg-secondary/30 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+            className="w-8 h-8  flex items-center justify-center text-sm"
             style={{ background: config.bg }}
           >
             {config.icon}

@@ -45,7 +45,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-48 " />
         ))}
       </div>
     );
@@ -53,7 +53,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
 
   if (!data) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">Extended financial data is not available.</p>
@@ -65,7 +65,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
   return (
     <div className="space-y-6">
       {/* Valuation Ratios */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <PieChart className="h-4 w-4 text-primary" /> Valuation Ratios
@@ -85,7 +85,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       </Card>
 
       {/* Growth & Profitability */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" /> Margins & Returns
@@ -116,7 +116,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       </Card>
 
       {/* Income Statement */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-primary" /> Income Statement
@@ -148,7 +148,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
 
       {/* Dividends */}
       {(data.dividendYield != null || data.dpsAnnual != null) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" /> Dividend Information
@@ -156,19 +156,19 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Yield</p>
                 <p className="text-lg font-bold font-mono">{data.dividendYield != null ? formatPercent(data.dividendYield) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Per Share (Annual)</p>
                 <p className="text-lg font-bold font-mono">{data.dpsAnnual != null ? formatNumber(data.dpsAnnual, 3) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payout Ratio</p>
                 <p className="text-lg font-bold font-mono">{data.payoutRatioTTM != null ? formatPercent(data.payoutRatioTTM) : "—"}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Shares Outstanding</p>
                 <p className="text-lg font-bold font-mono">{formatLargeNumber(data.sharesOutstanding)}</p>
               </div>
@@ -178,7 +178,7 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
       )}
 
       {/* Ownership & Other */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" /> Other Information
@@ -187,13 +187,13 @@ export function StockFinancialsExtended({ symbol }: { symbol: string }) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {data.floatShares != null && (
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Float Shares</p>
                 <p className="text-lg font-bold font-mono">{formatLargeNumber(data.floatShares)}</p>
               </div>
             )}
             {data.employees != null && (
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Employees</p>
                 <p className="text-lg font-bold font-mono">{data.employees.toLocaleString()}</p>
               </div>

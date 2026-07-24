@@ -26,9 +26,25 @@ describe("Market Status", () => {
     expect(status.label).toContain("Closed");
   });
 
-  it("returns 'pre-open' on Monday at 9:00 UAE", () => {
-    // Monday March 9, 2026 at 09:00 UAE (05:00 UTC)
+  it("returns 'closed' before pre-open on Monday at 9:00 UAE", () => {
+    // Monday March 9, 2026 at 09:00 UAE (05:00 UTC) - before pre-open
     vi.setSystemTime(new Date("2026-03-09T05:00:00Z"));
+    const status = getMarketStatus();
+    expect(status.phase).toBe("closed");
+    expect(status.label).toContain("Closed");
+  });
+
+  it("returns 'pre-open' on Monday at 9:30 UAE", () => {
+    // Monday March 9, 2026 at 09:30 UAE (05:30 UTC)
+    vi.setSystemTime(new Date("2026-03-09T05:30:00Z"));
+    const status = getMarketStatus();
+    expect(status.phase).toBe("pre-open");
+    expect(status.label).toContain("Pre-Open");
+  });
+
+  it("returns 'pre-open' on Monday at 9:45 UAE", () => {
+    // Monday March 9, 2026 at 09:45 UAE (05:45 UTC)
+    vi.setSystemTime(new Date("2026-03-09T05:45:00Z"));
     const status = getMarketStatus();
     expect(status.phase).toBe("pre-open");
     expect(status.label).toContain("Pre-Open");
@@ -50,12 +66,36 @@ describe("Market Status", () => {
     expect(status.label).toContain("Open");
   });
 
-  it("returns 'pre-close' on Monday at 14:50 UAE", () => {
-    // Monday March 9, 2026 at 14:50 UAE (10:50 UTC)
-    vi.setSystemTime(new Date("2026-03-09T10:50:00Z"));
+  it("returns 'open' on Monday at 14:44 UAE", () => {
+    // Monday March 9, 2026 at 14:44 UAE (10:44 UTC) - last minute before pre-close
+    vi.setSystemTime(new Date("2026-03-09T10:44:00Z"));
+    const status = getMarketStatus();
+    expect(status.phase).toBe("open");
+    expect(status.label).toContain("Open");
+  });
+
+  it("returns 'pre-close' on Monday at 14:45 UAE", () => {
+    // Monday March 9, 2026 at 14:45 UAE (10:45 UTC)
+    vi.setSystemTime(new Date("2026-03-09T10:45:00Z"));
     const status = getMarketStatus();
     expect(status.phase).toBe("pre-close");
     expect(status.label).toContain("Pre-Close");
+  });
+
+  it("returns 'pre-close' on Monday at 14:55 UAE", () => {
+    // Monday March 9, 2026 at 14:55 UAE (10:55 UTC)
+    vi.setSystemTime(new Date("2026-03-09T10:55:00Z"));
+    const status = getMarketStatus();
+    expect(status.phase).toBe("pre-close");
+    expect(status.label).toContain("Pre-Close");
+  });
+
+  it("returns 'closed' on Monday at 15:00 UAE", () => {
+    // Monday March 9, 2026 at 15:00 UAE (11:00 UTC)
+    vi.setSystemTime(new Date("2026-03-09T11:00:00Z"));
+    const status = getMarketStatus();
+    expect(status.phase).toBe("closed");
+    expect(status.label).toContain("Closed");
   });
 
   it("returns 'closed' on Monday at 15:05 UAE", () => {
@@ -83,12 +123,12 @@ describe("Market Status", () => {
   });
 
   it("includes nextPhaseTime and nextPhaseLabel", () => {
-    // Monday March 9, 2026 at 09:00 UAE (05:00 UTC) - pre-open
-    vi.setSystemTime(new Date("2026-03-09T05:00:00Z"));
+    // Monday March 9, 2026 at 09:30 UAE (05:30 UTC) - pre-open
+    vi.setSystemTime(new Date("2026-03-09T05:30:00Z"));
     const status = getMarketStatus();
     expect(status.nextPhaseTime).toBeDefined();
     expect(status.nextPhaseLabel).toBeDefined();
-    expect(status.nextPhaseLabel).toContain("Open");
+    expect(status.nextPhaseLabel).toContain("10:00 AM");
   });
 
   it("includes UAE time string", () => {
@@ -96,11 +136,17 @@ describe("Market Status", () => {
     const status = getMarketStatus();
     expect(status.uaeTimeStr).toBeDefined();
     expect(status.uaeDayStr).toBeDefined();
+    expect(status.uaeTimeStr).toBe("12:00 PM");
+    expect(status.uaeDayStr).toBe("Monday");
   });
 
   it("includes description for each phase", () => {
-    // Test pre-open
+    // Test closed (before pre-open)
     vi.setSystemTime(new Date("2026-03-09T05:00:00Z"));
+    expect(getMarketStatus().description).toBeTruthy();
+
+    // Test pre-open
+    vi.setSystemTime(new Date("2026-03-09T05:30:00Z"));
     expect(getMarketStatus().description).toBeTruthy();
 
     // Test open
@@ -111,9 +157,31 @@ describe("Market Status", () => {
     vi.setSystemTime(new Date("2026-03-09T10:45:00Z"));
     expect(getMarketStatus().description).toBeTruthy();
 
-    // Test closed
+    // Test closed (after close)
     vi.setSystemTime(new Date("2026-03-09T12:00:00Z"));
     expect(getMarketStatus().description).toBeTruthy();
+  });
+
+  it("correctly transitions through all phases in order", () => {
+    // 9:29 AM UAE -> closed
+    vi.setSystemTime(new Date("2026-03-09T05:29:00Z"));
+    expect(getMarketStatus().phase).toBe("closed");
+
+    // 9:30 AM UAE -> pre-open
+    vi.setSystemTime(new Date("2026-03-09T05:30:00Z"));
+    expect(getMarketStatus().phase).toBe("pre-open");
+
+    // 10:00 AM UAE -> open
+    vi.setSystemTime(new Date("2026-03-09T06:00:00Z"));
+    expect(getMarketStatus().phase).toBe("open");
+
+    // 2:45 PM UAE -> pre-close
+    vi.setSystemTime(new Date("2026-03-09T10:45:00Z"));
+    expect(getMarketStatus().phase).toBe("pre-close");
+
+    // 3:00 PM UAE -> closed
+    vi.setSystemTime(new Date("2026-03-09T11:00:00Z"));
+    expect(getMarketStatus().phase).toBe("closed");
   });
 });
 

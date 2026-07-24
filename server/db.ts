@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets, notifications, InsertNotification, notificationPreferences, InsertNotificationPreference } from "../drizzle/schema";
+import { InsertUser, users, stockSnapshots, InsertStockSnapshot, watchlists, volumeAlerts, monitorSettings, screenerPresets, notifications, InsertNotification, notificationPreferences, InsertNotificationPreference, saStatisticsCache } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -448,7 +448,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
       pageViews: 1,
     }).onDuplicateKeyUpdate({
       set: {
-        pageViews: sql`page_views + 1`,
+        pageViews: sql`pageViews + 1`,
         lastVisit: new Date(),
       },
     });
@@ -458,7 +458,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
       statKey: "total_pageviews",
       statValue: 1,
     }).onDuplicateKeyUpdate({
-      set: { statValue: sql`stat_value + 1` },
+      set: { statValue: sql`statValue + 1` },
     });
 
     // Check if this is a brand new visitor (first time ever)
@@ -472,7 +472,7 @@ export async function recordVisit(ip: string, userAgent: string): Promise<{ tota
         statKey: "total_visitors",
         statValue: 1,
       }).onDuplicateKeyUpdate({
-        set: { statValue: sql`stat_value + 1` },
+        set: { statValue: sql`statValue + 1` },
       });
     }
 
@@ -543,7 +543,7 @@ export async function recordPageView(pagePath: string, symbol: string | null, ip
       viewCount: 1,
     }).onDuplicateKeyUpdate({
       set: {
-        viewCount: sql`view_count + 1`,
+        viewCount: sql`viewCount + 1`,
       },
     });
   } catch (e) {
@@ -719,6 +719,62 @@ export async function getRecentVisitors(limit: number = 50): Promise<Array<{
     return results;
   } catch (e) {
     console.warn("[Database] Failed to get recent visitors:", e);
+    return [];
+  }
+}
+
+// ─── SA Statistics Cache operations ─────────────────────────────────
+
+export async function upsertSAStatisticsCache(symbol: string, exchange: string, data: any): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(saStatisticsCache).values({
+      symbol,
+      exchange,
+      data: JSON.stringify(data),
+      scrapedAt: new Date(),
+    }).onDuplicateKeyUpdate({
+      set: {
+        data: sql`VALUES(data)`,
+        scrapedAt: new Date(),
+      },
+    });
+  } catch (e) {
+    console.warn(`[Database] Failed to upsert SA statistics cache for ${symbol}:`, e);
+  }
+}
+
+export async function getSAStatisticsCached(symbol: string, exchange: string) {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const result = await db.select().from(saStatisticsCache)
+      .where(and(eq(saStatisticsCache.symbol, symbol), eq(saStatisticsCache.exchange, exchange)))
+      .limit(1);
+    if (result.length === 0) return null;
+    const row = result[0];
+    // Check if data is stale (older than 24 hours)
+    const ageMs = Date.now() - new Date(row.scrapedAt).getTime();
+    const isStale = ageMs > 24 * 60 * 60 * 1000;
+    return {
+      data: typeof row.data === "string" ? JSON.parse(row.data) : row.data,
+      scrapedAt: row.scrapedAt,
+      isStale,
+    };
+  } catch (e) {
+    console.warn(`[Database] Failed to get SA statistics cache for ${symbol}:`, e);
+    return null;
+  }
+}
+
+export async function getAllSAStatisticsCache() {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return db.select().from(saStatisticsCache);
+  } catch (e) {
+    console.warn("[Database] Failed to get all SA statistics cache:", e);
     return [];
   }
 }

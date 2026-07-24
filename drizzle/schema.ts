@@ -1,4 +1,4 @@
-import { int, float, bigint, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex, boolean, index } from "drizzle-orm/mysql-core";
+import { int, float, bigint, json, mysqlEnum, mysqlTable, text, timestamp, varchar, uniqueIndex, boolean, index } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -210,42 +210,6 @@ export const marketSummaries = mysqlTable("market_summaries", {
 export type MarketSummary = typeof marketSummaries.$inferSelect;
 export type InsertMarketSummary = typeof marketSummaries.$inferInsert;
 
-// Live chat messages - daily reset (only today's messages kept)
-export const chatMessages = mysqlTable("chat_messages", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  userName: varchar("userName", { length: 128 }).notNull(),
-  userColor: varchar("userColor", { length: 7 }).notNull(), // hex color for avatar
-  messageType: mysqlEnum("messageType", ["text", "image", "system"]).notNull().default("text"),
-  content: text("content"), // text content or system message
-  imageUrl: varchar("imageUrl", { length: 512 }), // S3 URL for image messages
-  replyToId: int("replyToId"), // ID of the message being replied to (null if not a reply)
-  chatDate: varchar("chatDate", { length: 10 }).notNull(), // YYYY-MM-DD (UAE timezone)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => [
-  index("chat_date_idx").on(table.chatDate),
-  index("chat_user_idx").on(table.userId),
-]);
-
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = typeof chatMessages.$inferInsert;
-
-// Chat message reactions - emoji reactions on messages
-export const chatMessageReactions = mysqlTable("chat_message_reactions", {
-  id: int("id").autoincrement().primaryKey(),
-  messageId: int("messageId").notNull(),
-  userId: int("userId").notNull(),
-  userName: varchar("userName", { length: 128 }).notNull(),
-  emoji: varchar("emoji", { length: 8 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => [
-  index("reaction_message_idx").on(table.messageId),
-  uniqueIndex("reaction_unique_idx").on(table.messageId, table.userId, table.emoji),
-]);
-
-export type ChatMessageReaction = typeof chatMessageReactions.$inferSelect;
-export type InsertChatMessageReaction = typeof chatMessageReactions.$inferInsert;
-
 
 // Abboud AI alerts - tracks when stocks enter entry zones or hit targets
 export const abboudAlerts = mysqlTable("abboud_alerts", {
@@ -325,3 +289,40 @@ export const pageViews = mysqlTable("page_views", {
 
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = typeof pageViews.$inferInsert;
+
+// ─── SA Statistics Cache ─────────────────────────────────────────────
+export const saStatisticsCache = mysqlTable("sa_statistics_cache", {
+  id: int("id").primaryKey().autoincrement(),
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  exchange: varchar("exchange", { length: 10 }).notNull(),
+  data: json("data"),
+  scrapedAt: timestamp("scraped_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("sa_stats_symbol_exchange_idx").on(table.symbol, table.exchange),
+]);
+
+export type SAStatisticsCache = typeof saStatisticsCache.$inferSelect;
+export type InsertSAStatisticsCache = typeof saStatisticsCache.$inferInsert;
+
+// ─── Market News ─────────────────────────────────────────────────────
+// Stores news articles fetched from TradingView for all UAE stocks
+export const marketNews = mysqlTable("market_news", {
+  id: int("id").autoincrement().primaryKey(),
+  externalId: varchar("externalId", { length: 255 }).notNull(), // TradingView article ID
+  title: text("title").notNull(),
+  provider: varchar("provider", { length: 128 }),
+  source: varchar("source", { length: 128 }),
+  sourceLogoId: varchar("sourceLogoId", { length: 128 }),
+  publishedAt: timestamp("publishedAt").notNull(), // When the article was published
+  urgency: int("urgency").default(0),
+  storyPath: varchar("storyPath", { length: 512 }),
+  relatedSymbols: json("relatedSymbols"), // JSON array of {symbol, logoid}
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("news_external_id_idx").on(table.externalId),
+  index("news_published_idx").on(table.publishedAt),
+]);
+
+export type MarketNewsItem = typeof marketNews.$inferSelect;
+export type InsertMarketNewsItem = typeof marketNews.$inferInsert;

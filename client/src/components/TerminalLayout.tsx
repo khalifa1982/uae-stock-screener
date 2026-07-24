@@ -40,9 +40,12 @@ import {
   ChevronDown,
   Zap,
   BellRing,
+  Search,
+  Scale,
 } from "lucide-react";
 
-const navItems = [
+// Primary nav items — always visible in the top bar
+const primaryNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Filter, label: "Screener", path: "/screener" },
   { icon: Bell, label: "Alerts", path: "/alerts" },
@@ -50,13 +53,21 @@ const navItems = [
   { icon: Grid3X3, label: "Heatmap", path: "/heatmap" },
   { icon: CalendarDays, label: "Calendar", path: "/calendar" },
   { icon: Newspaper, label: "News", path: "/news" },
+];
+
+// Secondary nav items — shown in "More" dropdown to prevent overflow
+const secondaryNavItems = [
   { icon: FileText, label: "Summary", path: "/summary" },
   { icon: BellRing, label: "Notifications", path: "/notifications" },
+  { icon: Scale, label: "Compare", path: "/compare" },
 ];
 
 const adminNavItems = [
   { icon: Settings2, label: "API", path: "/admin" },
 ];
+
+// Combined for mobile menu and other uses
+const navItems = [...primaryNavItems, ...secondaryNavItems];
 
 const mobileNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -72,15 +83,10 @@ const mobileNavItems = [
 
 /**
  * Smart price formatter: preserves the actual decimal precision of each stock.
- * - Prices < 1 with 3+ meaningful decimals → show 3 decimals (e.g., 0.222)
- * - Prices with 3rd decimal != 0 → show 3 decimals (e.g., 1.125)
- * - Otherwise → show 2 decimals (e.g., 12.15)
  */
 function formatStockPrice(price: number): string {
-  // Round to 3 decimals first to avoid floating point noise
   const rounded = Math.round(price * 1000) / 1000;
   const third = Math.round((rounded * 1000) % 10);
-  // If the 3rd decimal is non-zero, show 3 decimals
   if (third !== 0) return rounded.toFixed(3);
   return rounded.toFixed(2);
 }
@@ -97,53 +103,46 @@ function TickerItem({ symbol, price, changePercent, flashDir }: {
   return (
     <span className="ticker-item">
       <span className="ticker-symbol">{symbol}</span>
-      <span className={`ticker-price font-mono ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}>
+      <span className={`ticker-price ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}>
         {formatStockPrice(price)}
       </span>
       <span
-        className={`ticker-change font-mono ${
+        className={`ticker-change ${
           isUp ? "text-gain" : isDown ? "text-loss" : "text-muted-foreground"
         } ${flashDir === "up" ? "ticker-flash-up" : flashDir === "down" ? "ticker-flash-down" : ""}`}
       >
-        {isUp ? "▲" : isDown ? "▼" : ""}
         {isUp ? "+" : ""}
         {changePercent.toFixed(changePercent !== 0 && Math.abs(changePercent) < 0.1 ? 3 : 2)}%
       </span>
-      <span className="ticker-divider">│</span>
+      <span className="ticker-divider">·</span>
     </span>
   );
 }
 
 function TickerBar() {
-  // 1. Load initial snapshot data (baseline prices + change %)
   const { data: snapshots } = trpc.stocks.fetchAll.useQuery(undefined, {
     staleTime: 5_000,
     refetchInterval: 15_000,
   });
 
-  // 2. Fast DFM polling for real-time price updates (every 5s)
   const { data: dfmLive } = trpc.stocks.dfmTicker.useQuery(undefined, {
     staleTime: 3_000,
     refetchInterval: 5_000,
   });
 
-  // 3. Subscribe to WebSocket for ALL stocks (TwelveData)
   const allSymbols = useMemo(() => ALL_STOCKS.map(s => s.symbol), []);
   const allExchanges = useMemo(() => ALL_STOCKS.map(s => s.exchange), []);
   const { prices: wsPrices } = useRealtimePrices(allSymbols, allExchanges);
 
-  // 4. Track flash state per symbol
   const [flashes, setFlashes] = useState<Record<string, "up" | "down">>({});
   const prevPricesRef = useRef<Record<string, number>>({});
   const flashTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Detect price changes from BOTH WebSocket AND DFM polling
   const triggerFlash = useCallback((sym: string, newPrice: number) => {
     const prev = prevPricesRef.current;
     if (prev[sym] !== undefined && newPrice !== prev[sym]) {
       const dir = newPrice > prev[sym] ? "up" as const : "down" as const;
       setFlashes(f => ({ ...f, [sym]: dir }));
-      // Clear flash after 800ms
       if (flashTimersRef.current[sym]) clearTimeout(flashTimersRef.current[sym]);
       flashTimersRef.current[sym] = setTimeout(() => {
         setFlashes(f => {
@@ -156,14 +155,12 @@ function TickerBar() {
     prev[sym] = newPrice;
   }, []);
 
-  // Flash on WebSocket price changes
   useEffect(() => {
     for (const [sym, data] of Object.entries(wsPrices)) {
       triggerFlash(sym, data.price);
     }
   }, [wsPrices, triggerFlash]);
 
-  // Flash on DFM polling price changes
   useEffect(() => {
     if (!dfmLive) return;
     for (const [sym, data] of Object.entries(dfmLive)) {
@@ -171,7 +168,6 @@ function TickerBar() {
     }
   }, [dfmLive, triggerFlash]);
 
-  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       Object.values(flashTimersRef.current).forEach(clearTimeout);
@@ -180,32 +176,26 @@ function TickerBar() {
 
   const [isPaused, setIsPaused] = useState(false);
 
-  // 5. Build merged ticker list: snapshot data overlaid with live prices
   const tickerStocks = useMemo(() => {
     if (!snapshots || snapshots.length === 0) return [];
     const withPrice = snapshots.filter((s: any) => s.price && s.price > 0);
-    // Sort by absolute change % for most interesting display
     const sorted = [...withPrice].sort((a: any, b: any) =>
       Math.abs(b.changePercent || 0) - Math.abs(a.changePercent || 0)
     );
     return sorted;
   }, [snapshots]);
 
-  // Merge live prices: DFM polling > WebSocket > snapshot
   const getLivePrice = useCallback((stock: any) => {
-    // Priority 1: DFM fast polling (most reliable for DFM stocks)
     const dfm = dfmLive?.[stock.symbol];
     if (dfm && dfm.price > 0) {
       return { price: dfm.price, changePercent: dfm.changePercent };
     }
-    // Priority 2: WebSocket (TwelveData)
     const ws = wsPrices[stock.symbol];
     if (ws && ws.price > 0) {
       const prevClose = stock.previousClose || (stock.price - (stock.price * (stock.changePercent || 0) / 100));
       const liveChangePercent = prevClose > 0 ? ((ws.price - prevClose) / prevClose) * 100 : (stock.changePercent || 0);
       return { price: ws.price, changePercent: liveChangePercent };
     }
-    // Priority 3: Snapshot data
     return { price: stock.price, changePercent: stock.changePercent || 0 };
   }, [wsPrices, dfmLive]);
 
@@ -217,10 +207,7 @@ function TickerBar() {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div
-        className={`ticker-track ${isPaused ? "paused" : ""}`}
-      >
-        {/* Duplicate for seamless loop */}
+      <div className={`ticker-track ${isPaused ? "paused" : ""}`}>
         {[...tickerStocks, ...tickerStocks].map((stock: any, i: number) => {
           const live = getLivePrice(stock);
           return (
@@ -244,7 +231,7 @@ function TickerBar() {
 function VisitorCounter() {
   const [loc] = useLocation();
   const { data: stats } = trpc.visitors.stats.useQuery(undefined, {
-    refetchInterval: 30_000, // refresh every 30s
+    refetchInterval: 30_000,
     staleTime: 15_000,
   });
   const recordMutation = trpc.visitors.record.useMutation();
@@ -259,7 +246,6 @@ function VisitorCounter() {
     }
   }, []);
 
-  // Track page views on route changes
   useEffect(() => {
     if (loc && loc !== lastTrackedPage.current) {
       lastTrackedPage.current = loc;
@@ -280,26 +266,22 @@ function VisitorCounter() {
   };
 
   return (
-    <span className="inline-flex items-center gap-2 text-xs">
+    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-1">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-emerald-400">{stats.onlineNow}</span>
-        <span className="text-muted-foreground">online</span>
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-gain animate-pulse" />
+        <span className="text-gain font-medium">{stats.onlineNow}</span>
+        <span>online</span>
       </span>
-      <span className="text-muted-foreground">·</span>
-      <span className="text-muted-foreground">
-        {fmt(stats.todayVisitors)} today
-      </span>
-      <span className="text-muted-foreground">·</span>
-      <span className="text-muted-foreground">
-        {fmt(stats.totalVisitors)} total
-      </span>
+      <span>·</span>
+      <span>{fmt(stats.todayVisitors)} today</span>
+      <span>·</span>
+      <span>{fmt(stats.totalVisitors)} total</span>
     </span>
   );
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   TERMINAL LAYOUT
+   TERMINAL LAYOUT — Google Finance-inspired
    ═══════════════════════════════════════════════════════════════════ */
 export default function TerminalLayout({
   children,
@@ -311,17 +293,17 @@ export default function TerminalLayout({
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const menuItems = user?.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+  const allMenuItems = user?.role === "admin" ? [...navItems, ...adminNavItems] : navItems;
+  const moreItems = user?.role === "admin" ? [...secondaryNavItems, ...adminNavItems] : secondaryNavItems;
 
-  // Global Abboud AI alert monitoring - polls for new alerts and shows browser notifications
   useAbboudAlertNotifications();
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Zap className="h-4 w-4 animate-pulse text-primary" />
-          <span className="text-xs font-mono tracking-wider">LOADING TERMINAL...</span>
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <span className="text-sm font-medium">Loading...</span>
         </div>
       </div>
     );
@@ -331,109 +313,138 @@ export default function TerminalLayout({
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* ─── Top Navigation Bar ─── */}
       <header className="terminal-header">
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {/* Mobile hamburger — placed first for easy access */}
+          {isMobile && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300 shrink-0 z-10"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5 text-primary" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          )}
+
           {/* Logo */}
           <button
             onClick={() => setLocation("/")}
-            className="flex items-center gap-1.5 px-2 py-1 hover:opacity-80 transition-opacity shrink-0"
+            className="flex items-center gap-2.5 px-1 py-1 hover:opacity-80 transition-opacity shrink-0"
           >
             <img
               src="https://d2xsxph8kpxj0f.cloudfront.net/86205309/DiXZqGqijcrECmHgT5LC5F/uae-market-favicon-Z32CLT2cHbBTajhEohDmkp.webp"
               alt=""
-              className="h-5 w-5 rounded"
+              className="h-6 w-6"
             />
-            <span className="text-primary font-bold text-sm tracking-tight hidden sm:inline">
-              uae.market
+            <span className="font-brand text-sm text-foreground hidden sm:inline">
+              UAE.MARKET
             </span>
           </button>
 
-          {/* Desktop Nav Links */}
+            {/* Desktop Nav Links — primary items + More dropdown */}
           {!isMobile && (
-            <nav className="flex items-center gap-0">
-              {menuItems.map((item) => {
+            <nav className="flex items-center gap-0.5 ml-2 min-w-0">
+              {primaryNavItems.map((item) => {
                 const isActive = location === item.path;
+                const Icon = item.icon;
                 return (
                   <button
                     key={item.path}
                     onClick={() => setLocation(item.path)}
-                    className={`terminal-nav-link ${isActive ? "active" : ""}`}
+                    className={`terminal-nav-link group ${isActive ? "active" : ""}`}
                   >
+                    <Icon className={`h-3.5 w-3.5 inline-block mr-1.5 transition-all duration-300 ${isActive ? "drop-shadow-[0_0_4px_var(--neon-cyan)]" : "group-hover:drop-shadow-[0_0_4px_var(--neon-cyan)] group-hover:scale-110"}`} />
                     {item.label}
                   </button>
                 );
               })}
+              {/* More dropdown for secondary items */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`terminal-nav-link flex items-center gap-1 ${moreItems.some(i => location === i.path) ? "active" : ""}`}>
+                    More
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  {moreItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={item.path}
+                        onClick={() => setLocation(item.path)}
+                        className={`cursor-pointer gap-2 ${location === item.path ? "bg-accent" : ""}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           )}
 
-          {/* Mobile hamburger */}
-          {isMobile && (
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded hover:bg-accent/40 transition-colors"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
-            </button>
-          )}
         </div>
 
         {/* Right side: Search + Market Status + Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
           <QuickSearch />
           <MarketStatusBadge />
 
-          {toggleTheme && (
+          {/* Theme toggle — hidden on mobile to save space */}
+          {toggleTheme && !isMobile && (
             <button
               onClick={toggleTheme}
               className="terminal-icon-btn"
               title={theme === "dark" ? "Light mode" : "Dark mode"}
             >
               {theme === "dark" ? (
-                <Sun className="h-3.5 w-3.5" />
+                <Sun className="h-4 w-4" />
               ) : (
-                <Moon className="h-3.5 w-3.5" />
+                <Moon className="h-4 w-4" />
               )}
             </button>
           )}
 
-          <NotificationCenter />
+          {/* Notifications — hidden on mobile (accessible from bottom nav) */}
+          {!isMobile && <NotificationCenter />}
 
           {/* User */}
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 px-1.5 py-1 rounded hover:bg-accent/40 transition-colors">
-                  <Avatar className="h-5 w-5 border border-primary/20">
-                    <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
+                <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-primary/10 hover:border-primary/20 border border-transparent transition-all duration-300">
+                  <Avatar className="h-7 w-7 border border-border">
+                    <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
                       {user?.name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-[10px] font-medium text-foreground/80 hidden lg:inline max-w-[80px] truncate">
+                  <span className="text-sm font-medium text-foreground hidden xl:inline max-w-[100px] truncate">
                     {user?.name?.split(" ")[0] || "User"}
                   </span>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground hidden lg:inline" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden xl:inline" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              <DropdownMenuContent align="end" className="w-52">
+                <div className="px-3 py-2 text-sm text-muted-foreground">
                   {user?.email}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setLocation("/profile")}
-                  className="cursor-pointer text-xs"
+                  className="cursor-pointer"
                 >
-                  <UserCircle className="mr-2 h-3 w-3" />
+                  <UserCircle className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive text-xs"
+                  className="cursor-pointer text-destructive focus:text-destructive"
                 >
-                  <LogOut className="mr-2 h-3 w-3" />
+                  <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -442,7 +453,7 @@ export default function TerminalLayout({
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-[10px] px-2 border-primary/20"
+              className="h-8 text-xs px-4 uppercase tracking-[0.05em] font-semibold border-border hover:border-primary hover:text-primary"
               onClick={() => {
                 window.location.href = getLoginUrl();
               }}
@@ -455,8 +466,8 @@ export default function TerminalLayout({
 
       {/* ─── Mobile Menu Dropdown ─── */}
       {isMobile && mobileMenuOpen && (
-        <div className="bg-card border-b border-border/30 px-2 py-1 flex flex-wrap gap-1 z-50">
-          {menuItems.map((item) => {
+        <div className="bg-background/80 dark:bg-[oklch(0.10_0.015_250/80%)] backdrop-blur-xl border-b border-border px-3 py-3 flex flex-wrap gap-1.5 z-50 animate-fade-in-up">
+          {allMenuItems.map((item: typeof primaryNavItems[0]) => {
             const isActive = location === item.path;
             return (
               <button
@@ -465,13 +476,17 @@ export default function TerminalLayout({
                   setLocation(item.path);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded text-[11px] font-medium transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ${
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                    ? "text-primary bg-primary/10 border border-primary/25 shadow-[0_0_12px_oklch(0.82_0.16_185/15%)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50 border border-transparent hover:border-border/50"
                 }`}
               >
-                <item.icon className="h-3 w-3" />
+                <div className={`h-6 w-6 flex items-center justify-center transition-all duration-300 ${
+                  isActive ? "text-primary drop-shadow-[0_0_4px_var(--neon-cyan)]" : ""
+                }`}>
+                  <item.icon className="h-4 w-4" />
+                </div>
                 {item.label}
               </button>
             );
@@ -483,17 +498,73 @@ export default function TerminalLayout({
       <TickerBar />
 
       {/* ─── Main Content ─── */}
-      <main className={`flex-1 p-2 sm:p-3 lg:p-4 ${isMobile ? "pb-20" : ""}`}>{children}</main>
+      <main className={`flex-1 ${isMobile ? "px-3 py-3 pb-24" : "px-4 py-4 lg:px-8 lg:py-5"}`}>
+        <div className="max-w-[1440px] mx-auto">
+          {children}
+        </div>
+      </main>
 
       {/* ─── Footer ─── */}
-      <footer className={`terminal-footer ${isMobile ? "mb-16" : ""}`}>
-        <span>UAE Market &mdash; www.uae.market</span>
-        <span className="mx-2">&middot;</span>
-        <span>{APP_VERSION}</span>
-        <span className="mx-2">&middot;</span>
-        <span>ADX & DFM Exchanges</span>
-        <span className="mx-2">&middot;</span>
-        <VisitorCounter />
+      <footer className={`terminal-footer flex-col !gap-3 py-4 ${isMobile ? "mb-16" : ""}`}>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 uppercase tracking-[0.08em]">
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/86205309/DiXZqGqijcrECmHgT5LC5F/aboood-ai-logo-new_f66f6c69.png" alt="" className="h-4 w-4 rounded-full" />
+              Aboood.ai Network
+            </span>
+          <a href="https://wg.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="WhatsApp Group">
+            <span className="footer-glass-icon group-hover:bg-[rgba(37,211,102,0.15)] group-hover:border-[rgba(37,211,102,0.25)] group-hover:shadow-[0_0_8px_rgba(37,211,102,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </span>
+            WA Group
+          </a>
+          <a href="https://whatsapp-channel.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="WhatsApp Channel">
+            <span className="footer-glass-icon group-hover:bg-[rgba(37,211,102,0.15)] group-hover:border-[rgba(37,211,102,0.25)] group-hover:shadow-[0_0_8px_rgba(37,211,102,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </span>
+            WA Channel
+          </a>
+          <a href="https://telegram-group.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="Telegram Group">
+            <span className="footer-glass-icon group-hover:bg-[rgba(0,136,204,0.15)] group-hover:border-[rgba(0,136,204,0.25)] group-hover:shadow-[0_0_8px_rgba(0,136,204,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            </span>
+            TG Group
+          </a>
+          <a href="https://telegram-channel.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="Telegram Channel">
+            <span className="footer-glass-icon group-hover:bg-[rgba(0,136,204,0.15)] group-hover:border-[rgba(0,136,204,0.25)] group-hover:shadow-[0_0_8px_rgba(0,136,204,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            </span>
+            TG Channel
+          </a>
+          <span className="text-border">|</span>
+          <a href="https://chat.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="Aboood Web Analysis">
+            <span className="footer-glass-icon group-hover:bg-primary/15 group-hover:border-primary/25 group-hover:shadow-[0_0_8px_rgba(59,130,246,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </span>
+            Web Analysis
+          </a>
+          <a href="https://deepmind.aboood.ai" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="Aboood Deepmind">
+            <span className="footer-glass-icon group-hover:bg-purple-500/15 group-hover:border-purple-500/25 group-hover:shadow-[0_0_8px_rgba(168,85,247,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4v1a2 2 0 012 2v1a2 2 0 01-2 2 4 4 0 01-8 0 2 2 0 01-2-2V9a2 2 0 012-2V6a4 4 0 014-4z"/><path d="M8 14v.5a4 4 0 008 0V14"/><path d="M12 18v4"/><path d="M8 22h8"/></svg>
+            </span>
+            Deepmind
+          </a>
+          <a href="https://www.uae.market" target="_blank" rel="noopener noreferrer" className="footer-glass-link group" title="UAE Stock Market Live Prices">
+            <span className="footer-glass-icon group-hover:bg-cyan-500/15 group-hover:border-cyan-500/25 group-hover:shadow-[0_0_8px_rgba(6,182,212,0.15)]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            UAE Market
+          </a>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+          <a href="https://www.aboood.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-muted-foreground transition-colors">
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/86205309/DiXZqGqijcrECmHgT5LC5F/aboood-ai-logo-new_f66f6c69.png" alt="Aboood.AI" className="h-5 w-5 rounded-full ring-1 ring-white/10" />
+            www.aboood.ai
+          </a>
+          <span>|</span>
+          <span>{APP_VERSION}</span>
+          <span>·</span>
+          <VisitorCounter />
+        </div>
       </footer>
 
       {/* ─── Mobile Bottom Navigation ─── */}
@@ -508,8 +579,8 @@ export default function TerminalLayout({
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     className={`mobile-nav-item ${mobileMenuOpen ? "active" : "text-muted-foreground"}`}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span className="text-[8px] font-semibold">{item.label}</span>
+                    <item.icon className="h-5 w-5" />
+                    <span className="text-[10px] font-medium">{item.label}</span>
                   </button>
                 );
               }
@@ -520,8 +591,8 @@ export default function TerminalLayout({
                   onClick={() => setLocation(item.path)}
                   className={`mobile-nav-item ${isActive ? "active" : "text-muted-foreground"}`}
                 >
-                  <item.icon className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />
-                  <span className={`text-[8px] font-semibold ${isActive ? "text-primary" : ""}`}>
+                  <item.icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} />
+                  <span className={`text-[10px] font-medium ${isActive ? "text-primary" : ""}`}>
                     {item.label}
                   </span>
                 </button>

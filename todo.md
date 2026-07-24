@@ -914,7 +914,7 @@
 - [x] Grouped view reduces clutter for 800+ accumulated alerts
 
 ### Deployment
-- [ ] Build Docker image and push to Northflank for live deployment
+- [x] Build Docker image and push to Northflank for live deployment
 
 ### Tab Overlap Fix (Mobile)
 - [ ] Fix stock detail page tabs overlapping on mobile (3rd row overlaps 2nd row)
@@ -1166,7 +1166,7 @@
 - [x] Updated getSWSStats() to include urlMapSize and discoveredUrls count
 - [x] Updated getCanonicalUrlCache() to include both static map and discovered URLs
 - [ ] Push code to GitHub repository
-- [ ] Build Docker image v10.8.1 and push to DockerHub
+- [x] Build Docker image v10.8.1 and push to DockerHub
 - [ ] Deploy v10.8.1 to Northflank
 - [ ] Trigger SWS bulk population on live site
 - [ ] Verify deployment and SWS data population
@@ -1291,3 +1291,331 @@
 - [x] 10 analytics tests passing
 - [x] Updated version to v10.9.3
 - [ ] Deploy v10.9.3 to production
+
+## Full Dependency Upgrade (v10.10.0)
+
+- [x] Upgrade security-critical: @aws-sdk, @trpc, pnpm
+- [x] Upgrade high-value minor/patch: react, mysql2, zod, tailwind, jose, etc.
+- [x] Upgrade major versions: express 5, recharts 3, vite 8, vitest 4, typescript 6, superjson 2
+- [x] Fix breaking changes from major version upgrades
+- [x] Run all tests after upgrade (470/474 pass, 4 pre-existing failures)
+- [x] Build and deploy upgraded version v10.10.0
+
+## v10.10.1 — Performance & Infrastructure Improvements
+
+- [x] Code-split frontend bundle with dynamic imports for heavy pages (charts, heatmap, analytics)
+- [x] Add HTTP health check endpoint (/api/health) for Northflank zero-downtime deployments
+- [x] Upgrade to Express 5 async error handling (remove manual try/catch wrappers)
+- [x] Run tests and verify (589/592 pass, 3 pre-existing failures)
+- [x] Build and deploy v10.10.1
+- [x] Configure Northflank health check (readiness probe, HTTP /api/health, port 3000, 30s interval)
+
+## v10.10.2 — Footer Redesign with Aboood.ai Network
+- [x] Add Aboood.ai Network links section to footer with icons
+- [x] WhatsApp Group + Channel links with WhatsApp icon
+- [x] Telegram Group + Channel links with Telegram icon
+- [x] Aboood Web Analysis (chat.aboood.ai) link
+- [x] Aboood Deepmind (deepmind.aboood.ai) link
+- [x] UAE Stock Market Live Prices (uae.market) link
+- [x] www.aboood.ai branding with version number
+- [x] Build and deploy v10.10.2
+
+## v10.10.3 — Remove Chat System
+- [x] Remove chat components, pages, and routes
+- [x] Remove chat-related backend code (routers, db helpers)
+- [x] Remove chat from sidebar/navigation
+- [x] Clean up unused imports and dependencies
+- [x] Build and deploy v10.10.3
+
+## v10.10.4 — Bug Fix: Visitor Counter
+- [x] Investigate why footer visitor counter shows 0/not working (raw SQL column names were snake_case but DB columns are camelCase)
+- [x] Fix visitor counter backend/frontend
+- [x] Build and deploy v10.10.4
+
+## v11.0.0 — Google Finance-Inspired Redesign
+- [x] Update theme: light-first Google Finance color palette (white bg, #202124 text, #1a73e8 accent, #1e8e3e gain, #d93025 loss)
+- [x] Update typography: Inter for body, clean sizing hierarchy
+- [x] Redesign homepage: centered layout, market index cards with sparklines, stock list with mini charts
+- [x] Redesign ticker bar: card-based market indices with smooth scroll, sparkline mini-charts
+- [x] Redesign stock table: cleaner Google Finance-style with hover shadows
+- [x] Redesign stock detail page: two-column layout, breadcrumb, large price, key stats sidebar
+- [x] Add "Most Followed" / "You may be interested in" section
+- [x] Update navigation: clean top nav bar Google Finance-style
+- [x] Update footer to match new light theme
+- [x] Smooth real-time price animations (flash green/red on change)
+- [x] Build and deploy v11.0.0
+
+## v11.1.0 — Fix Logos + Google Finance Beta Deep Clone
+- [x] Fix missing company logo icons (logoCache + attachLogos in stocks.ts)
+- [x] Inspect finance.google.com design in detail
+- [x] Homepage: Two-column layout (main content + sidebar) like Google Finance
+- [x] Homepage: "You may be interested in" section with colored ticker badges
+- [x] Homepage: Market Trends tabs (Most Active / Gainers / Losers) with ticker badges
+- [x] Homepage: Horizontal scrollable "Discover more" card carousel
+- [x] Colored ticker badges (rounded pill with white text, colored bg per stock)
+- [x] Stock cards with ticker badge, company name, price, change %, follow button style
+- [x] Market summary strip with sidebar card (Total, Gainers, Losers, Volume)
+- [x] Clean two-column layout with sidebar cards (Market Summary, Top by Market Cap)
+- [x] Stock Detail: Large price header with colored ticker badge
+- [x] Stock Detail: Key stats sidebar in two-column grid
+- [x] Typography refinement: Google Sans-like sizing and weights
+- [x] Fixed Vite HMR port configuration (was defaulting to 5173 instead of 3000)
+- [x] Build and deploy v11.1.0
+
+## v12.0.0 — TradingView-Style Homepage with Glassy Design
+- [x] Research TradingView UAE stocks main page (market overview, indices, filter pills)
+- [x] Research TradingView high-dividend page (dividend yields table, tabs)
+- [x] Research TradingView ideas page (community trading ideas)
+- [x] Research TradingView news page (latest market news)
+- [x] Research TradingView sectors & industries page (sector breakdown, heatmap)
+- [x] Design unique glassy UI theme (glassmorphism, frosted glass cards, gradients)
+- [x] Homepage: Market Movers section (All stocks, Top gainers, Biggest losers, Most active, etc.)
+- [x] Homepage: High Dividend section with sortable table (via filter pills)
+- [x] Homepage: Sector & Industry breakdown with visual cards
+- [x] Homepage: News feed section (Market News with 2-column grid)
+- [x] Homepage: Today's Movers horizontal carousel
+- [x] Homepage: Filter pill categories (52-week high/low, Overbought/Oversold, High beta, etc.)
+- [x] Homepage: Data table tabs (Overview, Performance, Valuation, Dividends, Profitability, Technicals)
+- [x] Backend: Market movers API (gainers, losers, most active, volume, etc.)
+- [x] Backend: Dividend data aggregation (via filter pills)
+- [x] Backend: Sector/industry grouping with market cap and stock counts
+- [x] Glassy card components with backdrop-blur, gradients, and glass borders
+- [x] Premium dark glassmorphism theme with gradient mesh background
+- [x] Fixed news timestamp calculation (Unix seconds to milliseconds)
+- [x] Fixed duplicate ticker badges for stocks without logos
+- [x] Build and deploy v12.0.0
+
+## v12.1.0 — Match TradingView Filter Pills Exactly
+- [x] Review TradingView filter pills from all 5 linked pages
+- [x] Make filter pills smaller to match TradingView's compact style (12px font, tighter padding)
+- [x] Add all 25 filter categories from TradingView (was 18, now 25)
+- [x] Added: Largest employers, Highest cash, Highest profit/revenue per employee, Most expensive, ATH, ATL
+- [x] Ensure filter pill layout matches TradingView's multi-row wrapping style
+- [x] Added 3 new table tabs: Income Statement, Balance Sheet, Cash Flow (now 9 total)
+- [x] Build and deploy v12.1.0
+
+## v12.2.0 — Fix Market Status Timezone & Phases
+- [x] Fix market status to use correct UAE market hours (was 9:00-9:30-2:50, now 9:30-10:00-2:45-3:00)
+- [x] All 4 market phases: Pre-Open (9:30-10:00), Open (10:00-2:45), Pre-Close (2:45-3:00), Closed
+- [x] Show correct countdown timer for each phase
+- [x] Ensure Mon-Fri schedule with weekends as Closed
+- [x] Updated MarketStatusIndicator tooltip with correct hours
+- [x] Updated market-status.test.ts with 21 passing tests
+- [x] Build and deploy v12.2.0
+
+## v12.3.0 — Glassy Icons Design
+- [x] Audit all icon usage across the site (Home, TerminalLayout, StockDetail, etc.)
+- [x] Apply glassmorphism styling to all icons (translucent bg, backdrop-blur, subtle glow)
+- [x] Market stat icons (Total Stocks, Gainers, Losers, Volume, Market Cap)
+- [x] Sector card icons with glassy containers
+- [x] Navigation/header icons (terminal-icon-btn, terminal-nav-link)
+- [x] Filter pills and exchange tabs with glassy active state
+- [x] Section header icons (glass-section-icon CSS utility)
+- [x] Footer social icons (footer-glass-icon with brand-colored hover)
+- [x] Mobile menu dropdown icons with glassy containers
+- [x] StockDetail page: MetricCard icons, FinancialTable icons, all 20+ section headers
+- [x] Officer avatar icons with glassy border and glow
+- [x] MarketStatusBadge with backdrop-blur
+- [x] GlassCard component enhanced with inner glow shadow
+- [x] Build and deploy v12.3.0
+
+## v12.4.0 — New Aboood.AI Logo
+- [x] Upload new Aboood.AI robot logo (CDN hosted)
+- [x] Replace logo in TerminalLayout footer (ABOOOD.AI NETWORK label + www.aboood.ai link)
+- [x] Replace logo in DashboardLayout footer (ABOOOD.AI NETWORK label + www.aboood.ai link)
+- [x] Update favicon (.ico, 32x32 PNG, 180x180 apple-touch-icon) with new robot logo
+- [x] Version bumped to v12.4.0
+- [x] Build and deploy v12.4.0
+
+## v13.0.0 — UAE Equity Inspired Features
+- [x] Install Recharts library
+- [x] Create SimpleChart component (line chart with gradient fill, timeframe buttons, performance badge)
+- [x] Add "Simple View" toggle to StockDetail page alongside existing TradingView chart
+- [x] Implement stock scoring system (Safety/Valuation/Growth out of 10, Total Score)
+- [x] StockScore component with client-side calculation from existing data
+- [x] Display score pills and Buy/Hold/Sell badges on stock detail page
+- [x] Create EPS & Dividend per share comparison (EPS, Dividend/Share, Payout Ratio)
+- [x] Build MarketHeatmap component (grid of stock tiles, color-coded by daily performance)
+- [x] Add heatmap to homepage between Today's Movers and Sectors
+- [x] Add valuation filter buttons (Undervalued/Fairly valued/Overvalued) with descriptions
+- [x] Add MetricExplanation tooltips (? icons) on P/E, EPS, Market Cap, Div Yield, Beta, P/B
+- [x] Add ValuationBadge component for stock valuation status
+- [x] Unit tests for stock scoring system (6 tests passing)
+- [x] Bump version to v13.0.0
+
+## v13.1.0 — Advanced Features
+- [x] Historical EPS/Dividend 5-year grouped bar chart (fetches from SA financials API, shows EPS vs DPS bars)
+- [x] Full-page interactive Heatmap enhanced with size-by toggle (Market Cap vs Volume)
+- [x] Stock Comparison tool (/compare) — search & add up to 3 stocks, side-by-side metrics, radar chart, bar comparison
+- [x] Compare page added to sidebar navigation with Scale icon
+- [x] MetricExplanation DOM nesting fix (span instead of div)
+- [x] Unit tests for scoring system (6 tests passing)
+- [x] Bump version to v13.1.0
+- [x] Deploy to Northflank (v13.1.0 image confirmed on Northflank)
+
+## v13.2.0 — Fix Replicated Data Bug
+- [x] Investigated all sections: SA Financials, Ownership, News, Forecasts, Dividends all use company-specific symbols
+- [x] Found root cause: Earnings Transcripts used dead fetchFullProfile() stub returning null
+- [x] Fixed: Replaced fetchFullProfile with fetchTVStocksByTickers + fetchTVExtendedFinancials (real data)
+- [x] Fixed: LLM now receives 30+ company-specific metrics (revenue, EPS, margins, debt, etc.)
+- [x] Fixed: Updated LLM prompt to enforce unique company-specific content generation
+- [x] Bump version to v13.2.0
+- [x] Deploy to Northflank (v13.2.0 confirmed running on Northflank)
+
+## v13.3.0 — Remove LLM-Generated Content, Use Real API Data Only
+- [x] Audit all LLM usage across the codebase (4 locations found)
+- [x] Remove LLM fallback from earningsTranscriptService.ts — show only real FMP data or "No transcript available"
+- [x] Replace AI Stock Analysis (routers.ts aiAnalysis) with data-driven analysis using real TradingView metrics
+- [x] Replace AI Sentiment (routers.ts sentiment) with technical indicator-based sentiment (RSI, MA from TradingView)
+- [x] Replace Market Summary LLM narrative with data-driven template using real market statistics
+- [x] Update frontend StockDetail.tsx — rename "AI Analysis" tab to "Analysis", remove LLM-dependent UI
+- [x] Remove invokeLLM import from routers.ts and earningsTranscriptService.ts
+- [x] Bump version to v13.3.0
+- [x] Run tests and verify (60/61 pass, 1 pre-existing failure)
+- [x] Deploy to Northflank (v13.3.0 deployed via DockerHub + Northflank UI)
+
+## v15.1.0 — Fix Market News Auto-Update
+- [x] Fix Market News not auto-updating: NewsAPI.ai (primary) + TradingView (secondary) with DB persistence
+- [x] Add market_news database table to store news articles persistently
+- [x] Add scheduled background job (priority every 15min, rotation every 5min for all stocks)
+- [x] Add auto-refresh polling on frontend (every 5 minutes)
+- [x] Cover ALL 171 listed companies in news fetching via rotation batches
+- [x] Re-apply v15.0.2 changes (candlestick default, 6M range, TP1 label already correct)
+
+## v13.4.0 — StockAnalysis.com Enhanced Scraping (Statistics + Profile)
+- [x] Research StockAnalysis.com data structure (SvelteKit data blocks)
+- [x] Fix parseJSValue function — string-aware JS-to-JSON converter that handles apostrophes and colons inside strings
+- [x] Fix section name mappings (financialEfficiency, stockSplits, analystForecasts)
+- [x] Fix score ID mappings (zScore, fScore)
+- [x] Add fetchSAStatistics function — extracts 61 data fields (valuation, ratios, margins, dividends, fair values, scores)
+- [x] Add fetchSAProfile function — extracts company info, executives, contact, stock details
+- [x] Fix extractProfileFromHTML to match actual data structure (top-level contact/description/executives/details)
+- [x] Add tRPC endpoints (sa.statistics, sa.profile)
+- [x] Add frontend queries and display in StockDetail Profile tab
+- [x] Write vitest unit tests with real HTML fixtures (10/10 pass)
+- [x] Bump version to v13.4.0
+- [x] Deploy to Northflank (v13.4.0 deployed via DockerHub + Northflank UI)
+
+## v13.5.0 — Statistics Tab, Scheduled Scraper, Dividend Charts
+- [x] Add dedicated Statistics tab in StockDetail with organized sections (Valuation, EV Ratios, Fair Value, Margins, Financial Health, Scores, Dividends)
+- [x] Create database table (sa_statistics_cache) for caching SA statistics data
+- [x] Build scheduled daily scraper API endpoint (/api/scheduled/sa-scrape) that pre-fetches SA statistics for all 170 UAE stocks
+- [x] Add batchScrape tRPC mutation for admin-triggered batch scraping
+- [ ] Set up scheduled task to run the scraper daily (post-deploy)
+- [x] Add dividend history charts with interactive Recharts visualization (yield trend, dividend amount + growth, payout ratio)
+- [x] Add annual dividend summary table and payment history table
+- [x] Bump version to v13.5.0
+- [x] Run tests and verify (16/16 pass)
+- [x] Deploy to Northflank (v13.5.0 deployed via DockerHub + Northflank UI)
+
+## v13.5.1 — Navbar Overlap Fix
+- [x] Fix navigation bar items overlapping on desktop (items cramming together)
+- [x] Make navbar responsive for all screen sizes (desktop, tablet, mobile)
+- [x] Add "More" dropdown for secondary nav items (Summary, Notifications, Compare, API)
+- [x] Make search bar, market status, and username responsive (compact on smaller screens)
+- [x] Ensure all nav items are visible and accessible without overlap
+- [x] Deploy to Northflank (v13.5.1 deployed)
+
+## v13.5.2 — Fix Stock Detail Error Page (Heatmap Navigation Bug)
+- [x] Reproduce error when clicking company from heatmap on main screen
+- [x] Root cause: MarketHeatmap.tsx navigated to /stock/${exchange}/${symbol} instead of /stock/${symbol}
+- [x] Fix: Changed MarketHeatmap navigation to use correct /stock/${symbol} path
+- [x] Deploy fix to Northflank (v13.5.2 deployed via DockerHub + Northflank API)
+## v13.5.3 — Update WhatsApp Group Link
+- [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in DashboardLayout.tsx
+- [x] Replace https://whatsapp-group.aboood.ai with https://wg.aboood.ai in TerminalLayout.tsx
+- [x] Verify no remaining old links in codebase
+- [x] Deploy to Northflank (v13.5.3 deployed via DockerHub + Northflank API)
+
+## v13.5.4 — Fix Price Spectrum & MBP to Show All Bid/Offer Records
+- [ ] Investigate current Price Spectrum and MBP data source and rendering
+- [ ] Fix to show all bid/offer levels (price, qty, total) instead of just one record
+- [ ] Ensure data is real, live, and accurate
+- [x] Deploy to Northflank (v14.0.0 deployed)
+
+## v13.5.5 — Fix Chart Showing Old/Stale Numbers and Getting Stuck
+- [x] Investigate chart component data fetching logic
+- [x] Root cause: fetchYahooChart was NOT using tdSymbolMapper, so TwelveData calls failed for stocks with different symbols (EMAAR→EMAR, DIB→DISB, etc.)
+- [x] Fix: Updated fetchYahooChart to use toTwelveDataSymbol() mapper with proper exchange parameter
+- [x] Fix: Updated all callers (chart procedure, seasonality, fetchStockData) to pass stock.exchange
+- [x] Fix: Changed frontend to use daily interval (TwelveData only supports daily for UAE)
+- [x] Fix: Reduced staleTime from 5min to 60s for fresher chart data
+- [x] Deploy fix to Northflank (v13.5.5 deployed)
+
+## v14.0.0 — Premium Corporate Redesign (Gemini 3.5 Flash Design System)
+- [x] Generate design system using Gemini 3.5 Flash API
+- [x] Implement new color palette (OKLCH brass-gold) and typography in global CSS
+- [x] Add Google Fonts (Cinzel, Plus Jakarta Sans, JetBrains Mono)
+- [x] Redesign TerminalLayout (sidebar, header) with premium corporate styling
+- [x] Redesign Dashboard/Home page with institutional look
+- [x] Redesign Stock Detail page with premium data presentation
+- [x] Update component styling (cards, buttons, tables, badges) - sharp brutalist edges
+- [x] Bulk update all pages (Screener, Heatmap, Calendar, Compare, MarketNews, etc.)
+- [x] Deploy to Northflank (v14.0.0 deployed)
+
+## v14.1.0 — Full Dependency Upgrade
+- [x] Upgrade all patch/minor dependencies (react 19.2.6, vite 8.0.14, typescript 6.0.3, trpc 11.17.0, axios 1.16.1, mysql2 3.22.3, zod, framer-motion, tailwindcss 4.3.0, vitest 4.1.7, etc.)
+- [x] Upgrade major: lucide-react 0.453 → 1.16.0
+- [x] Upgrade major: react-day-picker 9.14 → 10.0.1
+- [x] Upgrade major: drizzle-orm 0.44 → 0.45.2 + drizzle-kit
+- [x] Upgrade major: esbuild 0.27 → 0.28
+- [x] Upgrade major: pnpm 10 → 11
+- [x] Fix breaking changes: react-day-picker v10 ClassNames (table → month_grid), removed deprecated @types/bcryptjs
+- [x] Run TypeScript compilation — zero errors
+- [x] Run test suite — 510 passed, 2 pre-existing failures (not caused by upgrade)
+- [x] Deploy to Northflank (v14.1.0 deployed)
+
+## v14.2.0 — Comprehensive Upgrade (Gemini Model + NPM + Docker + Node.js)
+- [x] Upgrade Gemini model from gemini-2.5-flash to gemini-3.5-flash in server/_core/llm.ts
+- [x] Upgrade all npm packages to latest (40+ packages)
+- [x] Upgrade Docker base image from node:22-slim to node:24-slim
+- [x] Upgrade pnpm in Dockerfile from 10.4.1 to 11.5.3
+- [x] Update packageManager field in package.json to pnpm@11.5.3
+- [x] Run TypeScript compilation — zero errors
+- [x] Run test suite — verify all tests pass
+- [x] Bump version to v14.2.0 in shared/const.ts
+- [x] Deploy to Northflank
+
+## v15.0.0 — Glassy Dark UI Redesign
+- [x] Redesign global theme: glass morphism CSS variables, new color palette (cyan/purple on dark navy)
+- [x] Update background to gradient dark navy (#0a0e1a to #111827) with glass morphism utilities
+- [x] Increase border-radius from 2px to 12-16px for modern rounded glass panels
+- [x] Redesign navigation: glassy frosted header with backdrop-blur, glowing cyan icons
+- [x] Add animated hover states: scale transforms, glow effects on icons and nav items
+- [x] Redesign ticker bar with glass morphism and subtle glow
+- [x] Redesign stat-cells and cards with glass panels (semi-transparent, blurred backgrounds)
+- [x] Redesign stock tables with glass frames and animated row hover effects
+- [x] Improve chart viewing area with glass overlay toolbar and glowing indicators
+- [x] Add micro-interactions: hover glow on buttons, pulse on active states, smooth transitions
+- [x] Update mobile bottom nav with glass morphism
+- [x] Update footer with glass styling
+- [x] Bump version to v15.0.0
+
+## v15.1.2 — Mobile Toolbar Fix
+- [x] Fix mobile toolbar: hamburger menu not clickable (moved to first position, always accessible)
+- [x] Remove "LIVE" text and wifi icon — just show a small green pulsing dot for live feed
+- [x] Simplify market status display on mobile (compact dot + short status text, no badge border)
+- [x] Ensure hamburger menu is always accessible and clickable on mobile (moved theme/notifications to desktop only)
+
+## v15.2.0 — Dependency & API Updates
+- [x] Audit all project dependencies and API integrations
+- [x] Update Gemini LLM: primary model gemini-2.5-flash, fallback gemini-3.1-pro-preview (with auto-retry on 5xx/429)
+- [x] Move NewsAPI.ai key to ENV configuration (server/_core/env.ts)
+- [x] Update npm dependencies: vite 8.0.16→8.1.5, tailwindcss 4.3.1→4.3.3, vitest 4.1.9→4.1.10, tsx 4.22.4→4.23.1, postcss 8.5.15→8.5.21, prettier 3.8.4→3.9.6, autoprefixer 10.5.0→10.5.4
+- [x] Verify TypeScript compilation (no errors)
+- [x] Verify all tests pass (10/10)
+- [x] Note: OpenClaw is a separate system (not part of this project) — no changes needed here
+- [x] Note: yahoo-finance2 v4.0.0 (major) and nanoid v6.0.0 (major) skipped to avoid breaking changes
+
+## v16.0.0 — Premium Redesign with Advanced Charts & Animations
+- [x] Redesign global theme: premium dark glassmorphism with gradient accents, new color palette
+- [x] Update typography: Inter + Space Grotesk headings + JetBrains Mono for numbers
+- [x] Add global animation system with Framer Motion (page transitions, staggered lists, counters)
+- [x] Rebuild AdvancedChart: proper SVG candlestick rendering, smooth animations, interactive tooltips, volume bars
+- [x] Improve chart responsiveness and mobile layout
+- [x] Add chart loading animations and skeleton states
+- [x] Redesign homepage: animated sections with Framer Motion stagger
+- [x] Redesign MarketHeatmap: spring animations, treemap sizing, glow for big movers
+- [x] Redesign stock detail page: animated header, smooth tab transitions
+- [x] Add micro-interactions: hover glow, card lift, button press, shimmer loading
+- [x] Add CSS premium animations: gradient-text, animated-border, particle effects, chart-container

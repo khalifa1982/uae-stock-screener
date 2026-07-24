@@ -167,6 +167,18 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
+            return "recharts";
+          }
+          if (id.includes("node_modules/@radix-ui")) {
+            return "radix";
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,

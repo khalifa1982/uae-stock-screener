@@ -33,37 +33,19 @@ export default function MarketNews() {
   const [filter, setFilter] = useState<"all" | "DFM" | "ADX">("all");
 
   const { data, isLoading, refetch, isFetching } = trpc.stocks.marketNews.useQuery(
-    { count: 100 },
+    { count: 100, exchange: filter, search: search || undefined },
     {
-      staleTime: 5 * 60 * 1000,
+      staleTime: 2 * 60 * 1000, // 2 minutes stale time
       gcTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
+      refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+      refetchOnWindowFocus: true,
     }
   );
 
   const filteredItems = useMemo(() => {
     if (!data?.items) return [];
-    let items = data.items;
-
-    // Filter by exchange
-    if (filter !== "all") {
-      items = items.filter(item =>
-        item.relatedSymbols?.some(rs => rs.symbol.startsWith(filter + ":"))
-      );
-    }
-
-    // Filter by search
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      items = items.filter(item =>
-        item.title.toLowerCase().includes(q) ||
-        item.provider?.toLowerCase().includes(q) ||
-        item.relatedSymbols?.some(rs => rs.symbol.toLowerCase().includes(q))
-      );
-    }
-
-    return items;
-  }, [data, filter, search]);
+    return data.items;
+  }, [data]);
 
   // Group by date
   const groupedByDate = useMemo(() => {
@@ -92,6 +74,10 @@ export default function MarketNews() {
           </h1>
           <p className="text-[11px] text-muted-foreground mt-1">
             Latest news and headlines for UAE stocks
+            <span className="inline-flex items-center gap-1 ml-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-green-600 dark:text-green-400">Auto-updating</span>
+            </span>
           </p>
         </div>
         <Button
@@ -129,8 +115,8 @@ export default function MarketNews() {
       {/* Stats */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <span>{filteredItems.length} articles</span>
-        {data?.fetchedAt && (
-          <span>Updated {timeAgo(new Date(data.fetchedAt).getTime() / 1000)}</span>
+        {data?.lastUpdated && (
+          <span>Updated {timeAgo(new Date(data.lastUpdated).getTime() / 1000)}</span>
         )}
       </div>
 
@@ -169,7 +155,7 @@ export default function MarketNews() {
                     {items.map((item) => (
                       <a
                         key={item.id}
-                        href={`https://www.tradingview.com${item.storyPath}`}
+                        href={item.storyPath?.startsWith('http') ? item.storyPath : item.storyPath ? `https://www.tradingview.com${item.storyPath}` : '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-start gap-1.5 p-2 hover:bg-muted/10 transition-colors group"

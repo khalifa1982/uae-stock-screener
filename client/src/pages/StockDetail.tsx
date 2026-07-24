@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { SnowflakeChart } from "@/components/SnowflakeChart";
 import { FairValueGauge } from "@/components/FairValueGauge";
 import { AnalysisChecks } from "@/components/AnalysisChecks";
@@ -13,9 +14,15 @@ import DividendsView from "@/components/DividendsView";
 import { TechnicalAnalysisTab } from "@/components/TechnicalAnalysisTab";
 import { OrderBook, PriceBook } from "@/components/OrderBook";
 import { AdvancedChart } from "@/components/AdvancedChart";
+import { SimpleChart } from "@/components/SimpleChart";
+import { StockScoreDisplay, calculateStockScore } from "@/components/StockScore";
+import { EPSDividendChart } from "@/components/EPSDividendChart";
+import { ValuationBadge } from "@/components/ValuationBadge";
+import { MetricExplanation } from "@/components/MetricExplanation";
 import { AnalystConsensus } from "@/components/AnalystConsensus";
 import { EarningsTranscripts } from "@/components/EarningsTranscripts";
 import { SADataCard } from "@/components/SADataCard";
+import { StatisticsTab } from "@/components/StatisticsTab";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { useRealtimePrice } from "@/hooks/useRealtimePrices";
 import { DataConnectionIndicator } from "@/components/RealtimeIndicator";
@@ -71,14 +78,14 @@ function formatRawPercent(num: number | null | undefined): string {
 }
 
 // ─── Reusable Components ───────────────────────────────────────────
-function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color?: string }) {
+function MetricCard({ label, value, icon: Icon, color, metricKey }: { label: string; value: string; icon: any; color?: string; metricKey?: string }) {
   return (
-    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
-      <div className={`h-9 w-9 rounded flex items-center justify-center shrink-0 ${color || "bg-primary/10"}`}>
+    <div className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30/30 ">
+      <div className={`h-9 w-9  flex items-center justify-center shrink-0  border ${color || "bg-primary/10 border-primary/20 "}`} style={{ borderColor: color ? 'rgba(255,255,255,0.1)' : undefined, boxShadow: color ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : undefined }}>
         <Icon className={`h-4 w-4 ${color ? "text-foreground" : "text-primary"}`} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">{label}{metricKey && <MetricExplanation metric={metricKey} />}</span>
         <p className="text-[11px] font-semibold font-mono truncate">{value}</p>
       </div>
     </div>
@@ -87,7 +94,7 @@ function MetricCard({ label, value, icon: Icon, color }: { label: string; value:
 
 function DataRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex justify-between items-center py-2 px-3 rounded-md hover:bg-muted/10">
+    <div className="flex justify-between items-center py-2 px-3 hover:bg-muted/10">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={`font-mono text-[11px] ${highlight ? "font-semibold text-foreground" : "text-foreground/80"}`}>{value}</span>
     </div>
@@ -105,8 +112,8 @@ function RSIGauge({ value }: { value: number | null | undefined }) {
         <span className="text-xs text-muted-foreground">RSI (14)</span>
         <span className={`text-[11px] font-mono font-semibold ${color}`}>{value.toFixed(1)}</span>
       </div>
-      <div className="h-2 rounded-full bg-secondary/50 overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${value > 70 ? "bg-[oklch(0.65_0.22_25)]" : value < 30 ? "bg-[oklch(0.72_0.17_155)]" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+      <div className="h-2 bg-secondary/50 overflow-hidden">
+        <div className={`h-full transition-all ${value > 70 ? "bg-[oklch(0.65_0.22_25)]" : value < 30 ? "bg-[oklch(0.72_0.17_155)]" : "bg-primary"}`} style={{ width: `${pct}%` }} />
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground">
         <span>0 — Oversold</span>
@@ -192,10 +199,13 @@ function FinancialTable({ title, data, icon: Icon }: { title: string; data: any[
     return String(v);
   };
   return (
-    <Card className="border-border/50">
+    <Card className="glass-card border-border/30">
       <CardHeader className="pb-2">
         <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary" /> {title}
+          <span className="inline-flex items-center justify-center h-6 w-6  bg-primary/10 border border-primary/20  shadow-[0_0_8px_rgba(59,130,246,0.1)]">
+            <Icon className="h-3.5 w-3.5 text-primary" />
+          </span>
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -263,7 +273,8 @@ export default function StockDetail() {
   const params = useParams<{ symbol: string }>();
   const [, setLocation] = useLocation();
   const symbol = params.symbol || "";
-  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("3mo");
+  const [chartRange, setChartRange] = useState<"1d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y">("6mo");
+  const [chartMode, setChartMode] = useState<"advanced" | "simple">("advanced");
   const [activeTab, setActiveTab] = useState("overview");
 
   const stockInfo = useMemo(() => ALL_STOCKS.find(s => s.symbol === symbol), [symbol]);
@@ -276,10 +287,12 @@ export default function StockDetail() {
     { enabled: !!symbol, staleTime: autoRefreshInterval ? 3_000 : 300_000, refetchInterval: autoRefreshInterval ? 5_000 : undefined, gcTime: 1800_000, refetchOnWindowFocus: false }
   );
 
-  const chartInterval = chartRange === "1d" ? "15min" : "1d";
+  // TwelveData only provides daily data for UAE stocks (no intraday granularity)
+  // For "1d" range, show last month of daily data instead
+  const effectiveRange = chartRange === "1d" ? "1mo" : chartRange;
   const { data: chartData, isLoading: chartLoading } = trpc.stocks.chart.useQuery(
-    { symbol, range: chartRange, interval: chartInterval } as any,
-    { enabled: !!symbol, staleTime: 300_000, gcTime: 1800_000, refetchOnWindowFocus: false }
+    { symbol, range: effectiveRange, interval: "1d" } as any,
+    { enabled: !!symbol, staleTime: 60_000, gcTime: 600_000, refetchOnWindowFocus: true }
   );
 
   const { data: profileData, isLoading: profileLoading } = trpc.stocks.profile.useQuery(
@@ -291,6 +304,16 @@ export default function StockDetail() {
   const { data: saData } = trpc.sa.overview.useQuery(
     { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
     { enabled: !!symbol, staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
+
+  const { data: saStatistics } = trpc.sa.statistics.useQuery(
+    { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
+    { enabled: !!symbol && (activeTab === "analysis" || activeTab === "profile" || activeTab === "statistics"), staleTime: 900_000, gcTime: 3600_000, refetchOnWindowFocus: false }
+  );
+
+  const { data: saProfile } = trpc.sa.profile.useQuery(
+    { symbol, exchange: (stockInfo?.exchange || "DFM") as "ADX" | "DFM" },
+    { enabled: !!symbol && activeTab === "profile", staleTime: 1800_000, gcTime: 3600_000, refetchOnWindowFocus: false }
   );
 
   const sentimentMutation = trpc.stocks.sentiment.useMutation();
@@ -306,9 +329,7 @@ export default function StockDetail() {
     return chartData.timestamps.map((t: number, i: number) => {
       const d = new Date(t);
       const isoDate = d.toISOString().split("T")[0]; // "2026-03-12" for indicator matching
-      const displayDate = chartRange === "1d"
-        ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-        : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return {
         date: displayDate,
         isoDate,
@@ -342,84 +363,129 @@ export default function StockDetail() {
   }
 
   return (
-    <div className="space-y-2">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35 }}
+      className="space-y-2"
+    >
       {/* ─── Header ─── */}
-      <div className="flex flex-col gap-1.5">
-        <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2" onClick={() => setLocation("/")}>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="border-b-2 border-primary pb-6 mb-2"
+      >
+        <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2 mb-4" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5">
-          <div className="flex items-start gap-1.5">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          {/* Company info */}
+          <div className="flex items-center gap-4">
             {profile?.logo ? (
-              <div className="h-14 w-14 rounded-md bg-white/10 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
-                <img src={profile.logo} alt={stockInfo.name} className="h-10 w-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <div className="h-12 w-12 bg-card border-2 border-primary flex items-center justify-center overflow-hidden shrink-0">
+                <img src={profile.logo} alt={stockInfo.name} className="h-9 w-9 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             ) : (
-              <div className="h-14 w-14 rounded-md bg-muted/50 border border-border/40 flex items-center justify-center shrink-0">
-                <span className="text-[11px] font-bold text-muted-foreground">{symbol.slice(0, 2)}</span>
+              <div className="h-12 w-12 bg-card border-2 border-primary flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-primary">{symbol.slice(0, 3)}</span>
               </div>
             )}
-            <div>
-              <div className="flex items-center gap-1 mb-1 flex-wrap">
-                <h1 className="text-xs font-bold tracking-tight font-mono neon-text">{symbol}</h1>
-                <Badge variant="outline" className={`text-xs font-mono ${stockInfo.exchange === "ADX" ? "border-primary/40 text-primary" : "border-chart-2/40 text-chart-2"}`}>
-                  {stockInfo.exchange}
-                </Badge>
-                <Badge variant="secondary" className="text-xs">{stockInfo.sector}</Badge>
-                {profile?.industry && <Badge variant="outline" className="text-xs text-muted-foreground">{profile.industry}</Badge>}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-xs uppercase tracking-[0.08em] text-primary bg-card px-2 py-0.5 border border-border/30">{stockInfo.exchange}: {symbol}</span>
                 <DataConnectionIndicator isConnected={wsConnected} />
               </div>
-              <p className="text-muted-foreground text-[11px]">{stockInfo.name}</p>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground uppercase mt-1" style={{ fontFamily: 'Cinzel, serif' }}>{stockInfo.name}</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <Badge variant="secondary" className="text-[10px] h-5 uppercase tracking-wider">{stockInfo.sector}</Badge>
+                {profile?.industry && <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground uppercase tracking-wider">{profile.industry}</Badge>}
+              </div>
+            </div>
+          </div>
+          {/* Price block */}
+          {detail && (
+            <div className="flex flex-col items-start md:items-end gap-1">
+              <span className="text-xs uppercase tracking-[0.06em] text-muted-foreground">Current Price (AED)</span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl md:text-4xl font-mono font-semibold tracking-tight text-foreground tabular-nums">{price != null ? formatNumber(price) : "—"}</span>
+                {priceChange != null && (
+                  <span className={`font-mono text-sm font-semibold px-2 py-1 border flex items-center gap-1 ${priceChange > 0 ? "text-gain border-gain bg-gain/10" : priceChange < 0 ? "text-loss border-loss bg-loss/10" : "text-muted-foreground border-border"}`}>
+                    {priceChange > 0 ? <ArrowUp className="h-3 w-3" /> : priceChange < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+                    {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
+                  </span>
+                )}
+              </div>
               {profile?.website && (
                 <a href={profile.website as string} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
                   <Globe className="h-3 w-3" /> {(profile.website as string).replace(/^https?:\/\//, '')}
                 </a>
               )}
             </div>
-          </div>
-          {detail && (
-            <div className="flex items-end gap-1">
-              <span className="text-[11px] font-bold font-mono neon-text">{price != null ? formatNumber(price) : "—"}</span>
-              <span className="text-[11px] text-muted-foreground mb-1">AED</span>
-              {priceChange != null && (
-                <span className={`flex items-center gap-1 text-[11px] font-semibold font-mono mb-0.5 ${priceChange > 0 ? "text-gain neon-text-gain" : priceChange < 0 ? "text-loss neon-text-loss" : "text-muted-foreground"}`}>
-                  {priceChange > 0 ? <ArrowUp className="h-4 w-4" /> : priceChange < 0 ? <ArrowDown className="h-4 w-4" /> : null}
-                  {priceChange > 0 ? "+" : ""}{priceChange.toFixed(3)}%
-                </span>
-              )}
-            </div>
           )}
-        </div>
-      </div>
-
+                </div>
+      </motion.div>
       {/* ─── Tabs ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-secondary/50 h-auto gap-1 p-1.5 overflow-x-auto flex-wrap">
-          <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
-          <TabsTrigger value="orderbook" className="text-xs gap-1.5"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
-          <TabsTrigger value="technicals" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
-          <TabsTrigger value="financials" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
-          <TabsTrigger value="news" className="text-xs gap-1.5"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
-          <TabsTrigger value="forecasts" className="text-xs gap-1.5"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
-          <TabsTrigger value="seasonals" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
-          <TabsTrigger value="dividends" className="text-xs gap-1.5"><DollarSign className="h-3.5 w-3.5" /> Dividends</TabsTrigger>
-          <TabsTrigger value="ownership" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
-          <TabsTrigger value="profile" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
-          <TabsTrigger value="transcripts" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
-          <TabsTrigger value="analysis" className="text-xs gap-1.5"><Brain className="h-3.5 w-3.5" /> AI Analysis</TabsTrigger>
+        <TabsList className="bg-transparent border-b border-border/30 h-auto gap-0 p-0 overflow-x-auto flex-nowrap w-full backdrop-blur-sm">
+          <TabsTrigger value="overview" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="orderbook" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BookOpenCheck className="h-3.5 w-3.5" /> Order Book</TabsTrigger>
+          <TabsTrigger value="technicals" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Activity className="h-3.5 w-3.5" /> Technicals</TabsTrigger>
+          <TabsTrigger value="financials" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><FileText className="h-3.5 w-3.5" /> Financials</TabsTrigger>
+          <TabsTrigger value="news" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Newspaper className="h-3.5 w-3.5" /> News</TabsTrigger>
+          <TabsTrigger value="forecasts" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Target className="h-3.5 w-3.5" /> Forecasts</TabsTrigger>
+          <TabsTrigger value="seasonals" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Calendar className="h-3.5 w-3.5" /> Seasonals</TabsTrigger>
+          <TabsTrigger value="dividends" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><DollarSign className="h-3.5 w-3.5" /> Dividends</TabsTrigger>
+          <TabsTrigger value="ownership" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Users className="h-3.5 w-3.5" /> Ownership</TabsTrigger>
+          <TabsTrigger value="profile" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Building2 className="h-3.5 w-3.5" /> Profile</TabsTrigger>
+          <TabsTrigger value="transcripts" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><FileText className="h-3.5 w-3.5" /> Transcripts</TabsTrigger>
+          <TabsTrigger value="statistics" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><BarChart3 className="h-3.5 w-3.5" /> Statistics</TabsTrigger>
+          <TabsTrigger value="analysis" className="text-xs gap-1.5 uppercase tracking-wider px-4 py-3 border-r border-border data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:border-t-2 data-[state=active]:border-t-primary"><Brain className="h-3.5 w-3.5" /> Analysis</TabsTrigger>
         </TabsList>
 
         {/* ═══════════════ OVERVIEW TAB ═══════════════ */}
         <TabsContent value="overview" className="space-y-2 mt-4">
-          {/* Advanced Price Chart with Technical Overlays */}
-          <AdvancedChart
-            symbol={symbol}
-            exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
-            chartData={chartPoints}
-            chartRange={chartRange}
-            onRangeChange={(r) => setChartRange(r as any)}
-            chartLoading={chartLoading}
-          />
+          {/* Chart Mode Toggle */}
+          <div className="flex items-center gap-0 mb-2 rounded-lg border border-border/30 overflow-hidden backdrop-blur-sm">
+            <button
+              onClick={() => setChartMode("advanced")}
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all border-r border-border ${
+                chartMode === "advanced" ? "bg-primary/20 text-primary shadow-[inset_0_0_12px_var(--neon-cyan-dim)]" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              }`}
+            >
+              Advanced
+            </button>
+            <button
+              onClick={() => setChartMode("simple")}
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
+                chartMode === "simple" ? "bg-primary/20 text-primary shadow-[inset_0_0_12px_var(--neon-cyan-dim)]" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              }`}
+            >
+              Simple
+            </button>
+          </div>
+          {/* Price Chart */}
+          {chartMode === "advanced" ? (
+            <AdvancedChart
+              symbol={symbol}
+              exchange={stockInfo?.exchange as "ADX" | "DFM" || "DFM"}
+              chartData={chartPoints}
+              chartRange={chartRange}
+              onRangeChange={(r) => setChartRange(r as any)}
+              chartLoading={chartLoading}
+            />
+          ) : (
+            <SimpleChart
+              data={chartPoints.map((p: any) => ({ date: p.date, close: p.close }))}
+              isLoading={chartLoading}
+              range={chartRange === "1d" ? "1mo" : chartRange === "2y" ? "3y" : chartRange}
+              onRangeChange={(r) => {
+                const map: Record<string, string> = { "1mo": "1mo", "6mo": "6mo", "1y": "1y", "3y": "2y", "5y": "5y", "all": "5y" };
+                setChartRange((map[r] || "3mo") as any);
+              }}
+              symbol={symbol}
+            />
+          )}
 
           {/* Analyst Consensus + Key Metrics + Quick Technical */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
@@ -445,10 +511,10 @@ export default function StockDetail() {
             )}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-            <Card className="border-border/50 lg:col-span-2">
+            <Card className="glass-card border-border/30 lg:col-span-2">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" /> Key Metrics
+                  <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span> Key Metrics
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -462,16 +528,16 @@ export default function StockDetail() {
                     <MetricCard label="Prev Close" value={formatNumber(detail.previousClose)} icon={DollarSign} />
                     <MetricCard label="Volume" value={formatLargeNumber(detail.volume)} icon={BarChart3} />
                     <MetricCard label="Avg Vol (10d)" value={formatLargeNumber(profile?.tvAvgVolume10d ?? detail.avgVolume)} icon={Activity} />
-                    <MetricCard label="Market Cap" value={formatLargeNumber(detail.marketCap || profile?.marketCap)} icon={DollarSign} />
-                    <MetricCard label="P/E Ratio" value={formatNumber(detail.pe || profile?.trailingPE, 1)} icon={Gauge} />
-                    <MetricCard label="EPS" value={formatNumber(detail.eps || profile?.trailingEps)} icon={TrendingUp} />
+                    <MetricCard label="Market Cap" metricKey="marketCap" value={formatLargeNumber(detail.marketCap || profile?.marketCap)} icon={DollarSign} />
+                    <MetricCard label="P/E Ratio" metricKey="pe" value={formatNumber(detail.pe || profile?.trailingPE, 1)} icon={Gauge} />
+                    <MetricCard label="EPS" metricKey="eps" value={formatNumber(detail.eps || profile?.trailingEps)} icon={TrendingUp} />
                     <MetricCard label="52W High" value={formatNumber(detail.week52High || profile?.fiftyTwoWeekHigh)} icon={ArrowUp} />
                     <MetricCard label="52W Low" value={formatNumber(detail.week52Low || profile?.fiftyTwoWeekLow)} icon={ArrowDown} />
-                    <MetricCard label="Div Yield" value={detail.dividendYield != null ? detail.dividendYield.toFixed(2) + "%" : profile?.tvDividendYield ? formatPercent(profile.tvDividendYield) : "—"} icon={DollarSign} />
-                    <MetricCard label="Beta" value={formatNumber(profile?.tvBeta ?? detail.beta, 2)} icon={Activity} />
+                    <MetricCard label="Div Yield" metricKey="dividendYield" value={detail.dividendYield != null ? detail.dividendYield.toFixed(2) + "%" : profile?.tvDividendYield ? formatPercent(profile.tvDividendYield) : "—"} icon={DollarSign} />
+                    <MetricCard label="Beta" metricKey="beta" value={formatNumber(profile?.tvBeta ?? detail.beta, 2)} icon={Activity} />
                     <MetricCard label="Shares Out" value={formatLargeNumber(profile?.tvSharesOutstanding ?? profile?.sharesOutstanding)} icon={Hash} />
                     <MetricCard label="EV" value={formatLargeNumber(profile?.tvEnterpriseValue)} icon={Layers} />
-                    <MetricCard label="P/B Ratio" value={formatNumber(profile?.priceToBook, 2)} icon={BookOpen} />
+                    <MetricCard label="P/B Ratio" metricKey="pb" value={formatNumber(profile?.priceToBook, 2)} icon={BookOpen} />
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-8">No data available</p>
@@ -480,10 +546,10 @@ export default function StockDetail() {
             </Card>
 
             {/* Quick Technical Snapshot */}
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" /> Technical Snapshot
+                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Technical Snapshot
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5">
@@ -581,12 +647,56 @@ export default function StockDetail() {
             </Card>
           </div>
 
+          {/* Stock Score & Valuation (inspired by uaeequity.app) */}
+          {profile && detail && price != null && (() => {
+            const stockScore = calculateStockScore({
+              pe: detail.pe || profile.trailingPE,
+              dividendYield: profile.tvDividendYield ?? (detail.dividendYield != null ? detail.dividendYield / 100 : null),
+              debtToEquity: profile.tvDebtToEquity ?? profile.debtToEquity,
+              currentRatio: profile.tvCurrentRatio ?? profile.currentRatio,
+              returnOnEquity: profile.tvROE,
+              perfYear: profile.tvPerfYear ?? null,
+              priceToBook: profile.priceToBook,
+              beta: profile.tvBeta ?? detail.beta,
+              marketCap: detail.marketCap || profile.marketCap,
+            });
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                {/* Stock Score */}
+                <Card className="glass-card border-border/30 lg:col-span-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Stock Score
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StockScoreDisplay score={stockScore} />
+                  </CardContent>
+                </Card>
+                {/* EPS vs Dividend */}
+                <EPSDividendChart
+                  eps={detail.eps || profile.trailingEps}
+                  dividendPerShare={profile.tvDividendPerShare}
+                  symbol={symbol}
+                  exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"}
+                />
+              </div>
+            );
+          })()}
+          {/* Valuation Badge */}
+          {snowflakeData && price != null && snowflakeData.fairValue?.fairValue != null && (
+            <ValuationBadge
+              discount={snowflakeData.fairValue.discount ?? null}
+              fairValue={snowflakeData.fairValue.fairValue}
+              currentPrice={price}
+            />
+          )}
           {/* Performance & Volatility */}
           {profile && (profile.tvPerfWeek != null || profile.tvPerfMonth != null) && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Performance & Volatility
+                  <span className="glass-section-icon"><TrendingUp className="h-3.5 w-3.5 text-primary" /></span> Performance & Volatility
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -626,10 +736,10 @@ export default function StockDetail() {
 
           {/* Key Statistics */}
           {profile && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" /> Key Statistics
+                  <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Key Statistics
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -713,10 +823,10 @@ export default function StockDetail() {
 
           {/* Volume Analysis from TradingView */}
           {profile && (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardHeader className="pb-1">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" /> Volume Analysis
+                  <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Volume Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -774,10 +884,10 @@ export default function StockDetail() {
                 <FinancialTable title="Cash Flow Statement (Annual)" data={profile.cashFlow} icon={DollarSign} />
               )}
               {profile.earnings && profile.earnings.length > 0 && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-[11px] font-semibold flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-primary" /> Earnings History
+                      <span className="glass-section-icon"><BarChart3 className="h-3.5 w-3.5 text-primary" /></span> Earnings History
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -815,10 +925,10 @@ export default function StockDetail() {
                (!profile.cashFlow || profile.cashFlow.length === 0) && (
                 <>
                   {(profile.tvNetIncome != null || profile.tvEBITDA != null || profile.tvTotalAssets != null) ? (
-                    <Card className="border-border/50">
+                    <Card className="glass-card border-border/30">
                       <CardHeader className="pb-1">
                         <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" /> Financial Summary
+                          <span className="glass-section-icon"><FileText className="h-3.5 w-3.5 text-primary" /></span> Financial Summary
                           <Badge variant="outline" className="text-[10px] ml-2">TradingView</Badge>
                         </CardTitle>
                       </CardHeader>
@@ -865,7 +975,7 @@ export default function StockDetail() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="border-border/50">
+                    <Card className="glass-card border-border/30">
                       <CardContent className="py-12 text-center">
                         <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                         <p className="text-muted-foreground">Financial statements are not available for this stock.</p>
@@ -877,10 +987,10 @@ export default function StockDetail() {
 
               {/* Dividends Section */}
               {(profile.dividendRate || profile.tvDividendYield || profile.tvDividendPerShare || profile.exDividendDate) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" /> Dividend Information
+                      <span className="glass-section-icon"><Calendar className="h-3.5 w-3.5 text-primary" /></span> Dividend Information
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -912,7 +1022,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12 text-center">
                 <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">Financial data is not available for this stock.</p>
@@ -971,7 +1081,7 @@ export default function StockDetail() {
           ) : profile ? (
             <>
               {/* Quick Nav for Profile Sections */}
-              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20 rounded-lg border border-border/30">
+              <div className="flex items-center gap-1 flex-wrap p-1.5 bg-secondary/20  border border-border/30/30">
                 {["About", "Financials", "Officers", "Analysts", "Holdings"].map(section => (
                   <Button
                     key={section}
@@ -992,13 +1102,14 @@ export default function StockDetail() {
               <Card id="profile-about" className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" /> About {stockInfo.name}
+                    <span className="glass-section-icon"><Building2 className="h-3.5 w-3.5 text-primary" /></span> About {stockInfo.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {profile.description && profile.description !== stockInfo.name && (
+                  {/* Use SA profile description if available (much richer), fallback to TradingView */}
+                  {(saProfile?.description || profile.description) && (saProfile?.description || profile.description) !== stockInfo.name && (
                     <>
-                      <p className="text-[11px] text-foreground/80 leading-relaxed">{profile.description}</p>
+                      <p className="text-[11px] text-foreground/80 leading-relaxed">{saProfile?.description || profile.description}</p>
                       <Separator className="my-4" />
                     </>
                   )}
@@ -1007,19 +1118,140 @@ export default function StockDetail() {
                     {profile.industry && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Industry</p><p className="font-medium">{profile.industry}</p></div>}
                     {(profile.tvEmployees || profile.fullTimeEmployees) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Employees</p><p className="font-medium">{(profile.tvEmployees || profile.fullTimeEmployees)?.toLocaleString()}</p></div>}
                     {profile.country && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Country</p><p className="font-medium">{profile.country}</p></div>}
-                    {profile.city && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="font-medium">{profile.city}</p></div>}
-                    {profile.phone && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p><p className="font-medium">{profile.phone}</p></div>}
+                    {(saProfile?.founded || profile.city) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">{saProfile?.founded ? 'Founded' : 'City'}</p><p className="font-medium">{saProfile?.founded || profile.city}</p></div>}
+                    {(saProfile?.phone || profile.phone) && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p><p className="font-medium">{saProfile?.phone || profile.phone}</p></div>}
+                    {saProfile?.website && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Website</p><a href={saProfile.website.startsWith('http') ? saProfile.website : `https://${saProfile.website}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline truncate block">{saProfile.website}</a></div>}
+                    {saProfile?.isinNumber && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">ISIN</p><p className="font-medium font-mono">{saProfile.isinNumber}</p></div>}
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Exchange</p><p className="font-medium">{stockInfo.exchange}</p></div>
                     <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Symbol</p><p className="font-medium">{symbol}</p></div>
+                    {saProfile?.fiscalYear && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Fiscal Year</p><p className="font-medium">{saProfile.fiscalYear}</p></div>}
+                    {saProfile?.reportingCurrency && <div><p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">Currency</p><p className="font-medium">{saProfile.reportingCurrency}</p></div>}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* SA Statistics: Fair Value & Scores */}
+              {saStatistics && (saStatistics.lynchFairValue || saStatistics.grahamNumber || saStatistics.altmanZScore || saStatistics.piotoskiFScore) && (
+                <Card className="glass-card border-border/30">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Valuation & Scores
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.lynchFairValue != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Lynch Fair Value</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.lynchFairValue.toFixed(2)} AED</p>
+                          {saStatistics.lynchUpside != null && <p className={`text-[10px] font-mono ${saStatistics.lynchUpside > 0 ? 'text-gain' : 'text-loss'}`}>{saStatistics.lynchUpside > 0 ? '+' : ''}{saStatistics.lynchUpside.toFixed(1)}% upside</p>}
+                        </div>
+                      )}
+                      {saStatistics.grahamNumber != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Graham Number</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.grahamNumber.toFixed(2)} AED</p>
+                          {saStatistics.grahamUpside != null && <p className={`text-[10px] font-mono ${saStatistics.grahamUpside > 0 ? 'text-gain' : 'text-loss'}`}>{saStatistics.grahamUpside > 0 ? '+' : ''}{saStatistics.grahamUpside.toFixed(1)}% upside</p>}
+                        </div>
+                      )}
+                      {saStatistics.altmanZScore != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Altman Z-Score</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.altmanZScore.toFixed(2)}</p>
+                          <p className={`text-[10px] ${saStatistics.altmanZScore > 2.99 ? 'text-gain' : saStatistics.altmanZScore < 1.81 ? 'text-loss' : 'text-amber-500'}`}>{saStatistics.altmanZScore > 2.99 ? 'Safe Zone' : saStatistics.altmanZScore < 1.81 ? 'Distress Zone' : 'Grey Zone'}</p>
+                        </div>
+                      )}
+                      {saStatistics.piotoskiFScore != null && (
+                        <div className="p-3 rounded bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Piotroski F-Score</p>
+                          <p className="text-[11px] font-bold font-mono">{saStatistics.piotoskiFScore}/9</p>
+                          <p className={`text-[10px] ${saStatistics.piotoskiFScore >= 7 ? 'text-gain' : saStatistics.piotoskiFScore <= 3 ? 'text-loss' : 'text-amber-500'}`}>{saStatistics.piotoskiFScore >= 7 ? 'Strong' : saStatistics.piotoskiFScore <= 3 ? 'Weak' : 'Moderate'}</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Additional yields */}
+                    {(saStatistics.earningsYield || saStatistics.fcfYield || saStatistics.shareholderYield) && (
+                      <>
+                        <Separator className="my-3" />
+                        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Yield Metrics</h4>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
+                          {saStatistics.earningsYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Earnings Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.earningsYield.toFixed(2)}%</p></div>}
+                          {saStatistics.fcfYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">FCF Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.fcfYield.toFixed(2)}%</p></div>}
+                          {saStatistics.shareholderYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Shareholder Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.shareholderYield.toFixed(2)}%</p></div>}
+                          {saStatistics.buybackYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Buyback Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.buybackYield.toFixed(2)}%</p></div>}
+                          {saStatistics.dividendYield != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Dividend Yield</p><p className="text-[11px] font-bold font-mono">{saStatistics.dividendYield.toFixed(2)}%</p></div>}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SA Statistics: Financial Position & Efficiency */}
+              {saStatistics && (saStatistics.roce || saStatistics.wacc || saStatistics.interestCoverage || saStatistics.debtToEbitda || saStatistics.netCash) && (
+                <Card className="glass-card border-border/30">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Financial Health (StockAnalysis)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.roce != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">ROCE</p><p className="text-[11px] font-bold font-mono">{saStatistics.roce.toFixed(2)}%</p></div>}
+                      {saStatistics.wacc != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">WACC</p><p className="text-[11px] font-bold font-mono">{saStatistics.wacc.toFixed(2)}%</p></div>}
+                      {saStatistics.interestCoverage != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Interest Coverage</p><p className="text-[11px] font-bold font-mono">{saStatistics.interestCoverage.toFixed(2)}x</p></div>}
+                      {saStatistics.debtToEbitda != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/EBITDA</p><p className="text-[11px] font-bold font-mono">{saStatistics.debtToEbitda.toFixed(2)}x</p></div>}
+                      {saStatistics.debtToFCF != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Debt/FCF</p><p className="text-[11px] font-bold font-mono">{saStatistics.debtToFCF.toFixed(2)}x</p></div>}
+                      {saStatistics.netCash && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Net Cash</p><p className="text-[11px] font-bold font-mono">{saStatistics.netCash}</p></div>}
+                      {saStatistics.netCashPerShare != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Net Cash/Share</p><p className="text-[11px] font-bold font-mono">{saStatistics.netCashPerShare.toFixed(2)} AED</p></div>}
+                      {saStatistics.workingCapital && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Working Capital</p><p className="text-[11px] font-bold font-mono">{saStatistics.workingCapital}</p></div>}
+                    </div>
+                    {/* Margins from SA */}
+                    {(saStatistics.ebitdaMargin || saStatistics.fcfMargin || saStatistics.ebitMargin) && (
+                      <>
+                        <Separator className="my-3" />
+                        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Extended Margins</h4>
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
+                          {saStatistics.ebitdaMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">EBITDA Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.ebitdaMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.ebitMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">EBIT Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.ebitMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.fcfMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">FCF Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.fcfMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.pretaxMargin != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Pretax Margin</p><p className="text-[11px] font-bold font-mono">{saStatistics.pretaxMargin.toFixed(1)}%</p></div>}
+                          {saStatistics.effectiveTaxRate != null && <div className="p-2 rounded bg-secondary/20 text-center"><p className="text-[9px] text-muted-foreground">Eff. Tax Rate</p><p className="text-[11px] font-bold font-mono">{saStatistics.effectiveTaxRate.toFixed(1)}%</p></div>}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SA Statistics: Ownership */}
+              {saStatistics && (saStatistics.insiderOwnership != null || saStatistics.institutionalOwnership != null || saStatistics.floatShares) && (
+                <Card className="glass-card border-border/30">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                      <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Share Statistics (StockAnalysis)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                      {saStatistics.insiderOwnership != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Insider Ownership</p><p className="text-[11px] font-bold font-mono">{saStatistics.insiderOwnership.toFixed(2)}%</p></div>}
+                      {saStatistics.institutionalOwnership != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Institutional</p><p className="text-[11px] font-bold font-mono">{saStatistics.institutionalOwnership.toFixed(2)}%</p></div>}
+                      {saStatistics.floatShares && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Float</p><p className="text-[11px] font-bold font-mono">{saStatistics.floatShares}</p></div>}
+                      {saStatistics.sharesOutstanding && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Shares Outstanding</p><p className="text-[11px] font-bold font-mono">{saStatistics.sharesOutstanding}</p></div>}
+                      {saStatistics.sharesChangeYoY && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Shares Change YoY</p><p className="text-[11px] font-bold font-mono">{saStatistics.sharesChangeYoY}</p></div>}
+                      {saStatistics.earningsDate && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Earnings Date</p><p className="text-[11px] font-bold font-mono">{saStatistics.earningsDate}</p></div>}
+                      {saStatistics.exDividendDate && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Ex-Dividend Date</p><p className="text-[11px] font-bold font-mono">{saStatistics.exDividendDate}</p></div>}
+                      {saStatistics.yearsOfDividendGrowth != null && <div className="p-3 rounded bg-secondary/30"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Div Growth Years</p><p className="text-[11px] font-bold font-mono">{saStatistics.yearsOfDividendGrowth}</p></div>}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Financial Snapshot */}
               <Card id="profile-financials" className="border-border/50">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-primary" /> Financial Snapshot
+                    <span className="glass-section-icon"><DollarSign className="h-3.5 w-3.5 text-primary" /></span> Financial Snapshot
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1051,29 +1283,43 @@ export default function StockDetail() {
                 </CardContent>
               </Card>
 
-              {/* Officers */}
-              {profile.officers && profile.officers.length > 0 && (
+              {/* Officers — use SA profile executives as fallback */}
+              {((profile.officers && profile.officers.length > 0) || (saProfile?.executives && saProfile.executives.length > 0)) && (
                 <Card id="profile-officers" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" /> Key Officers & Board
+                      <span className="glass-section-icon"><Users className="h-3.5 w-3.5 text-primary" /></span> Key Officers & Board
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      {profile.officers.map((officer: any, i: number) => (
-                        <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/20">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <Briefcase className="h-4 w-4 text-primary" />
+                      {(profile.officers && profile.officers.length > 0) ? (
+                        profile.officers.map((officer: any, i: number) => (
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/30/20">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
+                              <Briefcase className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold truncate">{officer.name}</p>
+                              <p className="text-xs text-muted-foreground">{officer.title}</p>
+                              {officer.age && <p className="text-[11px] text-muted-foreground mt-0.5">Age: {officer.age}</p>}
+                              {officer.totalPay && <p className="text-[11px] text-muted-foreground">Compensation: {formatLargeNumber(officer.totalPay)}</p>}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-semibold truncate">{officer.name}</p>
-                            <p className="text-xs text-muted-foreground">{officer.title}</p>
-                            {officer.age && <p className="text-[11px] text-muted-foreground mt-0.5">Age: {officer.age}</p>}
-                            {officer.totalPay && <p className="text-[11px] text-muted-foreground">Compensation: {formatLargeNumber(officer.totalPay)}</p>}
+                        ))
+                      ) : (
+                        saProfile?.executives?.map((exec: any, i: number) => (
+                          <div key={i} className="flex items-start gap-1 p-3 rounded bg-secondary/20 border border-border/30/20">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0  border border-primary/20 ">
+                              <Briefcase className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold truncate">{exec.name}</p>
+                              <p className="text-xs text-muted-foreground">{exec.position}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1084,7 +1330,7 @@ export default function StockDetail() {
                 <Card id="profile-analysts" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" /> Analyst Recommendations
+                      <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Analyst Recommendations
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1134,7 +1380,7 @@ export default function StockDetail() {
                 <Card id="profile-holdings" className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-primary" /> Insider Holdings
+                      <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Insider Holdings
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1169,7 +1415,7 @@ export default function StockDetail() {
               )}
 
               {!profile.description && (!profile.officers || profile.officers.length === 0) && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardContent className="py-12 text-center">
                     <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                     <p className="text-muted-foreground">Company profile data is not available for this stock.</p>
@@ -1178,7 +1424,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12 text-center">
                 <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">Profile data is not available for this stock.</p>
@@ -1202,11 +1448,16 @@ export default function StockDetail() {
           <EarningsTranscripts symbol={symbol} companyName={stockInfo?.name} />
         </TabsContent>
 
+        {/* ═══════════════ STATISTICS TAB ═══════════════ */}
+        <TabsContent value="statistics" className="space-y-2 mt-4">
+          <StatisticsTab symbol={symbol} exchange={(stockInfo?.exchange || "DFM") as "ADX" | "DFM"} />
+        </TabsContent>
+
         {/* ═══════════════ AI ANALYSIS TAB ═══════════════ */}
         <TabsContent value="analysis" className="space-y-2 mt-4">
           {/* Snowflake Score Overview */}
           {snowflakeLoading ? (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-12">
                 <div className="flex flex-col items-center gap-1">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1217,10 +1468,10 @@ export default function StockDetail() {
           ) : snowflakeData ? (
             <>
               {/* Snowflake Score Card */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" /> Snowflake Score
+                    <span className="glass-section-icon"><Zap className="h-3.5 w-3.5 text-primary" /></span> Snowflake Score
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Comprehensive analysis across 5 dimensions, 30 checks total</p>
                 </CardHeader>
@@ -1260,7 +1511,7 @@ export default function StockDetail() {
                           { cat: snowflakeData.snowflake.health, icon: '🛡️', desc: 'Financial stability & leverage' },
                           { cat: snowflakeData.snowflake.dividend, icon: '💰', desc: 'Dividend yield & sustainability' },
                         ].map(({ cat, icon, desc }) => (
-                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30 neon-card">
+                          <div key={cat.name} className="flex items-center gap-1 p-3 rounded bg-secondary/30 border border-border/30/30 ">
                             <span className="text-[11px]">{icon}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
@@ -1290,10 +1541,10 @@ export default function StockDetail() {
               </Card>
 
               {/* Fair Value Estimation */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" /> Fair Value Estimation
+                    <span className="glass-section-icon"><Target className="h-3.5 w-3.5 text-primary" /></span> Fair Value Estimation
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">Intrinsic value calculated using {snowflakeData.fairValue.method} model</p>
                 </CardHeader>
@@ -1326,10 +1577,10 @@ export default function StockDetail() {
               </Card>
 
               {/* Detailed Checks */}
-              <Card className="border-border/50">
+              <Card className="glass-card border-border/30">
                 <CardHeader className="pb-1">
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-primary" /> Detailed Analysis Checks
+                    <span className="glass-section-icon"><Shield className="h-3.5 w-3.5 text-primary" /></span> Detailed Analysis Checks
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">30 individual checks across 5 categories (click to expand)</p>
                 </CardHeader>
@@ -1348,10 +1599,10 @@ export default function StockDetail() {
 
               {/* Peer Comparison */}
               {snowflakeData.peers && snowflakeData.peers.length > 0 && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-primary" /> Peer Comparison
+                      <span className="glass-section-icon"><Layers className="h-3.5 w-3.5 text-primary" /></span> Peer Comparison
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">Snowflake scores of top peers in the same sector</p>
                   </CardHeader>
@@ -1401,10 +1652,10 @@ export default function StockDetail() {
 
               {/* Market Averages */}
               {snowflakeData.marketAverages && (
-                <Card className="border-border/50">
+                <Card className="glass-card border-border/30">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                      <PieChart className="h-4 w-4 text-primary" /> Market Context
+                      <span className="glass-section-icon"><PieChart className="h-3.5 w-3.5 text-primary" /></span> Market Context
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1417,7 +1668,7 @@ export default function StockDetail() {
                         { label: 'Div Yield 25th %', value: (snowflakeData.marketAverages.dividendYield25 * 100).toFixed(2) + '%' },
                         { label: 'Div Yield 75th %', value: (snowflakeData.marketAverages.dividendYield75 * 100).toFixed(2) + '%' },
                       ].map(m => (
-                        <div key={m.label} className="p-3 rounded bg-secondary/30 border border-border/30">
+                        <div key={m.label} className="p-3 rounded bg-secondary/30 border border-border/30/30">
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</div>
                           <div className="text-[11px] font-mono font-semibold mt-0.5">{m.value}</div>
                         </div>
@@ -1428,7 +1679,7 @@ export default function StockDetail() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="glass-card border-border/30">
               <CardContent className="py-8">
                 <p className="text-[11px] text-muted-foreground text-center">Unable to load Snowflake analysis. Please try again.</p>
               </CardContent>
@@ -1436,14 +1687,14 @@ export default function StockDetail() {
           )}
 
           {/* AI Deep Analysis */}
-          <Card className="border-border/50">
+          <Card className="glass-card border-border/30">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-primary" /> AI Deep Analysis
+                    <span className="glass-section-icon"><Brain className="h-3.5 w-3.5 text-primary" /></span> Data-Driven Analysis
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">Comprehensive AI-powered research report</p>
+                  <p className="text-xs text-muted-foreground mt-1">Comprehensive analysis based on real financial metrics</p>
                 </div>
                 <Button
                   variant="outline"
@@ -1453,7 +1704,7 @@ export default function StockDetail() {
                   disabled={aiAnalysisMutation.isPending}
                 >
                   {aiAnalysisMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  Generate Report
+                  Analyze
                 </Button>
               </div>
             </CardHeader>
@@ -1526,24 +1777,24 @@ export default function StockDetail() {
               ) : aiAnalysisMutation.isPending ? (
                 <div className="flex items-center gap-1 py-8">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <span className="text-[11px] text-muted-foreground">Generating comprehensive analysis report...</span>
+                  <span className="text-[11px] text-muted-foreground">Analyzing real financial metrics...</span>
                 </div>
-              ) : aiAnalysisMutation.data?.summary === "AI analysis temporarily unavailable. Please try again later." ? (
-                <p className="text-[11px] text-muted-foreground py-1.5">AI analysis temporarily unavailable. Please try again later.</p>
+              ) : aiAnalysisMutation.data?.summary === "Insufficient data available for analysis." ? (
+                <p className="text-[11px] text-muted-foreground py-1.5">Insufficient data available for analysis.</p>
               ) : (
                 <p className="text-[11px] text-muted-foreground py-1.5">
-                  Click "Generate Report" to get a comprehensive AI-powered analysis including investment thesis, rewards, risks, and forward outlook.
+                  Click "Analyze" for a data-driven analysis based on real financial metrics including valuation, profitability, growth, and risk indicators.
                 </p>
               )}
             </CardContent>
           </Card>
 
           {/* Quick Sentiment (kept from original) */}
-          <Card className="border-border/50">
+          <Card className="glass-card border-border/30">
             <CardHeader className="pb-1">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" /> Quick Sentiment
+                  <span className="glass-section-icon"><Activity className="h-3.5 w-3.5 text-primary" /></span> Technical Sentiment
                 </CardTitle>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => sentimentMutation.mutate({ symbol, name: stockInfo.name })} disabled={sentimentMutation.isPending}>
                   {sentimentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}
@@ -1566,17 +1817,17 @@ export default function StockDetail() {
               ) : sentimentMutation.isPending ? (
                 <div className="flex items-center gap-1 py-1.5">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <span className="text-[11px] text-muted-foreground">Checking sentiment...</span>
+                  <span className="text-[11px] text-muted-foreground">Analyzing technical indicators...</span>
                 </div>
               ) : (
                 <p className="text-[11px] text-muted-foreground py-1.5">
-                  Quick AI sentiment check based on current market conditions.
+                  Technical sentiment based on RSI, moving averages, and price momentum.
                 </p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

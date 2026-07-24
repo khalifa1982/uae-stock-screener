@@ -37,7 +37,7 @@ const INV_SLUG_MAP: Record<string, string> = {
   "DEPA": "depa-limited",
   "SALAM": "salam-bounian-dev",
   "UAB": "united-arab-bank",
-  "GULFNAV": "gulf-navigation-holding",
+  "ETIHADENERGY": "gulf-navigatio",
   "NMDC": "national-marine-dredging",
   "EMSTEEL": "emirates-steel-arkan",
   "IH": "international-holdings",

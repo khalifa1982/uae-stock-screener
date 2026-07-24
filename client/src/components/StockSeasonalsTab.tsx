@@ -13,15 +13,15 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-64 rounded-lg" />
-        <Skeleton className="h-48 rounded-lg" />
+        <Skeleton className="h-64 " />
+        <Skeleton className="h-48 " />
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">Seasonality data is not available for this stock.</p>
@@ -37,7 +37,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -124,7 +124,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
 
       {/* Best/Worst months summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-gain" /> Best Months
@@ -136,7 +136,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
                 .sort((a, b) => b.avgReturn - a.avgReturn)
                 .slice(0, 3)
                 .map((m) => (
-                  <div key={m.month} className="flex items-center justify-between p-2 rounded-lg bg-[oklch(0.72_0.17_155/5%)] border border-[oklch(0.72_0.17_155/15%)]">
+                  <div key={m.month} className="flex items-center justify-between p-2  bg-[oklch(0.72_0.17_155/5%)] border border-[oklch(0.72_0.17_155/15%)]">
                     <span className="text-sm font-medium">{m.month}</span>
                     <span className="text-sm font-mono font-bold text-gain">+{m.avgReturn.toFixed(2)}%</span>
                   </div>
@@ -145,7 +145,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-loss" /> Worst Months
@@ -157,7 +157,7 @@ export function StockSeasonalsTab({ symbol }: { symbol: string }) {
                 .sort((a, b) => a.avgReturn - b.avgReturn)
                 .slice(0, 3)
                 .map((m) => (
-                  <div key={m.month} className="flex items-center justify-between p-2 rounded-lg bg-[oklch(0.65_0.22_25/5%)] border border-[oklch(0.65_0.22_25/15%)]">
+                  <div key={m.month} className="flex items-center justify-between p-2  bg-[oklch(0.65_0.22_25/5%)] border border-[oklch(0.65_0.22_25/15%)]">
                     <span className="text-sm font-medium">{m.month}</span>
                     <span className="text-sm font-mono font-bold text-loss">{m.avgReturn.toFixed(2)}%</span>
                   </div>

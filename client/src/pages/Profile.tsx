@@ -120,7 +120,7 @@ export default function Profile() {
                   <button
                     key={emoji}
                     onClick={() => handleSelectEmoji(emoji)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-125 ${
+                    className={`w-9 h-9  flex items-center justify-center text-xl transition-all hover:scale-125 ${
                       emoji === currentEmoji ? "ring-2 ring-primary" : ""
                     }`}
                     style={{
@@ -157,7 +157,7 @@ export default function Profile() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Name */}
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <User className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
@@ -192,7 +192,7 @@ export default function Profile() {
           </div>
 
           {/* Email */}
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
@@ -204,7 +204,7 @@ export default function Profile() {
           </div>
 
           {/* Mobile Number */}
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
@@ -240,7 +240,7 @@ export default function Profile() {
           </div>
 
           {/* Member Since */}
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
@@ -265,13 +265,13 @@ export default function Profile() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div>
               <p className="text-xs text-muted-foreground">Account Type</p>
               <p className="text-sm font-medium capitalize">{profile?.role || "user"}</p>
             </div>
           </div>
-          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "oklch(0.15 0.014 260)" }}>
+          <div className="flex items-center justify-between p-3 " style={{ background: "oklch(0.15 0.014 260)" }}>
             <div>
               <p className="text-xs text-muted-foreground">User ID</p>
               <p className="text-sm font-mono text-muted-foreground truncate">{profile?.openId?.slice(0, 16)}...</p>

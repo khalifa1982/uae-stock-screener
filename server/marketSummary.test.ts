@@ -1,16 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the LLM module
-vi.mock("./_core/llm", () => ({
-  invokeLLM: vi.fn().mockResolvedValue({
-    choices: [{
-      message: {
-        content: "**Market Summary**: The ADX closed higher today with strong banking sector performance."
-      }
-    }]
-  })
-}));
-
 // Mock the db module
 const mockSelect = vi.fn().mockReturnValue({
   from: vi.fn().mockReturnValue({
@@ -134,7 +123,7 @@ vi.mock("./services/tradingViewService", () => ({
   ]),
 }));
 
-describe("Market Summary Service", () => {
+describe("Market Summary Service (No LLM)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -159,7 +148,7 @@ describe("Market Summary Service", () => {
     expect(typeof status.isGenerating).toBe("boolean");
   });
 
-  it("should generate daily summary and return result", async () => {
+  it("should generate daily summary with data-driven narrative (no LLM)", async () => {
     const { generateDailySummary } = await import("./services/marketSummaryService");
     const result = await generateDailySummary();
     expect(result).toHaveProperty("success");
@@ -178,7 +167,6 @@ describe("Market Summary Service", () => {
   it("should call getSummaryByDate with date and language", async () => {
     const { getSummaryByDate } = await import("./services/marketSummaryService");
     const result = await getSummaryByDate("2026-03-11", "ar");
-    // Result may be an array or a mock chain result; just verify it resolves without error
     expect(result).toBeDefined();
   });
 

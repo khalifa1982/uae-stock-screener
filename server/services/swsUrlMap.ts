@@ -142,7 +142,7 @@ export const SWS_URL_MAP: Record<string, string> = {
   "DFM:ENBDREIT": "/stocks/ae/real-estate-management-and-development/dfm-enbdreit/enbd-reit-ceic-shares",
   "DFM:ERC": "/stocks/ae/food-beverage-tobacco/dfm-erc/emirates-refreshments-company-shares",
   "DFM:GFH": "/stocks/ae/diversified-financials/dfm-gfh/gfh-financial-group-bsc-shares",
-  "DFM:GULFNAV": "/stocks/ae/transportation/dfm-gulfnav/gulf-navigation-holding-shares",
+  "DFM:ETIHADENERGY": "/stocks/ae/energy/dfm-etihadenergy/etihad-energy-holding-shares",
   "DFM:IFA": "/stocks/ae/diversified-financials/dfm-ifa/international-financial-advisors-kcsc-shares",
   "DFM:ITHMR": "/stocks/ae/banks/dfm-ithmr/ithmaar-holding-b-s-c-shares",
   "DFM:MASQ": "/stocks/ae/banks/dfm-masq/mashreqbank-shares",

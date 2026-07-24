@@ -105,14 +105,14 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-48 " />)}
       </div>
     );
   }
 
   if (!analysis) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground">Technical data is not available for this stock.</p>
@@ -174,7 +174,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
       </div>
 
       {/* ═══ Summary Gauges ═══ */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Gauge className="h-4 w-4 text-primary" /> Indicators Summary
@@ -207,7 +207,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Oscillators ═══ */}
       {oscillators && oscillators.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" /> Oscillators
@@ -231,7 +231,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
       )}
 
       {/* ═══ Moving Averages ═══ */}
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-primary" /> Moving Averages
@@ -265,7 +265,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Bollinger Bands ═══ */}
       {bbands && (bbands.upper != null || bbands.middle != null || bbands.lower != null) && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" /> Bollinger Bands (20, 2)
@@ -273,15 +273,15 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Upper</p>
                 <p className="text-sm font-bold font-mono text-emerald-400">{formatNum(bbands.upper)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Middle</p>
                 <p className="text-sm font-bold font-mono text-primary">{formatNum(bbands.middle)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-secondary/30 text-center">
+              <div className="p-3  bg-secondary/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Lower</p>
                 <p className="text-sm font-bold font-mono text-red-400">{formatNum(bbands.lower)}</p>
               </div>
@@ -309,7 +309,7 @@ export function TechnicalAnalysisTab({ symbol, exchange, currentPrice }: {
 
       {/* ═══ Additional Indicators ═══ */}
       {indicators && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" /> Additional Indicators

@@ -149,7 +149,7 @@ export default function Watchlist() {
             <div className="overflow-x-auto">
               <table className="w-full text-[11px]">
                 <thead>
-                  <tr className="border-b border-border/50">
+                  <tr className="border-b border-border/20/50">
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Stock</th>
                     <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Exchange</th>
                     <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Price</th>
@@ -162,7 +162,7 @@ export default function Watchlist() {
                 </thead>
                 <tbody>
                   {watchlistStocks.map((stock: any) => (
-                    <tr key={stock.symbol} className="border-b border-border/30 hover:bg-accent/5 transition-colors">
+                    <tr key={stock.symbol} className="border-b border-border/20/30 hover:bg-accent/5 transition-colors">
                       <td className="py-1 px-3">
                         <Link href={`/stock/${stock.symbol}`} className="hover:text-primary transition-colors">
                           <p className="font-medium">{stock.name || stock.symbol}</p>

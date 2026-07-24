@@ -375,7 +375,7 @@ export function SAFinancialsView({
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-48 " />
         ))}
       </div>
     );
@@ -383,7 +383,7 @@ export function SAFinancialsView({
 
   if (error || !data) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">

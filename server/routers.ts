@@ -6,8 +6,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ALL_STOCKS, ADX_STOCKS, DFM_STOCKS, SECTORS } from "../shared/stockData";
 import { fetchStockData, fetchYahooChart, fetchBatchQuotes, fetchMultipleStocks, getFromMemoryCache, setMemoryCache, clearMemoryCache, fetchFullProfile } from "./stockService";
-import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats, recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors } from "./db";
-import { invokeLLM } from "./_core/llm";
+import { getAllStockSnapshots, getStockSnapshot, upsertStockSnapshot, addToWatchlist, removeFromWatchlist, getUserWatchlist, getMonitorSettingsForUser, upsertMonitorSettings, getUserPresets, savePreset, deletePreset, getUserNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, deleteNotification, deleteAllNotifications, createNotification, getNotificationPreferences, upsertNotificationPreferences, updateUserProfile, recordVisit, getVisitorStats, recordPageView, getGeoBreakdown, getPageAnalytics, getRecentVisitors, upsertSAStatisticsCache, getSAStatisticsCached } from "./db";
+// LLM import removed — all analysis is now data-driven from real API metrics
 import { getMonitorStatus, getRecentAlerts, getTodayAlerts, dismissAlert, manualPoll, startVolumeMonitor, stopVolumeMonitor, isUAETradingHours, getNextTradingSession } from "./volumeMonitor";
 import { checkAllApiHealth, getApiStatusSnapshot } from "./services/apiStatusService";
 import { getCreditMonitorStatus, forceCheckCredits } from "./services/scrapflyCreditMonitor";
@@ -17,13 +17,13 @@ import { getTwelveDataStats } from "./services/twelveDataService";
 import { fetchSWSCompanyData, getSWSStats, checkSWSHealth, getCanonicalUrlCache } from "./services/simplyWallStService";
 import { computeSnowflake, computeMarketAverages, type SnowflakeInput } from "./services/snowflakeEngine";
 import { fetchTVNews, fetchUAEMarketNews } from "./services/tvNewsService";
+import { getStoredNews, getStockNews, getNewsSchedulerStatus, triggerFullNewsFetch } from "./services/newsSchedulerService";
 import { fetchTVForecast, fetchTVExtendedFinancials, fetchTVPerformance, computeSeasonality } from "./services/tvExtendedService";
 import { fetchChartData, fetchQuote, fetchTechnicalAnalysis, fetchMASummary, fetchAllIndicators, computeOscillatorSignals, fetchBBandsHistory, fetchMACDHistory, fetchRSIHistory, fetchMarketState, fetchStatistics, type TechnicalAnalysis } from "./services/tdDataService";
 import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 import { buildOrderBook, fetchAllDFMStocks, fetchDFMStock, getDFMStats, type DFMStockData } from "./services/dfmDataService";
 import { getWSStats } from "./services/tdWebSocketService";
-import { getChatMessages, postChatMessage, postChatImage, clearAllChatMessages, getOnlineUsersList, registerPollingUser, getChatClearedAt, toggleMessageReaction, ALLOWED_REACTION_EMOJIS } from "./services/chatService";
-import { fetchSAOverview, fetchSAFinancials, fetchSADividends, getSAStats, clearSACache } from "./services/stockAnalysisService";
+import { fetchSAOverview, fetchSAFinancials, fetchSADividends, fetchSAStatistics, fetchSAProfile, getSAStats, clearSACache } from "./services/stockAnalysisService";
 import { fetchMSData } from "./services/marketScreenerService";
 import { fetchINVData } from "./services/investingComService";
 import { getLatestSummaries, getSummaryByDate, generateDailySummary, getMarketSummaryStatus } from "./services/marketSummaryService";
@@ -32,6 +32,25 @@ import { getEarningsTranscript } from "./services/earningsTranscriptService";
 // ─── Background refresh state ───────────────────────────────────────
 // Prevents multiple simultaneous background refreshes
 const refreshInProgress = new Set<string>();
+
+// ─── Logo cache ─────────────────────────────────────────────────────
+// Maps "EXCHANGE:SYMBOL" → logoUrl string, populated from TradingView data
+const logoCache = new Map<string, string>();
+
+function getLogoUrl(exchange: string, symbol: string): string | null {
+  return logoCache.get(`${exchange}:${symbol}`) || null;
+}
+
+function setLogoUrl(exchange: string, symbol: string, logoUrl: string) {
+  logoCache.set(`${exchange}:${symbol}`, logoUrl);
+}
+
+function attachLogos(results: any[]): any[] {
+  return results.map(snap => ({
+    ...snap,
+    logoUrl: snap.logoUrl || getLogoUrl(snap.exchange, snap.symbol),
+  }));
+}
 
 /**
  * Overlay DFM real-time prices on top of TradingView EOD data.
@@ -96,7 +115,11 @@ function tvToSnapshot(tv: any, stock: { symbol: string; exchange: string; name: 
     name: stock.name,
     sector: stock.sector,
     yahooSymbol: stock.yahooSymbol,
-    logoUrl: tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null,
+    logoUrl: (() => {
+      const url = tv.logoId ? `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg` : null;
+      if (url) setLogoUrl(stock.exchange, stock.symbol, url);
+      return url;
+    })(),
     description: tv.description ?? null,
     price: tv.close ?? null,
     previousClose: tv.close != null && tv.changeAbs != null ? tv.close - tv.changeAbs : null,
@@ -368,9 +391,9 @@ export const appRouter = router({
         if (!forceRefresh) {
           const memCached = getFromMemoryCache(cacheKey);
           if (memCached && memCached.length > 0) {
-            // Always apply DFM live overlay on cached data for freshest prices
+            // Apply DFM live overlay even on cached data for freshest prices
             const overlaid = await applyDFMOverlayToResults(memCached);
-            return overlaid;
+            return attachLogos(overlaid);
           }
         }
         
@@ -402,7 +425,7 @@ export const appRouter = router({
             }
             
             // Return fresh-overlaid data
-            return results;
+            return attachLogos(results);
           } else if (cached.length > 0) {
             // DB has partial data - trigger background refresh to fill gaps
             backgroundRefresh(exchange).catch(() => {});
@@ -475,8 +498,25 @@ export const appRouter = router({
         
         // Cache the results
         setMemoryCache(cacheKey, results);
-        return results;
+        return attachLogos(results);
       }),
+
+    // Pre-populate logo cache on first request (non-blocking)
+    prefetchLogos: publicProcedure.query(async () => {
+      if (logoCache.size > 0) return { cached: logoCache.size };
+      try {
+        const tvStocks = await fetchAllTVStocks();
+        for (const tv of tvStocks) {
+          const parts = tv.ticker.split(':');
+          if (parts.length === 2 && tv.logoId) {
+            setLogoUrl(parts[0], parts[1], `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg`);
+          }
+        }
+        return { cached: logoCache.size };
+      } catch (e) {
+        return { cached: 0, error: 'Failed to prefetch logos' };
+      }
+    }),
 
     // Fast DFM ticker endpoint — lightweight, returns only price + change for all DFM stocks
     // Used by the ticker bar for real-time updates every 5 seconds
@@ -508,7 +548,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
-        return fetchYahooChart(stock.yahooSymbol, input.range, input.interval);
+        return fetchYahooChart(stock.yahooSymbol, input.range, input.interval, stock.exchange);
       }),
 
     detail: publicProcedure
@@ -1121,133 +1161,189 @@ export const appRouter = router({
         };
       }),
 
-    // ─── AI Company Analysis (Gemini-powered) ─────────────────────
+    // ─── Data-Driven Stock Analysis (Real Metrics Only) ─────────────
     aiAnalysis: publicProcedure
       .input(z.object({ symbol: z.string() }))
       .mutation(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
         
-        // Get stock data for context
+        // Get real stock data from TradingView
         const tvKey = `${stock.exchange}:${stock.symbol}`;
         const tvStocks = await fetchTVStocksByTickers([tvKey]);
         const tv = tvStocks.length > 0 ? tvStocks[0] : null;
         
-        const stockContext = tv ? `
-Company: ${tv.description || stock.name} (${stock.symbol})
-Exchange: ${stock.exchange}
-Sector: ${tv.sector || stock.sector}
-Industry: ${tv.industry || 'N/A'}
-Current Price: AED ${tv.close?.toFixed(2) || 'N/A'}
-Market Cap: AED ${tv.marketCap ? (tv.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
-P/E Ratio: ${tv.pe?.toFixed(2) || 'N/A'}
-P/B Ratio: ${tv.priceToBook?.toFixed(2) || 'N/A'}
-ROE: ${tv.returnOnEquity?.toFixed(2) || 'N/A'}%
-ROA: ${tv.returnOnAssets?.toFixed(2) || 'N/A'}%
-Debt/Equity: ${tv.debtToEquity?.toFixed(2) || 'N/A'}%
-Dividend Yield: ${tv.dividendYield?.toFixed(2) || 'N/A'}%
-Net Margin: ${tv.netMargin?.toFixed(2) || 'N/A'}%
-Revenue: AED ${tv.totalRevenue ? (tv.totalRevenue / 1e9).toFixed(2) + 'B' : 'N/A'}
-Net Income: AED ${tv.netIncome ? (tv.netIncome / 1e6).toFixed(0) + 'M' : 'N/A'}
-1Y Performance: ${tv.perfYear?.toFixed(2) || 'N/A'}%
-5Y Performance: ${tv.perf5Year?.toFixed(2) || 'N/A'}%
-RSI: ${tv.rsi?.toFixed(1) || 'N/A'}
-Beta: ${tv.beta?.toFixed(2) || 'N/A'}
-` : `Company: ${stock.name} (${stock.symbol}), Exchange: ${stock.exchange}`;
-        
-        try {
-          const result = await invokeLLM({
-            messages: [
-              { role: "system", content: `You are a senior equity research analyst specializing in UAE markets (ADX and DFM). Provide comprehensive, data-driven analysis in the style of Simply Wall St. Be specific with numbers and comparisons. Return JSON with the exact schema specified.` },
-              { role: "user", content: `Provide a comprehensive analysis for this UAE-listed stock:\n${stockContext}\n\nReturn a detailed analysis as JSON.` }
-            ],
-            response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "stock_analysis",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    summary: { type: "string", description: "2-3 paragraph executive summary of the company and its investment thesis" },
-                    rewards: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "3-5 key rewards/positive factors for investing"
-                    },
-                    risks: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "3-5 key risks/negative factors for investing"
-                    },
-                    outlook: { type: "string", description: "1-2 paragraph forward-looking outlook" },
-                    rating: { type: "string", description: "One of: Strong Buy, Buy, Hold, Sell, Strong Sell" },
-                    confidence: { type: "number", description: "Confidence level 0-100" },
-                  },
-                  required: ["summary", "rewards", "risks", "outlook", "rating", "confidence"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          });
-          const content = result.choices[0]?.message?.content;
-          if (typeof content === "string") return JSON.parse(content);
-          return { summary: "Analysis unavailable.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
-        } catch (e) {
-          console.warn("[AI Analysis] Failed:", e);
-          return { summary: "AI analysis temporarily unavailable. Please try again later.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
+        if (!tv) {
+          return { summary: "Insufficient data available for analysis.", rewards: [], risks: [], outlook: "", rating: "Hold", confidence: 0 };
         }
+
+        // Build data-driven analysis from real metrics
+        const rewards: string[] = [];
+        const risks: string[] = [];
+
+        // Valuation signals
+        if (tv.pe && tv.pe < 15) rewards.push(`Attractive P/E ratio of ${tv.pe.toFixed(1)}x (below market average)`);
+        if (tv.pe && tv.pe > 30) risks.push(`Elevated P/E ratio of ${tv.pe.toFixed(1)}x suggests premium valuation`);
+        if (tv.priceToBook && tv.priceToBook < 1.5) rewards.push(`Low P/B ratio of ${tv.priceToBook.toFixed(2)}x indicates potential undervaluation`);
+        if (tv.priceToBook && tv.priceToBook > 5) risks.push(`High P/B ratio of ${tv.priceToBook.toFixed(2)}x — stock trades at significant premium to book value`);
+
+        // Profitability signals
+        if (tv.returnOnEquity && tv.returnOnEquity > 15) rewards.push(`Strong ROE of ${tv.returnOnEquity.toFixed(1)}% demonstrates efficient capital allocation`);
+        if (tv.returnOnEquity && tv.returnOnEquity < 5) risks.push(`Low ROE of ${tv.returnOnEquity.toFixed(1)}% suggests weak profitability`);
+        if (tv.netMargin && tv.netMargin > 20) rewards.push(`Healthy net margin of ${tv.netMargin.toFixed(1)}% indicates strong pricing power`);
+        if (tv.netMargin && tv.netMargin < 5) risks.push(`Thin net margin of ${tv.netMargin.toFixed(1)}% leaves little room for error`);
+
+        // Dividend signals
+        if (tv.dividendYield && tv.dividendYield > 4) rewards.push(`Attractive dividend yield of ${tv.dividendYield.toFixed(2)}% provides income`);
+
+        // Growth signals
+        if (tv.perfYear && tv.perfYear > 20) rewards.push(`Strong 1-year performance of +${tv.perfYear.toFixed(1)}% shows positive momentum`);
+        if (tv.perfYear && tv.perfYear < -20) risks.push(`Weak 1-year performance of ${tv.perfYear.toFixed(1)}% indicates negative momentum`);
+
+        // Risk signals
+        if (tv.debtToEquity && tv.debtToEquity > 100) risks.push(`High debt/equity ratio of ${tv.debtToEquity.toFixed(0)}% raises leverage concerns`);
+        if (tv.beta && tv.beta > 1.5) risks.push(`High beta of ${tv.beta.toFixed(2)} means above-average volatility`);
+        if (tv.rsi && tv.rsi > 70) risks.push(`RSI at ${tv.rsi.toFixed(0)} indicates overbought conditions`);
+        if (tv.rsi && tv.rsi < 30) rewards.push(`RSI at ${tv.rsi.toFixed(0)} indicates oversold conditions — potential buying opportunity`);
+
+        // Determine rating based on signals
+        const rewardCount = rewards.length;
+        const riskCount = risks.length;
+        let rating = "Hold";
+        let confidence = 50;
+        if (rewardCount >= 4 && riskCount <= 1) { rating = "Strong Buy"; confidence = 75; }
+        else if (rewardCount >= 3 && riskCount <= 2) { rating = "Buy"; confidence = 65; }
+        else if (riskCount >= 4 && rewardCount <= 1) { rating = "Strong Sell"; confidence = 75; }
+        else if (riskCount >= 3 && rewardCount <= 2) { rating = "Sell"; confidence = 65; }
+        else { rating = "Hold"; confidence = 55; }
+
+        // Build summary from real data
+        const summary = `${tv.description || stock.name} (${stock.symbol}) is listed on ${stock.exchange} in the ${tv.sector || stock.sector} sector.` +
+          (tv.marketCap ? ` Market capitalization: AED ${(tv.marketCap / 1e9).toFixed(2)}B.` : "") +
+          (tv.close ? ` Current price: AED ${tv.close.toFixed(2)}.` : "") +
+          (tv.pe ? ` P/E: ${tv.pe.toFixed(1)}x.` : "") +
+          (tv.dividendYield ? ` Dividend yield: ${tv.dividendYield.toFixed(2)}%.` : "") +
+          (tv.returnOnEquity ? ` ROE: ${tv.returnOnEquity.toFixed(1)}%.` : "") +
+          (tv.netMargin ? ` Net margin: ${tv.netMargin.toFixed(1)}%.` : "");
+
+        const outlook = (tv.perfYear != null ? `1-year performance: ${tv.perfYear > 0 ? "+" : ""}${tv.perfYear.toFixed(1)}%.` : "") +
+          (tv.perf5Year != null ? ` 5-year performance: ${tv.perf5Year > 0 ? "+" : ""}${tv.perf5Year.toFixed(1)}%.` : "") +
+          (tv.rsi ? ` RSI: ${tv.rsi.toFixed(0)}.` : "") +
+          (tv.beta ? ` Beta: ${tv.beta.toFixed(2)}.` : "");
+
+        return { summary, rewards: rewards.slice(0, 5), risks: risks.slice(0, 5), outlook, rating, confidence };
       }),
 
+    // ─── Technical Sentiment (Real Indicators Only) ───────────────
     sentiment: publicProcedure
       .input(z.object({ symbol: z.string(), name: z.string() }))
       .mutation(async ({ input }) => {
-        try {
-          const result = await invokeLLM({
-            messages: [
-              { role: "system", content: "You are a financial analyst specializing in UAE stock markets (ADX and DFM). Analyze the given stock and provide a brief sentiment assessment. Return JSON with: sentiment (bullish/bearish/neutral), score (-1 to 1), and summary (2-3 sentences)." },
-              { role: "user", content: `Analyze the current market sentiment for ${input.name} (${input.symbol}) listed on the UAE stock exchange. Consider recent market conditions, sector trends, and the company's position in the UAE economy. Return your analysis as JSON.` }
-            ],
-            response_format: {
-              type: "json_schema",
-              json_schema: {
-                name: "sentiment_analysis",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    sentiment: { type: "string", description: "bullish, bearish, or neutral" },
-                    score: { type: "number", description: "Sentiment score from -1 (very bearish) to 1 (very bullish)" },
-                    summary: { type: "string", description: "2-3 sentence analysis" },
-                  },
-                  required: ["sentiment", "score", "summary"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          });
-          const content = result.choices[0]?.message?.content;
-          if (typeof content === "string") return JSON.parse(content);
-          return { sentiment: "neutral", score: 0, summary: "Unable to analyze sentiment at this time." };
-        } catch (e) {
-          console.warn("[Sentiment] Analysis failed:", e);
-          return { sentiment: "neutral", score: 0, summary: "Sentiment analysis temporarily unavailable." };
+        const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
+        if (!stock) return { sentiment: "neutral", score: 0, summary: "Stock not found." };
+
+        // Get real technical data from TradingView
+        const tvKey = `${stock.exchange}:${stock.symbol}`;
+        const tvStocks = await fetchTVStocksByTickers([tvKey]);
+        const tv = tvStocks.length > 0 ? tvStocks[0] : null;
+
+        if (!tv) return { sentiment: "neutral", score: 0, summary: "Insufficient data for sentiment analysis." };
+
+        // Calculate sentiment from real technical indicators
+        let score = 0;
+        let signals = 0;
+        const factors: string[] = [];
+
+        // RSI signal
+        if (tv.rsi) {
+          if (tv.rsi > 70) { score -= 0.3; factors.push(`RSI overbought (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi > 60) { score += 0.1; factors.push(`RSI bullish (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi < 30) { score += 0.3; factors.push(`RSI oversold (${tv.rsi.toFixed(0)})`); }
+          else if (tv.rsi < 40) { score -= 0.1; factors.push(`RSI bearish (${tv.rsi.toFixed(0)})`); }
+          else { factors.push(`RSI neutral (${tv.rsi.toFixed(0)})`); }
+          signals++;
         }
+
+        // Price vs moving averages
+        if (tv.close && tv.sma50) {
+          if (tv.close > tv.sma50) { score += 0.2; factors.push("Price above 50-day MA"); }
+          else { score -= 0.2; factors.push("Price below 50-day MA"); }
+          signals++;
+        }
+        if (tv.close && tv.sma200) {
+          if (tv.close > tv.sma200) { score += 0.2; factors.push("Price above 200-day MA"); }
+          else { score -= 0.2; factors.push("Price below 200-day MA"); }
+          signals++;
+        }
+
+        // Recent performance
+        if (tv.change) {
+          if (tv.change > 2) { score += 0.15; factors.push(`Today +${tv.change.toFixed(2)}%`); }
+          else if (tv.change < -2) { score -= 0.15; factors.push(`Today ${tv.change.toFixed(2)}%`); }
+          signals++;
+        }
+        if (tv.perfWeek) {
+          if (tv.perfWeek > 3) { score += 0.1; }
+          else if (tv.perfWeek < -3) { score -= 0.1; }
+          signals++;
+        }
+
+        // Normalize score to -1 to 1 range
+        const normalizedScore = Math.max(-1, Math.min(1, score));
+        const sentiment = normalizedScore > 0.15 ? "bullish" : normalizedScore < -0.15 ? "bearish" : "neutral";
+
+        const summary = `Technical sentiment for ${input.name} is ${sentiment} based on ${signals} indicators. ${factors.slice(0, 3).join(". ")}.`;
+
+        return { sentiment, score: parseFloat(normalizedScore.toFixed(2)), summary };
       }),
 
-    // ─── TradingView News ─────────────────────────────────────────
+    // ─── Market News (DB-backed with auto-refresh) ─────────────────
     news: publicProcedure
       .input(z.object({ symbol: z.string(), count: z.number().optional().default(20) }))
       .query(async ({ input }) => {
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
+        // Try DB-backed news first, falls back to live TradingView
+        const dbNews = await getStockNews(stock.symbol, stock.exchange, input.count);
+        if (dbNews.items.length > 0) return dbNews;
         return fetchTVNews(stock.symbol, stock.exchange, input.count);
       }),
 
     marketNews: publicProcedure
-      .input(z.object({ count: z.number().optional().default(30) }).optional())
+      .input(z.object({
+        count: z.number().optional().default(50),
+        exchange: z.enum(['DFM', 'ADX', 'all']).optional().default('all'),
+        search: z.string().optional(),
+      }).optional())
       .query(async ({ input }) => {
-        return fetchUAEMarketNews(input?.count || 30);
+        const opts = input || { count: 50, exchange: 'all' as const };
+        // Try DB-backed news first
+        const dbNews = await getStoredNews({
+          count: opts.count || 50,
+          exchange: opts.exchange || 'all',
+          search: opts.search,
+        });
+        if (dbNews.items.length > 0) return dbNews;
+        // Fallback to live TradingView fetch
+        const tvNews = await fetchUAEMarketNews(opts.count || 50);
+        return {
+          items: tvNews.items.map(i => ({
+            ...i,
+            id: 0,
+            externalId: i.id,
+          })),
+          totalCount: tvNews.items.length,
+          lastUpdated: tvNews.fetchedAt,
+        };
+      }),
+
+    newsStatus: publicProcedure
+      .query(async () => {
+        return getNewsSchedulerStatus();
+      }),
+
+    triggerNewsFetch: protectedProcedure
+      .mutation(async () => {
+        return triggerFullNewsFetch();
       }),
 
     // ─── TradingView Forecast/Analyst Data ────────────────────────
@@ -1284,7 +1380,7 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         const stock = ALL_STOCKS.find(s => s.symbol === input.symbol);
         if (!stock) throw new Error("Stock not found");
         // Use 5 years of weekly data for seasonality (TwelveData/TradingView)
-        const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk');
+        const rawChart = await fetchYahooChart(stock.yahooSymbol, '5y', '1wk', stock.exchange);
         if (!rawChart || !rawChart.timestamps || !rawChart.close) {
           return [];
         }
@@ -1907,9 +2003,74 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
         return fetchSADividends(input.symbol, input.exchange);
       }),
 
+    statistics: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        // Try DB cache first
+        const cached = await getSAStatisticsCached(input.symbol, input.exchange);
+        if (cached && !cached.isStale) {
+          return cached.data;
+        }
+        // Fetch fresh data
+        const fresh = await fetchSAStatistics(input.symbol, input.exchange);
+        if (fresh) {
+          // Cache in background (don't block response)
+          upsertSAStatisticsCache(input.symbol, input.exchange, fresh).catch(() => {});
+        }
+        // Return fresh data, or stale cache as fallback
+        return fresh ?? cached?.data ?? null;
+      }),
+
+    profile: publicProcedure
+      .input(z.object({ symbol: z.string(), exchange: z.enum(["ADX", "DFM"]) }))
+      .query(async ({ input }) => {
+        return fetchSAProfile(input.symbol, input.exchange);
+      }),
+
     stats: publicProcedure.query(() => getSAStats()),
 
     clearCache: protectedProcedure.mutation(() => clearSACache()),
+
+    // Batch scraper: scrapes SA statistics for all UAE stocks and caches in DB
+    // Called by scheduled task daily
+    batchScrape: protectedProcedure
+      .input(z.object({ batchSize: z.number().min(1).max(50).default(10), offset: z.number().min(0).default(0) }).optional())
+      .mutation(async ({ input }) => {
+        const batchSize = input?.batchSize ?? 10;
+        const offset = input?.offset ?? 0;
+        const stocks = ALL_STOCKS.slice(offset, offset + batchSize);
+        let success = 0;
+        let failed = 0;
+        const results: { symbol: string; exchange: string; status: string }[] = [];
+        for (const stock of stocks) {
+          try {
+            const data = await fetchSAStatistics(stock.symbol, stock.exchange);
+            if (data) {
+              await upsertSAStatisticsCache(stock.symbol, stock.exchange, data);
+              success++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, status: 'ok' });
+            } else {
+              failed++;
+              results.push({ symbol: stock.symbol, exchange: stock.exchange, status: 'no_data' });
+            }
+          } catch (e: any) {
+            failed++;
+            results.push({ symbol: stock.symbol, exchange: stock.exchange, status: `error: ${e?.message?.slice(0, 50)}` });
+          }
+          // Rate limit: wait 2s between requests to avoid Scrapfly rate limits
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        return {
+          totalStocks: ALL_STOCKS.length,
+          batchSize,
+          offset,
+          processed: stocks.length,
+          success,
+          failed,
+          nextOffset: offset + batchSize < ALL_STOCKS.length ? offset + batchSize : null,
+          results,
+        };
+      }),
   }),
 
   // ─── MarketScreener Data (Ownership, Consensus, ESG) ──────────
@@ -1930,50 +2091,6 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
       }),
   }),
 
-  // ─── Chat HTTP polling fallback ─────────────────────────────────
-  chat: router({
-    messages: protectedProcedure
-      .input(z.object({ sinceId: z.number().optional() }))
-      .query(async ({ input, ctx }) => {
-        // Register as polling user
-        registerPollingUser(ctx.user.id, ctx.user.name || "User");
-        return getChatMessages(input.sinceId);
-      }),
-
-    send: protectedProcedure
-      .input(z.object({ content: z.string().min(1).max(2000), replyToId: z.number().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        registerPollingUser(ctx.user.id, ctx.user.name || "User");
-        return postChatMessage(ctx.user.id, ctx.user.name || "User", input.content, input.replyToId);
-      }),
-
-    sendImage: protectedProcedure
-      .input(z.object({ base64Data: z.string(), mime: z.string(), caption: z.string().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        return postChatImage(ctx.user.id, ctx.user.name || "User", input.base64Data, input.mime, input.caption);
-      }),
-
-    onlineUsers: protectedProcedure
-      .query(() => {
-        return getOnlineUsersList();
-      }),
-
-    clearedAt: protectedProcedure
-      .query(() => {
-        return { clearedAt: getChatClearedAt() };
-      }),
-
-    react: protectedProcedure
-      .input(z.object({ messageId: z.number(), emoji: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        return toggleMessageReaction(input.messageId, ctx.user.id, ctx.user.name || "User", input.emoji);
-      }),
-
-    clearAll: protectedProcedure
-      .mutation(async ({ ctx }) => {
-        return clearAllChatMessages(ctx.user.id, ctx.user.name || "User");
-      }),
-  }),
 
   // ─── Visitor Counter ──────────────────────────────────────────
   visitors: router({
@@ -2017,3 +2134,20 @@ Beta: ${tv.beta?.toFixed(2) || 'N/A'}
 });
 
 export type AppRouter = typeof appRouter;
+
+// Startup helper: pre-populate logo cache from TradingView
+export async function prefetchLogosOnStartup(): Promise<void> {
+  if (logoCache.size > 0) return;
+  try {
+    const tvStocks = await fetchAllTVStocks();
+    for (const tv of tvStocks) {
+      const parts = tv.ticker.split(':');
+      if (parts.length === 2 && tv.logoId) {
+        setLogoUrl(parts[0], parts[1], `https://s3-symbol-logo.tradingview.com/${tv.logoId}--big.svg`);
+      }
+    }
+    console.log(`[Startup] Logo cache populated with ${logoCache.size} logos`);
+  } catch (e: any) {
+    console.warn('[Startup] Logo prefetch failed:', e?.message);
+  }
+}

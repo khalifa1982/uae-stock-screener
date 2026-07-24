@@ -21,7 +21,7 @@ const DFM_SYMBOL_MAP: Record<string, string> = {
   AMANAT: "AMANT",
   AMLAK: "AMLK",
   SHUAA: "SHUA",
-  GULFNAV: "GNAV",
+  ETIHADENERGY: "ETIHADENERGY",
   TABREED: "TABR",
   TAKAFUL_EM: "TKFE",
   EKTTITAB: "EKTT",

@@ -7,6 +7,7 @@
  */
 
 import { recordCacheHit, recordCacheMiss } from "./services/cacheMetricsService";
+import { toTwelveDataSymbol } from "./services/tdSymbolMapper";
 
 // ─── In-memory cache ────────────────────────────────────────────────
 interface CacheEntry {
@@ -85,15 +86,24 @@ function rangeToOutputSize(range: string): number {
  * Fetch chart data using TwelveData (primary) or TradingView synthetic (fallback)
  * Kept as fetchYahooChart for backward compatibility with routers.ts imports
  */
-export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interval = "1d"): Promise<any> {
+export async function fetchYahooChart(yahooSymbol: string, range = "3mo", interval = "1d", stockExchange?: string): Promise<any> {
   const baseSym = yahooSymbol.replace('.AE', '');
 
-  // PRIMARY: TwelveData time_series API
+  // PRIMARY: TwelveData time_series API (using proper symbol mapper)
   try {
     const apiKey = process.env.TWELVEDATA_API_KEY;
     if (apiKey) {
-      for (const exchange of ['ADX', 'DFM']) {
-        const tdSymbol = `${baseSym}:${exchange}`;
+      // Try the known exchange first, then the other
+      const exchanges: Array<'ADX' | 'DFM'> = stockExchange 
+        ? [stockExchange as 'ADX' | 'DFM', stockExchange === 'ADX' ? 'DFM' as const : 'ADX' as const] 
+        : ['DFM', 'ADX'];
+      
+      for (const exchange of exchanges) {
+        // Use the proper symbol mapper to get the correct TwelveData symbol
+        const symbolInfo = toTwelveDataSymbol(baseSym, exchange);
+        if (!symbolInfo) continue; // Stock not available in TwelveData
+        
+        const tdSymbol = symbolInfo.fullSymbol;
         const outputSize = rangeToOutputSize(range);
         const tdInterval = interval === '1wk' ? '1week' : interval === '1mo' ? '1month' : interval === '15min' ? '15min' : interval === '5min' ? '5min' : interval === '1h' ? '1h' : '1day';
         const tdUrl = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(tdSymbol)}&interval=${tdInterval}&outputsize=${outputSize}&apikey=${apiKey}`;
@@ -336,7 +346,7 @@ export async function fetchStockData(stock: StockInfo) {
   }
 
   // Get chart data for technical indicators
-  const chart = await fetchYahooChart(stock.yahooSymbol, "6mo", "1d");
+  const chart = await fetchYahooChart(stock.yahooSymbol, "6mo", "1d", stock.exchange);
 
   let rsi: number | null = null;
   let sma20: number | null = null;

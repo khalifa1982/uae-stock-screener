@@ -85,7 +85,7 @@ function TranscriptSectionView({ section, isActive, onClick }: {
     return (
       <div
         id={section.id}
-        className={`sticky top-0 z-10 py-2 px-3 rounded-md cursor-pointer transition-colors ${
+        className={`sticky top-0 z-10 py-2 px-3 cursor-pointer transition-colors ${
           section.type === "qa-header"
             ? "bg-chart-2/10 border border-chart-2/20"
             : "bg-primary/10 border border-primary/20"
@@ -107,7 +107,7 @@ function TranscriptSectionView({ section, isActive, onClick }: {
   }
 
   return (
-    <div id={section.id} className={`py-1 ${isActive ? "bg-primary/5 rounded-md" : ""}`}>
+    <div id={section.id} className={`py-1 ${isActive ? "bg-primary/5" : ""}`}>
       {section.speaker && (
         <SpeakerBadge name={section.speaker} role={section.role} company={section.company} />
       )}
@@ -139,7 +139,7 @@ function TranscriptOutline({ sections, activeSection, onNavigate }: {
           className={`w-full text-left px-2 py-1.5 rounded text-[10px] transition-colors ${
             activeSection === h.id
               ? "bg-primary/15 text-primary font-semibold"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+              : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
           }`}
         >
           <div className="flex items-center gap-1.5">
@@ -202,7 +202,7 @@ export function EarningsTranscripts({ symbol, companyName }: { symbol: string; c
 
   if (!transcript || !transcript.sections || transcript.sections.length === 0) {
     return (
-      <Card className="border-border/50">
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">No earnings transcript available for {companyName || symbol}.</p>
@@ -251,7 +251,7 @@ export function EarningsTranscripts({ symbol, companyName }: { symbol: string; c
 
       {/* Participants */}
       {transcript.participants && transcript.participants.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="glass-card">
           <CardHeader className="pb-1 pt-2 px-3">
             <CardTitle className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <User className="h-3 w-3" /> Call Participants
@@ -292,7 +292,7 @@ export function EarningsTranscripts({ symbol, companyName }: { symbol: string; c
 
         {/* Transcript Content */}
         <div className="flex-1 min-w-0">
-          <Card className="border-border/50">
+          <Card className="glass-card">
             <CardContent className="p-3">
               <ScrollArea className="h-[500px]">
                 <div ref={contentRef} className="space-y-2 pr-2">
