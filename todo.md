@@ -1606,3 +1606,16 @@
 - [x] Verify all tests pass (10/10)
 - [x] Note: OpenClaw is a separate system (not part of this project) — no changes needed here
 - [x] Note: yahoo-finance2 v4.0.0 (major) and nanoid v6.0.0 (major) skipped to avoid breaking changes
+
+## v16.0.0 — Premium Redesign with Advanced Charts & Animations
+- [x] Redesign global theme: premium dark glassmorphism with gradient accents, new color palette
+- [x] Update typography: Inter + Space Grotesk headings + JetBrains Mono for numbers
+- [x] Add global animation system with Framer Motion (page transitions, staggered lists, counters)
+- [x] Rebuild AdvancedChart: proper SVG candlestick rendering, smooth animations, interactive tooltips, volume bars
+- [x] Improve chart responsiveness and mobile layout
+- [x] Add chart loading animations and skeleton states
+- [x] Redesign homepage: animated sections with Framer Motion stagger
+- [x] Redesign MarketHeatmap: spring animations, treemap sizing, glow for big movers
+- [x] Redesign stock detail page: animated header, smooth tab transitions
+- [x] Add micro-interactions: hover glow, card lift, button press, shimmer loading
+- [x] Add CSS premium animations: gradient-text, animated-border, particle effects, chart-container

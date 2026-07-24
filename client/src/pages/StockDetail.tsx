@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { SnowflakeChart } from "@/components/SnowflakeChart";
 import { FairValueGauge } from "@/components/FairValueGauge";
 import { AnalysisChecks } from "@/components/AnalysisChecks";
@@ -362,9 +363,19 @@ export default function StockDetail() {
   }
 
   return (
-    <div className="space-y-2">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35 }}
+      className="space-y-2"
+    >
       {/* ─── Header ─── */}
-      <div className="border-b-2 border-primary pb-6 mb-2">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="border-b-2 border-primary pb-6 mb-2"
+      >
         <Button variant="ghost" size="sm" className="self-start gap-2 text-muted-foreground -ml-2 mb-4" onClick={() => setLocation("/")}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
@@ -412,9 +423,8 @@ export default function StockDetail() {
               )}
             </div>
           )}
-        </div>
-      </div>
-
+                </div>
+      </motion.div>
       {/* ─── Tabs ─── */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-transparent border-b border-border/30 h-auto gap-0 p-0 overflow-x-auto flex-nowrap w-full backdrop-blur-sm">
@@ -1818,6 +1828,6 @@ export default function StockDetail() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

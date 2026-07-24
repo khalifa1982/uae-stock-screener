@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo, useRef } from "react";
+import { motion } from "framer-motion";
 import { usePriceFlashes, getFlashClass, getPriceFlashClass } from "@/hooks/usePriceFlash";
 import { useAutoRefreshInterval } from "@/hooks/useMarketStatus";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -157,26 +158,35 @@ function Chg({ value, showArrow = true }: { value: number | null | undefined; sh
 }
 
 /** Glass card wrapper */
-function GlassCard({ children, className = "", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
+function GlassCard({ children, className = "", onClick, delay = 0 }: { children: React.ReactNode; className?: string; onClick?: () => void; delay?: number }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={onClick ? { scale: 1.015, transition: { duration: 0.2 } } : undefined}
       onClick={onClick}
       className={`
         glass-card group/card
-        ${onClick ? "cursor-pointer hover:scale-[1.01]" : ""}
+        ${onClick ? "cursor-pointer" : ""}
         ${className}
       `}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
 /** Section heading with gradient text */
 function SectionTitle({ children, icon: Icon, action }: { children: React.ReactNode; icon?: any; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.06em] text-foreground">
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-center justify-between mb-4"
+    >
+      <h2 className="flex items-center gap-2 text-sm font-heading font-semibold uppercase tracking-[0.06em] text-foreground">
         {Icon && (
           <div className="h-7 w-7 flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 shadow-[0_0_8px_var(--neon-cyan-dim)]">
             <Icon className="h-3.5 w-3.5 text-primary drop-shadow-[0_0_3px_var(--neon-cyan)]" />
@@ -185,7 +195,7 @@ function SectionTitle({ children, icon: Icon, action }: { children: React.ReactN
         {children}
       </h2>
       {action}
-    </div>
+    </motion.div>
   );
 }
 /* 
@@ -286,7 +296,7 @@ function SectorCard({ sector, stocks, onClick }: { sector: string; stocks: any[]
 /* 
    NEWS CARD
     */
-function NewsCard({ item }: { item: any }) {
+function NewsCard({ item, index = 0 }: { item: any; index?: number }) {
   const timeAgo = (ts: number | string) => {
     // TradingView timestamps are Unix seconds; JS Date expects milliseconds
     const msTs = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : new Date(ts).getTime();
@@ -300,7 +310,7 @@ function NewsCard({ item }: { item: any }) {
   };
 
   return (
-    <GlassCard className="p-4 hover:scale-[1.01] transition-transform">
+    <GlassCard delay={index * 0.06} className="p-4">
       <a
         href={item.link || item.url || "#"}
         target="_blank"
@@ -338,7 +348,7 @@ function MoverCard({ stock, rank, onClick }: { stock: any; rank: number; onClick
   const isUp = (stock.changePercent ?? 0) > 0;
   const isDown = (stock.changePercent ?? 0) < 0;
   return (
-    <GlassCard onClick={onClick} className="p-3 min-w-[180px] shrink-0">
+    <GlassCard onClick={onClick} delay={rank * 0.05} className="p-3 min-w-[180px] shrink-0">
       <div className="flex items-center gap-2.5 mb-2">
         {stock.logoUrl && <StockLogo logoUrl={stock.logoUrl} symbol={stock.symbol} size="md" />}
         <div className="min-w-0 flex-1">
@@ -706,7 +716,12 @@ export default function Home() {
      RENDER
       */
   return (
-    <div className="flex flex-col gap-8 pb-8">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-8 pb-8"
+    >
 
       {/*  HERO: Market Overview Stats  */}
       <div className="relative">
@@ -1235,11 +1250,11 @@ export default function Home() {
           </SectionTitle>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {marketNews.items.slice(0, 6).map((item: any, i: number) => (
-              <NewsCard key={i} item={item} />
+              <NewsCard key={i} item={item} index={i} />
             ))}
           </div>
         </section>
       )}
-    </div>
+    </motion.div>
   );
 }
