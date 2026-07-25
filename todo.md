@@ -1619,3 +1619,17 @@
 - [x] Redesign stock detail page: animated header, smooth tab transitions
 - [x] Add micro-interactions: hover glow, card lift, button press, shimmer loading
 - [x] Add CSS premium animations: gradient-text, animated-border, particle effects, chart-container
+
+## v17.0.0 — TradingView-Style Chart Rebuild (COMPLETE)
+- [x] Replace custom SVG chart with TradingView Lightweight Charts library
+- [x] Implement professional candlestick rendering matching TradingView style
+- [x] Add crosshair with price/time labels on axes
+- [x] Add proper time axis with TradingView-style formatting
+- [x] Add price axis with proper scaling and labels
+- [x] Add volume histogram below main chart
+- [x] Add chart toolbar (chart type selector, indicators, drawing tools)
+- [x] Add time range selector (1D, 1M, 3M, 6M, 1Y, 2Y)
+- [x] Add technical indicators (SMA 20/50, EMA 9, Bollinger, RSI, MACD)
+- [x] Add dark theme matching TradingView's dark mode
+- [x] Ensure responsive design on mobile
+- [x] Integrate with existing Abboud AI overlay system (price lines)

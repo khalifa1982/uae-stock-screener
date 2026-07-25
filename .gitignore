@@ -108,3 +108,5 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+server/__test_fixtures__/
+.project-config.json
