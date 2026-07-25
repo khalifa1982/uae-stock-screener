@@ -1633,3 +1633,13 @@
 - [x] Add dark theme matching TradingView's dark mode
 - [x] Ensure responsive design on mobile
 - [x] Integrate with existing Abboud AI overlay system (price lines)
+
+## v17.0.0 — Northflank Auto-Deploy Configuration (COMPLETE)
+- [x] Create Northflank build service (uae-builder) connected to GitHub repo
+- [x] Configure build engine (Kaniko) to build from Dockerfile on main branch
+- [x] Link deployment service (uae-app) to use builds from uae-builder
+- [x] Enable Continuous Deployment (CD) — new builds auto-deploy
+- [x] Trigger first build and verify v17.0.0 deploys successfully
+- [x] Verify uae.market shows v17.0.0 in footer
+- [x] Eliminate dependency on GitHub Actions workflow file
+- [x] Eliminate dependency on Docker Hub (using Northflank internal registry)
