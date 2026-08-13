@@ -1643,3 +1643,19 @@
 - [x] Verify uae.market shows v17.0.0 in footer
 - [x] Eliminate dependency on GitHub Actions workflow file
 - [x] Eliminate dependency on Docker Hub (using Northflank internal registry)
+## v17.1.0 — Gemini Model & Dependency Upgrade (COMPLETE)
+- [x] Upgrade primary LLM model from gemini-3.6-flash to gemini-3.7-flash (latest stable)
+- [x] Upgrade fallback model from gemini-3.1-pro-preview to gemini-3.6-flash
+- [x] Upgrade TypeScript from 6.0.3 to 7.0.2
+- [x] Fix tsconfig.json for TypeScript 7 (remove deprecated baseUrl and ignoreDeprecations)
+- [x] Upgrade Vite from 8.1.5 to 8.2.1
+- [x] Upgrade React from 19.2.7 to 19.2.8
+- [x] Upgrade Framer Motion from 12.x to 13.1.0
+- [x] Upgrade PostCSS from 8.5.21 to 8.5.26
+- [x] Upgrade tsx from 4.23.1 to 4.23.12
+- [x] Upgrade pnpm from 11.15.1 to 11.21.0
+- [x] Upgrade Lightweight Charts from 5.2.0 to 5.2.1
+- [x] Fix cookie v2 breaking change (pin to v1.x for parse compatibility)
+- [x] Verify TypeScript: zero errors
+- [x] Verify tests pass
+- [x] Verify dev server starts and serves 170 stocks

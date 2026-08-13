@@ -255,14 +255,14 @@ const normalizeResponseFormat = ({
 };
 
 // Model configuration — primary + fallback
-const PRIMARY_MODEL = "gemini-3.6-flash";
-const FALLBACK_MODEL = "gemini-3.1-pro-preview";
+const PRIMARY_MODEL = "gemini-3.7-flash";
+const FALLBACK_MODEL = "gemini-3.6-flash";
 
 /**
  * Invoke LLM using Google Gemini API (OpenAI-compatible endpoint)
  * Uses GEMINI_API_KEY environment variable
- * Primary model: gemini-2.5-flash
- * Fallback model: gemini-3.1-pro-preview (used if primary fails)
+ * Primary model: gemini-3.7-flash (latest stable, best for coding/agents)
+ * Fallback model: gemini-3.6-flash (previous stable, reliable)
  */
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const apiKey = ENV.geminiApiKey;
