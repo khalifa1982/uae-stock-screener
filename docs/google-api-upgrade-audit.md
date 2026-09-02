@@ -34,9 +34,12 @@ The production fallback chain is `gemini-3.8-flash` → `gemini-3.7-flash` → `
 | TypeScript | Passed with zero errors |
 | Production build | Passed |
 | Runtime smoke check | HTTP 200; 170 stocks returned |
+| Visual preview | Dashboard rendered and footer displayed `v17.2.0` |
 | Production dependency audit | No known vulnerabilities |
 
 The broader historical suite currently reports 509 passing and 18 failing tests. The failures are pre-existing network-dependent or stale UI-source assertions in StockAnalysis, Simply Wall St, TwelveData, and the earlier Phase 42 chart tests; none involve the Google SDK or modified LLM helper.
+
+At deployment time, the public GitHub repository still showed commit `54d964a` (`v17.0.0`) as its latest commit. The configured GitHub command-line credential and the sandbox browser session were both expired/signed out, so the v17.2.0 source could not yet be pushed to the GitHub-triggered Northflank pipeline from this session. The Manus-hosted v17.2.0 checkpoint was published successfully.
 
 ## Sources
 
