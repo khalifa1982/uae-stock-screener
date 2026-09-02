@@ -36,10 +36,13 @@ The production fallback chain is `gemini-3.8-flash` → `gemini-3.7-flash` → `
 | Runtime smoke check | HTTP 200; 170 stocks returned |
 | Visual preview | Dashboard rendered and footer displayed `v17.2.0` |
 | Production dependency audit | No known vulnerabilities |
+| Health endpoint version | Uses shared `APP_VERSION`; deterministic test passed |
 
 The broader historical suite currently reports 509 passing and 18 failing tests. The failures are pre-existing network-dependent or stale UI-source assertions in StockAnalysis, Simply Wall St, TwelveData, and the earlier Phase 42 chart tests; none involve the Google SDK or modified LLM helper.
 
-At deployment time, the public GitHub repository still showed commit `54d964a` (`v17.0.0`) as its latest commit. The configured GitHub command-line credential and the sandbox browser session were both expired/signed out, so the v17.2.0 source could not yet be pushed to the GitHub-triggered Northflank pipeline from this session. The Manus-hosted v17.2.0 checkpoint was published successfully.
+The GitHub connector was refreshed, the branch was reconciled with the repository's three deployment-only commits, and commit `ec16bbd` was pushed to `main`. The obsolete GitHub Actions workflow was removed because Northflank now builds the repository directly. Northflank build `defiant-truck-6133` completed successfully from commit `ec16bbd`, and the `uae-app` rollout completed with the same deployed SHA. The production dashboard at `https://uae.market` returned HTTP 200 and displayed `v17.2.0` in its rendered footer.
+
+The `/api/health` endpoint previously exposed a stale hardcoded `v13.5.0` value. It now derives its version from the shared `APP_VERSION` constant through a testable health-payload helper, keeping deployment probes aligned with the rendered application release.
 
 ## Sources
 

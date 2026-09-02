@@ -1669,3 +1669,4 @@
 - [x] Run TypeScript, unit tests, production build, and live smoke checks
 - [x] Update the footer version to v17.2.0
 - [x] Publish v17.2.0 and verify the live deployment
+- [x] Fix `/api/health` to report the shared v17.2.0 application version instead of stale v13.5.0

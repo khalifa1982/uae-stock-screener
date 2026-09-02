@@ -6,6 +6,7 @@ import { startAbboudScanner } from "../services/abboudAlertScanner";
 import { startCreditMonitor } from "../services/scrapflyCreditMonitor";
 import { startNewsScheduler } from "../services/newsSchedulerService";
 import { initWebSocketServer } from "../services/tdWebSocketService";
+import { createHealthStatus } from "./health";
 
 import { createServer } from "http";
 import net from "net";
@@ -43,13 +44,7 @@ async function startServer() {
   // ─── Health check endpoint (for Northflank zero-downtime deployments) ───
   const startedAt = Date.now();
   app.get("/api/health", (_req: Request, res: Response) => {
-    const uptimeMs = Date.now() - startedAt;
-    res.json({
-      status: "ok",
-      uptime: `${Math.floor(uptimeMs / 1000)}s`,
-      version: "v13.5.0",
-      timestamp: new Date().toISOString(),
-    });
+    res.json(createHealthStatus(startedAt));
   });
 
   // ─── Scheduled Task Endpoint: SA Statistics Batch Scraper ─────────
