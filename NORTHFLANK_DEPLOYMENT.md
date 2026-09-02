@@ -1,10 +1,12 @@
 # Northflank Deployment Configuration
 
-## Current Setup (v17.0.0 — July 25, 2026)
+## Current Setup (v17.2.0 — September 2, 2026)
 
 ### Build Service: `uae-builder`
 - **Source:** GitHub repo `khalifa1982/uae-stock-screener`
 - **Branch:** `main`
+- **CI Branch Rule:** `main`
+- **CI Enabled:** Yes (`disabledCI: false`)
 - **Build Engine:** Kaniko
 - **Dockerfile:** `/Dockerfile`
 - **Build Plan:** `nf-compute-400-16`
@@ -52,3 +54,5 @@
 ### Note
 The old Docker Hub workflow (`khalifa1982/uae-market` + GitHub Actions) is no longer used.
 Northflank builds and stores images in its own registry, which is simpler and faster.
+
+On September 2, 2026, the build service was patched through the Northflank API to explicitly monitor the `main` branch. The deployment service remains linked to the builder's `latest` successful image with continuous delivery enabled.

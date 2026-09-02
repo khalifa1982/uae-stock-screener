@@ -1670,3 +1670,4 @@
 - [x] Update the footer version to v17.2.0
 - [x] Publish v17.2.0 and verify the live deployment
 - [x] Fix `/api/health` to report the shared v17.2.0 application version instead of stale v13.5.0
+- [ ] Verify that a new GitHub `main` push automatically starts a Northflank build without a manual API trigger
