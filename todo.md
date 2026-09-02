@@ -1659,3 +1659,13 @@
 - [x] Verify TypeScript: zero errors
 - [x] Verify tests pass
 - [x] Verify dev server starts and serves 170 stocks
+
+## v17.2.0 — Google API/SDK and Model Refresh (COMPLETE)
+- [x] Audit the live Google Gemini model catalog and production availability
+- [x] Audit installed Google API/SDK packages and every configured AI model identifier
+- [x] Upgrade the Google Gemini API SDK/plugin to the latest compatible release
+- [x] Upgrade primary and fallback AI models to the latest supported production-ready configuration
+- [x] Add model fallback coverage and API compatibility tests
+- [x] Run TypeScript, unit tests, production build, and live smoke checks
+- [x] Update the footer version to v17.2.0
+- [x] Publish v17.2.0 and verify the live deployment

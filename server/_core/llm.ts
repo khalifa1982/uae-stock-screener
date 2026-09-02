@@ -1,3 +1,12 @@
+import {
+  FunctionCallingConfigMode,
+  GoogleGenAI,
+  ThinkingLevel,
+  type Content,
+  type GenerateContentConfig,
+  type GenerateContentResponse,
+  type Part,
+} from "@google/genai";
 import { ENV } from "./env";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -19,7 +28,13 @@ export type FileContent = {
   type: "file_url";
   file_url: {
     url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4" ;
+    mime_type?:
+      | "audio/mpeg"
+      | "audio/wav"
+      | "audio/webm"
+      | "application/pdf"
+      | "audio/mp4"
+      | "video/mp4";
   };
 };
 
@@ -55,11 +70,16 @@ export type ToolChoice =
   | ToolChoiceByName
   | ToolChoiceExplicit;
 
+export type GeminiThinkingLevel = "low" | "medium" | "high";
+
 export type InvokeParams = {
   messages: Message[];
+  model?: string;
+  fallbackModels?: string[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
   tool_choice?: ToolChoice;
+  thinkingLevel?: GeminiThinkingLevel;
   maxTokens?: number;
   max_tokens?: number;
   outputSchema?: OutputSchema;
@@ -110,240 +130,304 @@ export type ResponseFormat =
   | { type: "json_object" }
   | { type: "json_schema"; json_schema: JsonSchema };
 
+/**
+ * Current Google Gemini production model catalog used by this application.
+ * Text generation stays on stable GA models; specialized model identifiers
+ * are centralized here so future integrations do not scatter stale IDs.
+ */
+export const GEMINI_MODELS = Object.freeze({
+  textPrimary: "gemini-3.8-flash",
+  textFallbacks: ["gemini-3.7-flash", "gemini-3.6-flash"] as const,
+  reasoningPreview: "gemini-3.1-pro-preview",
+  image: "gemini-3.1-flash-image",
+  imageLite: "gemini-3.1-flash-lite-image",
+  transcription: "gemini-3.5-transcribe",
+  textToSpeech: "gemini-3.1-flash-tts-preview",
+  video: "gemini-omni-1.1-flash",
+});
+
 const ensureArray = (
-  value: MessageContent | MessageContent[]
+  value: MessageContent | MessageContent[],
 ): MessageContent[] => (Array.isArray(value) ? value : [value]);
 
-const normalizeContentPart = (
-  part: MessageContent
-): TextContent | ImageContent | FileContent => {
-  if (typeof part === "string") {
-    return { type: "text", text: part };
-  }
+const serializeContent = (content: Message["content"]): string =>
+  ensureArray(content)
+    .map((part) => (typeof part === "string" ? part : JSON.stringify(part)))
+    .join("\n");
 
-  if (part.type === "text") {
-    return part;
-  }
+const inferImageMimeType = (url: string): string => {
+  const pathname = url.split(/[?#]/, 1)[0].toLowerCase();
+  if (pathname.endsWith(".png")) return "image/png";
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+};
 
+const toGeminiPart = (part: MessageContent): Part => {
+  if (typeof part === "string") return { text: part };
+  if (part.type === "text") return { text: part.text };
   if (part.type === "image_url") {
-    return part;
-  }
-
-  if (part.type === "file_url") {
-    return part;
-  }
-
-  throw new Error("Unsupported message content part");
-};
-
-const normalizeMessage = (message: Message) => {
-  const { role, name, tool_call_id } = message;
-
-  if (role === "tool" || role === "function") {
-    const content = ensureArray(message.content)
-      .map(part => (typeof part === "string" ? part : JSON.stringify(part)))
-      .join("\n");
-
     return {
-      role,
-      name,
-      tool_call_id,
-      content,
+      fileData: {
+        fileUri: part.image_url.url,
+        mimeType: inferImageMimeType(part.image_url.url),
+      },
     };
   }
-
-  const contentParts = ensureArray(message.content).map(normalizeContentPart);
-
-  // If there's only text content, collapse to a single string for compatibility
-  if (contentParts.length === 1 && contentParts[0].type === "text") {
-    return {
-      role,
-      name,
-      content: contentParts[0].text,
-    };
-  }
-
   return {
-    role,
-    name,
-    content: contentParts,
-  };
-};
-
-const normalizeToolChoice = (
-  toolChoice: ToolChoice | undefined,
-  tools: Tool[] | undefined
-): "none" | "auto" | ToolChoiceExplicit | undefined => {
-  if (!toolChoice) return undefined;
-
-  if (toolChoice === "none" || toolChoice === "auto") {
-    return toolChoice;
-  }
-
-  if (toolChoice === "required") {
-    if (!tools || tools.length === 0) {
-      throw new Error(
-        "tool_choice 'required' was provided but no tools were configured"
-      );
-    }
-
-    if (tools.length > 1) {
-      throw new Error(
-        "tool_choice 'required' needs a single tool or specify the tool name explicitly"
-      );
-    }
-
-    return {
-      type: "function",
-      function: { name: tools[0].function.name },
-    };
-  }
-
-  if ("name" in toolChoice) {
-    return {
-      type: "function",
-      function: { name: toolChoice.name },
-    };
-  }
-
-  return toolChoice;
-};
-
-const normalizeResponseFormat = ({
-  responseFormat,
-  response_format,
-  outputSchema,
-  output_schema,
-}: {
-  responseFormat?: ResponseFormat;
-  response_format?: ResponseFormat;
-  outputSchema?: OutputSchema;
-  output_schema?: OutputSchema;
-}):
-  | { type: "json_schema"; json_schema: JsonSchema }
-  | { type: "text" }
-  | { type: "json_object" }
-  | undefined => {
-  const explicitFormat = responseFormat || response_format;
-  if (explicitFormat) {
-    if (
-      explicitFormat.type === "json_schema" &&
-      !explicitFormat.json_schema?.schema
-    ) {
-      throw new Error(
-        "responseFormat json_schema requires a defined schema object"
-      );
-    }
-    return explicitFormat;
-  }
-
-  const schema = outputSchema || output_schema;
-  if (!schema) return undefined;
-
-  if (!schema.name || !schema.schema) {
-    throw new Error("outputSchema requires both name and schema");
-  }
-
-  return {
-    type: "json_schema",
-    json_schema: {
-      name: schema.name,
-      schema: schema.schema,
-      ...(typeof schema.strict === "boolean" ? { strict: schema.strict } : {}),
+    fileData: {
+      fileUri: part.file_url.url,
+      mimeType: part.file_url.mime_type,
     },
   };
 };
 
-// Model configuration — primary + fallback
-const PRIMARY_MODEL = "gemini-3.7-flash";
-const FALLBACK_MODEL = "gemini-3.6-flash";
+const buildGeminiConversation = (messages: Message[]) => {
+  const systemInstruction = messages
+    .filter((message) => message.role === "system")
+    .map((message) => serializeContent(message.content))
+    .filter(Boolean)
+    .join("\n\n");
+
+  const contents: Content[] = [];
+
+  for (const message of messages) {
+    if (message.role === "system") continue;
+
+    const role = message.role === "assistant" ? "model" : "user";
+    const parts: Part[] =
+      message.role === "tool" || message.role === "function"
+        ? [
+            {
+              functionResponse: {
+                id: message.tool_call_id,
+                name: message.name ?? "tool",
+                response: { output: serializeContent(message.content) },
+              },
+            },
+          ]
+        : ensureArray(message.content).map(toGeminiPart);
+
+    const previous = contents.at(-1);
+    if (previous?.role === role) {
+      previous.parts = [...(previous.parts ?? []), ...parts];
+    } else {
+      contents.push({ role, parts });
+    }
+  }
+
+  if (contents.length === 0) {
+    contents.push({ role: "user", parts: [{ text: "" }] });
+  }
+
+  return { contents, systemInstruction };
+};
+
+const normalizeResponseFormat = (params: InvokeParams): ResponseFormat | undefined => {
+  const explicit = params.responseFormat ?? params.response_format;
+  if (explicit) {
+    if (explicit.type === "json_schema" && !explicit.json_schema?.schema) {
+      throw new Error("responseFormat json_schema requires a defined schema object");
+    }
+    return explicit;
+  }
+
+  const schema = params.outputSchema ?? params.output_schema;
+  if (!schema) return undefined;
+  if (!schema.name || !schema.schema) {
+    throw new Error("outputSchema requires both name and schema");
+  }
+  return { type: "json_schema", json_schema: schema };
+};
+
+const toThinkingLevel = (level: GeminiThinkingLevel): ThinkingLevel => {
+  if (level === "low") return ThinkingLevel.LOW;
+  if (level === "high") return ThinkingLevel.HIGH;
+  return ThinkingLevel.MEDIUM;
+};
+
+const buildGenerateConfig = (params: InvokeParams): GenerateContentConfig => {
+  const config: GenerateContentConfig = {
+    maxOutputTokens: params.maxTokens ?? params.max_tokens ?? 32768,
+  };
+
+  if (params.thinkingLevel) {
+    config.thinkingConfig = {
+      thinkingLevel: toThinkingLevel(params.thinkingLevel),
+    };
+  }
+
+  const { tools } = params;
+  if (tools?.length) {
+    config.tools = [
+      {
+        functionDeclarations: tools.map((tool) => ({
+          name: tool.function.name,
+          description: tool.function.description,
+          parametersJsonSchema: tool.function.parameters,
+        })),
+      },
+    ];
+
+    const choice = params.toolChoice ?? params.tool_choice;
+    if (choice) {
+      let mode = FunctionCallingConfigMode.AUTO;
+      let allowedFunctionNames: string[] | undefined;
+
+      if (choice === "none") mode = FunctionCallingConfigMode.NONE;
+      if (choice === "required") mode = FunctionCallingConfigMode.ANY;
+      if (typeof choice === "object") {
+        mode = FunctionCallingConfigMode.ANY;
+        allowedFunctionNames = [
+          "name" in choice ? choice.name : choice.function.name,
+        ];
+      }
+
+      config.toolConfig = {
+        functionCallingConfig: { mode, allowedFunctionNames },
+      };
+    }
+  }
+
+  const responseFormat = normalizeResponseFormat(params);
+  if (responseFormat?.type === "json_object") {
+    config.responseMimeType = "application/json";
+  }
+  if (responseFormat?.type === "json_schema") {
+    config.responseMimeType = "application/json";
+    config.responseJsonSchema = responseFormat.json_schema.schema;
+  }
+
+  return config;
+};
+
+const toInvokeResult = (
+  response: GenerateContentResponse,
+  requestedModel: string,
+): InvokeResult => {
+  const candidates = response.candidates ?? [];
+  const choices = candidates.map((candidate, candidateIndex) => {
+    const parts = candidate.content?.parts ?? [];
+    const text = parts
+      .filter((part) => !part.thought && typeof part.text === "string")
+      .map((part) => part.text)
+      .join("");
+    const toolCalls = parts
+      .map((part, partIndex) => {
+        const call = part.functionCall;
+        if (!call?.name) return undefined;
+        return {
+          id: call.id ?? `${call.name}-${candidateIndex}-${partIndex}`,
+          type: "function" as const,
+          function: {
+            name: call.name,
+            arguments: JSON.stringify(call.args ?? {}),
+          },
+        };
+      })
+      .filter((call): call is ToolCall => Boolean(call));
+
+    return {
+      index: candidate.index ?? candidateIndex,
+      message: {
+        role: "assistant" as const,
+        content: text,
+        ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+      },
+      finish_reason: candidate.finishReason?.toLowerCase() ?? null,
+    };
+  });
+
+  const usage = response.usageMetadata;
+  return {
+    id: response.responseId ?? `${requestedModel}-${Date.now()}`,
+    created: response.createTime
+      ? Math.floor(new Date(response.createTime).getTime() / 1000)
+      : Math.floor(Date.now() / 1000),
+    model: response.modelVersion ?? requestedModel,
+    choices:
+      choices.length > 0
+        ? choices
+        : [
+            {
+              index: 0,
+              message: { role: "assistant", content: response.text ?? "" },
+              finish_reason: null,
+            },
+          ],
+    ...(usage
+      ? {
+          usage: {
+            prompt_tokens: usage.promptTokenCount ?? 0,
+            completion_tokens: usage.candidatesTokenCount ?? 0,
+            total_tokens: usage.totalTokenCount ?? 0,
+          },
+        }
+      : {}),
+  };
+};
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object" || !("status" in error)) {
+    return undefined;
+  }
+  return typeof error.status === "number" ? error.status : undefined;
+};
+
+const isRetriableModelError = (error: unknown): boolean => {
+  const status = getErrorStatus(error);
+  return status === undefined || status === 404 || status === 429 || status >= 500;
+};
+
+let cachedClient: GoogleGenAI | undefined;
+let cachedApiKey: string | undefined;
+
+const getGeminiClient = (): GoogleGenAI => {
+  const apiKey = ENV.geminiApiKey;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+  if (!cachedClient || cachedApiKey !== apiKey) {
+    cachedClient = new GoogleGenAI({ apiKey });
+    cachedApiKey = apiKey;
+  }
+  return cachedClient;
+};
 
 /**
- * Invoke LLM using Google Gemini API (OpenAI-compatible endpoint)
- * Uses GEMINI_API_KEY environment variable
- * Primary model: gemini-3.7-flash (latest stable, best for coding/agents)
- * Fallback model: gemini-3.6-flash (previous stable, reliable)
+ * Invoke Gemini through Google's official `@google/genai` SDK while returning
+ * the established OpenAI-compatible result shape used by this application.
+ * Stable fallback models are attempted for transient, rate-limit, and
+ * model-availability failures.
  */
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  const apiKey = ENV.geminiApiKey;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  const client = getGeminiClient();
+  const { contents, systemInstruction } = buildGeminiConversation(params.messages);
+  const config = buildGenerateConfig(params);
+  if (systemInstruction) config.systemInstruction = systemInstruction;
+
+  const models = params.model
+    ? [params.model, ...(params.fallbackModels ?? [])]
+    : [GEMINI_MODELS.textPrimary, ...GEMINI_MODELS.textFallbacks];
+
+  let lastError: unknown;
+  for (const [index, model] of models.entries()) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents,
+        config,
+      });
+      return toInvokeResult(response, model);
+    } catch (error) {
+      lastError = error;
+      const hasFallback = index < models.length - 1;
+      if (!hasFallback || !isRetriableModelError(error)) throw error;
+      console.warn(
+        `[LLM] Model ${model} failed (${getErrorStatus(error) ?? "network"}); trying ${models[index + 1]}`,
+      );
+    }
   }
 
-  const {
-    messages,
-    tools,
-    toolChoice,
-    tool_choice,
-    outputSchema,
-    output_schema,
-    responseFormat,
-    response_format,
-  } = params;
-
-  const buildPayload = (model: string): Record<string, unknown> => {
-    const p: Record<string, unknown> = {
-      model,
-      messages: messages.map(normalizeMessage),
-    };
-
-    if (tools && tools.length > 0) {
-      p.tools = tools;
-    }
-
-    const normalizedToolChoice = normalizeToolChoice(
-      toolChoice || tool_choice,
-      tools
-    );
-    if (normalizedToolChoice) {
-      p.tool_choice = normalizedToolChoice;
-    }
-
-    p.max_tokens = 32768;
-
-    const normalizedResponseFormat = normalizeResponseFormat({
-      responseFormat,
-      response_format,
-      outputSchema,
-      output_schema,
-    });
-
-    if (normalizedResponseFormat) {
-      p.response_format = normalizedResponseFormat;
-    }
-
-    return p;
-  };
-
-  // Use Gemini OpenAI-compatible endpoint
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`;
-
-  const doRequest = async (model: string): Promise<Response> => {
-    return fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(buildPayload(model)),
-    });
-  };
-
-  // Try primary model first
-  let response = await doRequest(PRIMARY_MODEL);
-
-  // If primary fails (5xx or rate-limited), try fallback
-  if (!response.ok && (response.status >= 500 || response.status === 429)) {
-    console.warn(`[LLM] Primary model ${PRIMARY_MODEL} failed (${response.status}), trying fallback ${FALLBACK_MODEL}`);
-    response = await doRequest(FALLBACK_MODEL);
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
-  }
-
-  return (await response.json()) as InvokeResult;
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Gemini request failed without an error response");
 }
