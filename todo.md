@@ -1670,7 +1670,7 @@
 - [x] Update the footer version to v17.2.0
 - [x] Publish v17.2.0 and verify the live deployment
 - [x] Fix `/api/health` to report the shared v17.2.0 application version instead of stale v13.5.0
-- [ ] Verify that a new GitHub `main` push automatically starts a Northflank build without a manual API trigger
+- [x] Verify that a new GitHub `main` push automatically starts a Northflank build without a manual API trigger
 - [x] Resume and complete the Northflank GitHub app authorization for `khalifa1982/uae-stock-screener`
 - [x] Confirm the linked GitHub account is bound to `uae-builder` with CI enabled for `main`
-- [ ] Verify a push-triggered build automatically deploys and leaves `uae.market` healthy
+- [x] Verify a push-triggered build automatically deploys and leaves `uae.market` healthy

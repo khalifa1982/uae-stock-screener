@@ -76,3 +76,5 @@ Northflank's API still reported no linked `khalifa1982` GitHub account after sig
 A fresh Northflank authorization state was generated and opened, but the active browser window again displayed GitHub's sign-in form. Authentication must be completed in this exact active window so GitHub can continue to the Northflank app installation target-selection page.
 
 On September 4, 2026, the GitHub authorization was completed successfully. **Northflank Cloud – Build & Run** was installed on the `khalifa1982` account with least-privilege access restricted to the single repository `khalifa1982/uae-stock-screener`. GitHub redirected to Northflank integration ID `6a9a9dda327671b9c4bbe501` for finalization.
+
+Northflank finalized the integration, and `uae-builder` was rebound to the linked `khalifa1982` account with `disabledCI: false` and `branchRestrictions: ["main"]`. Pushing checkpoint `c41c6857389cc460ae6f2e25abe022f7733ccf2c` to GitHub automatically created build `nimble-passion-8941` without an API build request. The build completed successfully, and continuous delivery automatically rolled `uae-app` to the same commit SHA with deployment status `COMPLETED`.
